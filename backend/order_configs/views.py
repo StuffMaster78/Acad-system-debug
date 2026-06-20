@@ -29,12 +29,12 @@ from websites.models.websites import Website
 class AcademicLevelViewSet(viewsets.ModelViewSet):
     queryset = AcademicLevel.objects.all()
     serializer_class = AcademicLevelSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -53,12 +53,12 @@ class AcademicLevelViewSet(viewsets.ModelViewSet):
 class PaperTypeViewSet(viewsets.ModelViewSet):
     queryset = PaperType.objects.all()
     serializer_class = PaperTypeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -77,12 +77,12 @@ class PaperTypeViewSet(viewsets.ModelViewSet):
 class FormattingStyleViewSet(viewsets.ModelViewSet):
     queryset = FormattingandCitationStyle.objects.all()
     serializer_class = FormattingStyleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -101,12 +101,12 @@ class FormattingStyleViewSet(viewsets.ModelViewSet):
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         """Filter by website, category, and active status."""
@@ -375,12 +375,12 @@ class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
 class TypeOfWorkViewSet(viewsets.ModelViewSet):
     queryset = TypeOfWork.objects.all()
     serializer_class = TypeOfWorkSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -393,12 +393,12 @@ class TypeOfWorkViewSet(viewsets.ModelViewSet):
 class EnglishTypeViewSet(viewsets.ModelViewSet):
     queryset = EnglishType.objects.all()
     serializer_class = EnglishTypeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = super().get_queryset()

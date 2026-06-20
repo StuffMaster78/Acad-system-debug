@@ -89,7 +89,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   // A stale access token must never poison anonymous authentication flows.
   // DRF authenticates before checking AllowAny, so an invalid Authorization
   // header makes a valid login fail with token_not_valid.
-  if (auth.accessToken && !isAnonymousAuthRequest(config.url)) {
+  if (auth.accessToken && !isAnonymousAuthRequest(config.url) && !auth.isPreviewSession) {
     config.headers.Authorization = `Bearer ${auth.accessToken}`;
   }
   config.headers["X-Device-Fingerprint"] = DEVICE_FINGERPRINT;
