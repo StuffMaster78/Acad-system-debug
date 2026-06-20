@@ -118,7 +118,7 @@ const totalPages = computed(() => usingCms.value ? cmsTotalPages.value : staticT
 const activePage = computed(() => usingCms.value ? cmsPage.value : currentPage.value)
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 const CAT_COLOR: Record<string, string> = {

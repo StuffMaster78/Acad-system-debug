@@ -233,11 +233,11 @@ function printPage() { window.print() }
 // Utils
 function formatDate(iso: string | null | undefined) {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 function formatDateShort(iso: string | null | undefined) {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
 const authorInitial    = computed(() => (article.value?.author_name || 'G').charAt(0).toUpperCase())

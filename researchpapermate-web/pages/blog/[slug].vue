@@ -177,7 +177,7 @@ const bodyWithInlineCta = computed(() => {
 })
 
 const fmtDate = (d: string | null | undefined) =>
-  d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''
+  d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : ''
 
 const authorInitials = computed(() => {
   if (cmsArticle.value) return (cmsArticle.value.author_name || 'R').charAt(0).toUpperCase()
@@ -526,7 +526,7 @@ useHead({
                 <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ r.title }}</h3>
                 <p class="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{{ r.excerpt }}</p>
                 <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                  <time class="text-xs text-slate-400">{{ new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</time>
+                  <time class="text-xs text-slate-400">{{ new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) }}</time>
                   <span class="text-xs font-semibold text-brand-600 group-hover:underline">Read →</span>
                 </div>
               </NuxtLink>

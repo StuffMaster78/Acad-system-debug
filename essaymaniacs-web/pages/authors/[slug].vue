@@ -23,7 +23,7 @@ const ROLE_BADGE: Record<string, string> = {
 const initials = author.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('')
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
 }
 
 useSeoMeta({
