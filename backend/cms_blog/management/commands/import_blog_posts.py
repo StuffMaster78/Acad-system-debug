@@ -231,6 +231,12 @@ class Command(BaseCommand):
                 existing.save_revision().publish()
             else:
                 existing.save()
+            # Backfill original publication date when provided
+            if published_at:
+                existing.refresh_from_db()
+                existing.first_published_at = published_at
+                existing.last_published_at = published_at
+                existing.save(update_fields=["first_published_at", "last_published_at"])
             self.stdout.write(f"  UPDATE {slug}")
             return "updated"
 

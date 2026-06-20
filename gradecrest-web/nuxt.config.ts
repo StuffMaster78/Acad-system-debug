@@ -25,6 +25,22 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    // Dev proxy: routes API/CMS calls through the Nuxt dev server so we can
+    // inject Host: gradecrest.com — Wagtail uses the Host header to scope
+    // pages to the correct site. Without this, Django falls back to the
+    // default site (essaymaniacs) and gradecrest blog posts are invisible.
+    devProxy: {
+      '/api': {
+        target: 'http://localhost:8000/api',
+        changeOrigin: true,
+        headers: { Host: 'gradecrest.com' },
+      },
+      '/cms-api': {
+        target: 'http://localhost:8000/cms-api',
+        changeOrigin: true,
+        headers: { Host: 'gradecrest.com' },
+      },
+    },
     prerender: {
       crawlLinks: true,
       ignore: ['/order', '/order/**'],
@@ -58,6 +74,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     apiBaseInternal: '', // NUXT_API_BASE_INTERNAL — http://web:8000 (server-only, bypasses nginx)
+    // Passed as Host header on SSR $fetch calls so Wagtail resolves the correct site.
+    // In production nginx handles this; in dev we need it explicitly.
+    siteHostname: 'gradecrest.com',
     public: {
       apiBase: '',       // NUXT_PUBLIC_API_BASE — https://gradecrest.com (browser-accessible)
       appUrl: '',        // NUXT_PUBLIC_APP_URL  — client portal (for login/register links)

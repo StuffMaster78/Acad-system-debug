@@ -3,13 +3,9 @@ const portal = usePortalStore()
 const allServices = useCmsServiceList()
 const { getAll: getAllStaticServices } = useServices()
 // Split services into two columns for the mega-menu
-const menuServicesA = computed(() => {
+const menuServices = computed(() => {
   const list = allServices.value.length ? allServices.value : getAllStaticServices()
-  return list.slice(0, 5)
-})
-const menuServicesB = computed(() => {
-  const list = allServices.value.length ? allServices.value : getAllStaticServices()
-  return list.slice(5)
+  return list
 })
 
 const orderPaths = [
@@ -26,8 +22,8 @@ const nav = [
   { label: 'Our writers',  href: '/writers' },
   { label: 'Pricing',      href: '/pricing' },
   { label: 'Blog',         href: '/blog' },
-  { label: 'FAQ',          href: '/faq' },
   { label: 'Reviews',      href: '/reviews' },
+  { label: 'FAQ',          href: '/faq' },
   { label: 'Contact',      href: '/contact' },
 ]
 
@@ -88,7 +84,18 @@ const ORDER_SVG: Record<string, string> = {
       <!-- Desktop nav -->
       <nav class="hidden items-center gap-6 md:flex">
 
-        <!-- Services mega-menu trigger -->
+        <!-- Static nav items that come before Services -->
+        <NuxtLink
+          v-for="item in nav.slice(0, 3)"
+          :key="item.href"
+          :href="item.href"
+          class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+          active-class="text-brand-600"
+        >
+          {{ item.label }}
+        </NuxtLink>
+
+        <!-- Services mega-menu trigger — sits after Pricing, before Blog -->
         <div
           class="relative"
           @mouseenter="openServices"
@@ -106,73 +113,75 @@ const ORDER_SVG: Record<string, string> = {
           <!-- Mega-menu dropdown -->
           <div
             v-if="servicesOpen"
-            class="absolute left-1/2 top-full z-50 mt-2 w-[780px] -translate-x-1/2 rounded-2xl border border-slate-100 bg-white p-6 shadow-xl"
+            class="absolute left-1/2 top-full z-50 mt-2 w-[700px] -translate-x-1/2 rounded-2xl border border-slate-100 bg-white shadow-xl"
             @mouseenter="openServices"
             @mouseleave="scheduleClose"
           >
-            <div class="grid grid-cols-4 gap-5">
+            <div class="grid grid-cols-[1fr_220px] divide-x divide-slate-100">
 
-              <!-- Col 1-2: Order types -->
-              <div class="col-span-2">
-                <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Place an order</p>
-                <div class="grid grid-cols-2 gap-2">
+              <!-- Left: order types + paper types -->
+              <div class="p-6">
+                <!-- Order types -->
+                <p class="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Place an order</p>
+                <div class="grid grid-cols-2 gap-1.5">
                   <NuxtLink
                     v-for="op in orderPaths"
                     :key="op.id"
                     :href="op.href"
-                    class="group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-colors hover:border-slate-100 hover:bg-slate-50"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-slate-50"
                     @click="servicesOpen = false"
                   >
-                    <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
                       :class="op.color.replace('text-', 'border-').replace('600', '200') + ' ' + op.color.replace('text-', 'bg-').replace('600', '50')">
                       <svg class="h-4 w-4" :class="op.color" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="ORDER_SVG[op.id]" /></svg>
                     </div>
                     <div class="min-w-0">
-                      <p class="text-sm font-semibold text-slate-800 transition-colors group-hover:text-brand-700">{{ op.label }}</p>
-                      <p class="mt-0.5 text-xs leading-tight text-slate-400">{{ op.desc }}</p>
+                      <p class="truncate text-sm font-semibold text-slate-800 transition-colors group-hover:text-brand-700">{{ op.label }}</p>
+                      <p class="truncate text-[11px] leading-tight text-slate-400">{{ op.desc }}</p>
                     </div>
                   </NuxtLink>
                 </div>
+
+                <!-- Divider -->
+                <div class="my-4 border-t border-slate-100" />
+
+                <!-- Paper types from CMS -->
+                <p class="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Paper types</p>
+                <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                  <NuxtLink
+                    v-for="s in menuServices"
+                    :key="s.slug"
+                    :href="`/services/${s.slug}`"
+                    class="rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                    @click="servicesOpen = false"
+                  >
+                    {{ s.navLabel }}
+                  </NuxtLink>
+                </div>
+                <NuxtLink href="/services" class="mt-3 inline-block text-xs font-semibold text-brand-600 hover:underline" @click="servicesOpen = false">
+                  View all services →
+                </NuxtLink>
               </div>
 
-              <!-- Col 3-4: Paper types in two mini-columns + CTA -->
-              <div class="col-span-2 flex flex-col gap-3">
-                <div class="grid grid-cols-2 gap-x-4">
-                  <div>
-                    <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Writing</p>
-                    <ul class="space-y-0.5">
-                      <li v-for="s in menuServicesA" :key="s.slug">
-                        <NuxtLink :href="`/services/${s.slug}`"
-                          class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
-                          @click="servicesOpen = false">
-                          {{ s.navLabel }}
-                        </NuxtLink>
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Research & More</p>
-                    <ul class="space-y-0.5">
-                      <li v-for="s in menuServicesB" :key="s.slug">
-                        <NuxtLink :href="`/services/${s.slug}`"
-                          class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
-                          @click="servicesOpen = false">
-                          {{ s.navLabel }}
-                        </NuxtLink>
-                      </li>
-                      <li>
-                        <NuxtLink href="/services" class="block px-2 py-1.5 text-xs font-semibold text-brand-600 hover:underline" @click="servicesOpen = false">
-                          All paper types →
-                        </NuxtLink>
-                      </li>
-                    </ul>
-                  </div>
+              <!-- Right: CTA panel -->
+              <div class="flex flex-col justify-between bg-brand-900 p-6 rounded-r-2xl">
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-brand-400">Expert writers</p>
+                  <p class="mt-2 text-base font-bold leading-snug text-white">Essays from<br /><span class="text-2xl text-brand-300">$10</span>/page</p>
+                  <ul class="mt-4 space-y-2">
+                    <li v-for="t in ['4.8★ rated service', '20,000+ orders done', 'Grade or money back', '24/7 live support']" :key="t"
+                      class="flex items-center gap-2 text-xs text-brand-200">
+                      <svg class="h-3.5 w-3.5 shrink-0 text-brand-400" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2 6 5 9 10 3"/></svg>
+                      {{ t }}
+                    </li>
+                  </ul>
                 </div>
-                <div class="rounded-xl bg-brand-900 p-3 text-center">
-                  <p class="text-xs font-semibold text-white">Essays from $10/page</p>
-                  <p class="mt-0.5 text-xs text-brand-300">4.8★ · 20,000+ orders delivered</p>
-                  <NuxtLink to="/order" class="mt-2 block rounded-lg bg-white py-1.5 text-xs font-bold text-brand-700 transition-colors hover:bg-brand-50" @click="servicesOpen = false">
+                <div class="mt-6 space-y-2">
+                  <NuxtLink to="/order" class="block rounded-xl bg-white py-2.5 text-center text-sm font-bold text-brand-700 transition-colors hover:bg-brand-50" @click="servicesOpen = false">
                     Place an order
+                  </NuxtLink>
+                  <NuxtLink to="/quote" class="block rounded-xl border border-brand-700 py-2 text-center text-xs font-semibold text-brand-300 transition-colors hover:border-brand-500 hover:text-white" @click="servicesOpen = false">
+                    Get a custom quote
                   </NuxtLink>
                 </div>
               </div>
@@ -181,9 +190,9 @@ const ORDER_SVG: Record<string, string> = {
           </div>
         </div>
 
-        <!-- Other nav items -->
+        <!-- Remaining nav items after Services -->
         <NuxtLink
-          v-for="item in nav"
+          v-for="item in nav.slice(3)"
           :key="item.href"
           :href="item.href"
           class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"

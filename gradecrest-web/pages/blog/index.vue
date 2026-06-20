@@ -27,6 +27,9 @@ interface BlogPost {
 
 const config = useRuntimeConfig()
 const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+// On the server side the devProxy is bypassed, so we inject the Host header
+// explicitly so Wagtail resolves the gradecrest.com site (not the default site).
+const ssrHeaders = import.meta.server ? { Host: (config as any).siteHostname ?? 'gradecrest.com' } : undefined
 const PAGE_SIZE = 12
 
 const page     = ref(1)
@@ -41,13 +44,16 @@ async function loadPage(p: number) {
   try {
     const res = await $fetch<{ meta: { total_count: number }; items: BlogPost[] }>(
       `${apiBase}/api/v2/pages/`,
-      { params: {
-        type:   'cms_blog.BlogPostPage',
-        fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name',
-        order:  '-first_published_at',
-        limit:  PAGE_SIZE,
-        offset: (p - 1) * PAGE_SIZE,
-      }},
+      {
+        params: {
+          type:   'cms_blog.BlogPostPage',
+          fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name',
+          order:  '-first_published_at',
+          limit:  PAGE_SIZE,
+          offset: (p - 1) * PAGE_SIZE,
+        },
+        headers: ssrHeaders,
+      },
     )
     total.value    = res?.meta?.total_count ?? 0
     allPosts.value = res.items ?? []
