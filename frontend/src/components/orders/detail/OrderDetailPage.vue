@@ -89,6 +89,10 @@
           :order="order"
           :role="role"
         />
+        <OrderWriterEarningsTab
+          v-else-if="activeTab === 'earnings'"
+          :order-id="orderId"
+        />
         <OrderStaffingTab
           v-else-if="activeTab === 'staffing'"
           :order-id="orderId"
@@ -175,6 +179,7 @@ import OrderAdjustmentsTab from "./tabs/OrderAdjustmentsTab.vue";
 import OrderQualityTab from "./tabs/OrderQualityTab.vue";
 import OrderTimelineTab from "./tabs/OrderTimelineTab.vue";
 import OrderAuditTab from "./tabs/OrderAuditTab.vue";
+import OrderWriterEarningsTab from "./tabs/OrderWriterEarningsTab.vue";
 
 const props = defineProps<{ role: UserRole }>();
 

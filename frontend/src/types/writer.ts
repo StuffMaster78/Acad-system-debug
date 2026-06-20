@@ -62,12 +62,16 @@ export interface WriterEvent {
   status?: string;
   amount?: string | number;
   is_positive?: boolean;
+  title?: string;
+  description?: string;
+  notes?: string;
+  source_type?: string;
+  source_id?: number | string | null;
   source_label?: string | null;
   window_label?: string;
   created_at?: string;
-  // legacy/fallback — not returned by current serializer
+  // legacy/fallback
   net_amount?: string | number;
-  description?: string;
   [key: string]: unknown;
 }
 

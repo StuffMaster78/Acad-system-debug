@@ -14,7 +14,7 @@ export const ORDER_DETAIL_KEY: InjectionKey<OrderDetailContext> = Symbol("order-
 // Which tabs each role may access
 export const ROLE_TABS: Record<UserRole, string[]> = {
   client: ["details", "files", "messages", "payments", "revisions", "adjustments", "timeline"],
-  writer: ["details", "files", "messages", "revisions", "adjustments", "timeline"],
+  writer: ["details", "files", "messages", "earnings", "revisions", "adjustments", "timeline"],
   support: ["details", "files", "messages", "payments", "revisions", "adjustments", "timeline"],
   editor: ["details", "files", "messages", "quality", "timeline"],
   admin: ["details", "files", "messages", "payments", "staffing", "revisions", "adjustments", "quality", "timeline", "audit"],
@@ -26,6 +26,7 @@ export const TAB_LABELS: Record<string, string> = {
   files: "Files",
   messages: "Messages",
   payments: "Payments",
+  earnings: "My Earnings",
   staffing: "Staffing",
   revisions: "Revisions",
   adjustments: "Scope Changes",

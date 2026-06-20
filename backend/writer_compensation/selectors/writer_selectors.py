@@ -38,6 +38,10 @@ class WriterSelectors:
                 qs = qs.filter(created_at__date__gte=filters["from_date"])
             if filters.get("to_date"):
                 qs = qs.filter(created_at__date__lte=filters["to_date"])
+            if filters.get("source_type"):
+                qs = qs.filter(source_type=filters["source_type"])
+            if filters.get("source_id"):
+                qs = qs.filter(source_id=filters["source_id"])
 
         return qs
 

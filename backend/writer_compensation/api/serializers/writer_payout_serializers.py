@@ -35,6 +35,11 @@ class WriterEventSerializer(serializers.ModelSerializer):
             "event_type",
             "amount",
             "status",
+            "title",
+            "description",
+            "notes",
+            "source_type",
+            "source_id",
             "source_label",
             "is_positive",
             "window_label",
@@ -46,8 +51,10 @@ class WriterEventSerializer(serializers.ModelSerializer):
         return obj.amount > Decimal("0.00")
 
     def get_window_label(self, obj) -> str:
-        w = obj.payment_window # FIX: was obj.window
-        return f"{w.start_date} – {w.end_date}"
+        w = obj.payment_window
+        if w:
+            return f"{w.start_date} – {w.end_date}"
+        return "—"
 
     def get_source_label(self, obj) -> str | None:
         if obj.source_type and obj.source_id:

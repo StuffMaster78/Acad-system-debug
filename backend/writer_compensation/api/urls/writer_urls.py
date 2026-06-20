@@ -7,6 +7,7 @@ from writer_compensation.api.views.writer_payout_views import (
     WriterCycleChangeRequestView,
     WriterEventListView,
     WriterLifetimeSummaryView,
+    WriterOrderRateCardView,
     WriterPayoutHistoryView,
     WriterPayoutPreferenceView,
 )
@@ -62,5 +63,10 @@ urlpatterns = [
         "compensation/bonuses/",
         WriterBonusHistoryView.as_view(),
         name="writer-bonus-history"
+    ),
+    path(
+        "compensation/orders/<int:order_id>/rate-card/",
+        WriterOrderRateCardView.as_view(),
+        name="writer-order-rate-card",
     ),
 ]

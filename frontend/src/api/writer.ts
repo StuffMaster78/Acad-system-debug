@@ -104,6 +104,33 @@ export const writerApi = {
       apiPath("/writer-compensation/writer/compensation/events/"),
       { params },
     ),
+  eventsForOrder: (orderId: number | string) =>
+    api.get<WriterEvent[]>(
+      apiPath("/writer-compensation/writer/compensation/events/"),
+      { params: { source_type: "order", source_id: orderId } },
+    ),
+  orderRateCard: (orderId: number | string) =>
+    api.get<{
+      order_id: number;
+      level_name: string;
+      earning_mode: string;
+      currency: string;
+      rates: {
+        base_pay_per_page: string;
+        base_pay_per_slide: string;
+        base_pay_per_chart: string;
+        additional_page_pay: string;
+        additional_slide_pay: string;
+        additional_chart_pay: string;
+      };
+      urgency: {
+        urgent_time_threshold_hours: number;
+        urgent_order_surcharge: string;
+        urgent_multiplier: string;
+      };
+      tip_percentage: string;
+      snapshotted_at: string;
+    }>(apiPath(`/writer-compensation/writer/compensation/orders/${orderId}/rate-card/`)),
   payoutHistory: () =>
     api.get<{ id: number; total_amount: string; status: string; window_label: string; paid_at: string | null }[]>(
       apiPath("/writer-compensation/writer/compensation/payouts/"),

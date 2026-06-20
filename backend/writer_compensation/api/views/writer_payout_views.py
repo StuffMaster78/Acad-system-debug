@@ -91,6 +91,8 @@ class WriterEventListView(APIView):
             "window_id": request.query_params.get("window_id"),
             "from_date": request.query_params.get("from_date"),
             "to_date": request.query_params.get("to_date"),
+            "source_type": request.query_params.get("source_type"),
+            "source_id": request.query_params.get("source_id"),
         }
 
         events = WriterSelectors.get_writer_events(
@@ -291,3 +293,50 @@ class WriterCycleChangeRequestView(APIView):
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class WriterOrderRateCardView(APIView):
+    """
+    GET /writer/compensation/orders/<order_id>/rate-card/
+
+    Returns the RateCardSnapshot captured at assignment time for the
+    given order. Only accessible by the writer who was assigned to it.
+    Returns 404 when no snapshot exists (order not yet assigned).
+    """
+
+    permission_classes = [IsWriter]
+
+    def get(self, request, order_id: int):
+        from django.shortcuts import get_object_or_404
+        from writer_compensation.models.rate_card_snapshot import RateCardSnapshot
+
+        writer = _get_writer_profile(request)
+
+        snapshot = get_object_or_404(
+            RateCardSnapshot.objects.select_related("order"),
+            order_id=order_id,
+            writer=writer,
+            website=_get_website(request),
+        )
+
+        return Response({
+            "order_id": order_id,
+            "level_name": snapshot.level_name,
+            "earning_mode": snapshot.earning_mode,
+            "currency": snapshot.currency,
+            "rates": {
+                "base_pay_per_page": str(snapshot.base_pay_per_page),
+                "base_pay_per_slide": str(snapshot.base_pay_per_slide),
+                "base_pay_per_chart": str(snapshot.base_pay_per_chart),
+                "additional_page_pay": str(snapshot.additional_page_pay),
+                "additional_slide_pay": str(snapshot.additional_slide_pay),
+                "additional_chart_pay": str(snapshot.additional_chart_pay),
+            },
+            "urgency": {
+                "urgent_time_threshold_hours": snapshot.urgent_time_threshold_hours,
+                "urgent_order_surcharge": str(snapshot.urgent_order_surcharge),
+                "urgent_multiplier": str(snapshot.urgent_multiplier),
+            },
+            "tip_percentage": str(snapshot.tip_percentage),
+            "snapshotted_at": snapshot.snapshotted_at,
+        })
