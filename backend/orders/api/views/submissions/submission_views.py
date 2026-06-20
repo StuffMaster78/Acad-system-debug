@@ -22,6 +22,7 @@ from orders.api.serializers.submissions.reopen_order_serializer import (
 from orders.api.serializers.submissions.submit_order_serializer import (
     SubmitOrderSerializer,
 )
+from core.utils.request_context import resolve_request_website
 from orders.models import Order
 from orders.services.order_submission_service import (
     OrderSubmissionService,
@@ -77,16 +78,11 @@ class SubmitOrderView(GenericAPIView):
         request: Request,
         order_id: int,
     ) -> Order:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            Order.objects.select_related(
-                "website",
-                "client",
-                "preferred_writer",
-            ),
-            pk=order_id,
-            website=resolve_request_website(request),
-        )
+        website = resolve_request_website(request)
+        qs = Order.objects.select_related("website", "client", "preferred_writer")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=order_id)
 
 
 class CompleteOrderView(GenericAPIView):
@@ -140,16 +136,11 @@ class CompleteOrderView(GenericAPIView):
         request: Request,
         order_id: int,
     ) -> Order:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            Order.objects.select_related(
-                "website",
-                "client",
-                "preferred_writer",
-            ),
-            pk=order_id,
-            website=resolve_request_website(request),
-        )
+        website = resolve_request_website(request)
+        qs = Order.objects.select_related("website", "client", "preferred_writer")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=order_id)
 
 
 class ReopenOrderView(GenericAPIView):
@@ -202,13 +193,8 @@ class ReopenOrderView(GenericAPIView):
         request: Request,
         order_id: int,
     ) -> Order:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            Order.objects.select_related(
-                "website",
-                "client",
-                "preferred_writer",
-            ),
-            pk=order_id,
-            website=resolve_request_website(request),
-        )
+        website = resolve_request_website(request)
+        qs = Order.objects.select_related("website", "client", "preferred_writer")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=order_id)
