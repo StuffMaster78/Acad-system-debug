@@ -1,0 +1,44 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Earning Reversed{% endblock %}
+{% block tagline %}<div class="tagline">Writer Compensation</div>{% endblock %}
+
+{% block content %}
+<h1>Your earning has been reversed</h1>
+<p class="lead">Hi {{ recipient.first_name|default:recipient.username }},</p>
+<p>
+    The earning for order #{{ order_id }} has been reversed because the order
+    was cancelled. The amount has been removed from your upcoming payment.
+</p>
+
+<table class="detail-table">
+    <tr>
+        <td>Order</td>
+        <td>#{{ order_id }}</td>
+    </tr>
+    <tr>
+        <td>Reversed amount</td>
+        <td style="font-size:18px;font-weight:700;">{{ amount }}</td>
+    </tr>
+    <tr>
+        <td>Action</td>
+        <td>{{ action|title }}</td>
+    </tr>
+</table>
+
+<div class="info-box">
+    <p>
+        {% if action == "voided" %}
+        The earning was removed before the payment window closed, so it will
+        not appear in your next payout.
+        {% else %}
+        A compensating reversal has been recorded in your next payment window.
+        Your upcoming payout will reflect the updated balance.
+        {% endif %}
+    </p>
+    <p>
+        If you believe this reversal was made in error, please contact support
+        with your order number.
+    </p>
+</div>
+{% endblock %}

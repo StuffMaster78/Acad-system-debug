@@ -441,6 +441,28 @@ DEFAULT_TEMPLATES = {
             'available_variables': ['amount', 'direction'],
         },
     },
+    'compensation.earning_reversed': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Earning reversed for Order #{{order_id}}',
+            'body_html': (
+                'notifications/emails/compensation_earning_reversed.html'
+            ),
+            'body_text': (
+                'Your earning of {{amount}} for order #{{order_id}} has been '
+                'reversed because the order was cancelled. '
+                'If this was unexpected, please contact support.'
+            ),
+            'available_variables': ['order_id', 'amount', 'action'],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Earning reversed — Order #{{order_id}}',
+            'message': (
+                'Your earning of {{amount}} for order #{{order_id}} '
+                'has been reversed.'
+            ),
+            'available_variables': ['order_id', 'amount'],
+        },
+    },
 
     # Writer management
     'writer.approved': {

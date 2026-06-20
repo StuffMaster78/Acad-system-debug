@@ -144,6 +144,10 @@ class NotificationEvent(TextChoices):
         'compensation.adjustment_applied',
         _('Compensation Adjustment Applied'),
     )
+    COMPENSATION_EARNING_REVERSED = (
+        'compensation.earning_reversed',
+        _('Compensation Earning Reversed'),
+    )
 
     # Writer management — staff acts, writer receives
     WRITER_APPROVED = 'writer.approved', _('Writer Approved')
