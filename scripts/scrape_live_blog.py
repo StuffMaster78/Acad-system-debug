@@ -63,9 +63,26 @@ from xml.etree import ElementTree as ET
 SITE_PROFILES: dict[str, dict] = {
     "gradecrest.com": {
         "sitemap_url": "https://gradecrest.com/blogs-sitemap.xml",
-        "content_section_class": "blog_content",
-        "time_div_class": "mod_time",
         "base_url": "https://gradecrest.com",
+        "parser": "gradecrest",
+    },
+    "nursemygrade.com": {
+        "sitemap_url": "https://nursemygrade.com/sitemap-blogs.xml",
+        "base_url": "https://nursemygrade.com",
+        "parser": "nursemygrade",
+        # skip the blog index page listed in the sitemap
+        "skip_paths": {"/blog", "/blog/"},
+    },
+    "researchpapermate.com": {
+        "sitemap_url": "https://researchpapermate.com/blogs-sitemap.xml",
+        "base_url": "https://researchpapermate.com",
+        "parser": "researchpapermate",   # same layout as gradecrest
+    },
+    "essaymaniacs.com": {
+        "sitemap_url": "https://essaymaniacs.com/sitemap-blogs.xml",
+        "base_url": "https://essaymaniacs.com",
+        "parser": "essaymaniacs",
+        "skip_paths": {"/blog", "/blog/"},
     },
 }
 
@@ -266,8 +283,139 @@ def _parse_gradecrest(html: str, url: str) -> Optional[dict]:
     }
 
 
+def _parse_nursemygrade(html: str, url: str) -> Optional[dict]:
+    """
+    NurseMyGrade layout:
+      <div class="blog_top_txt"><h1>…</h1>  <author_name>  <blog_date><span>Month DD, YYYY</span>
+      <section class="blog_body"><div class="blog_content">…</div></section>
+    """
+    slug = urlparse(url).path.strip("/").split("/")[-1]
+    if not slug:
+        return None
+
+    seo_title_m = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
+    seo_title = html_module.unescape(seo_title_m.group(1).strip()) if seo_title_m else ""
+
+    meta_desc_m = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+    meta_desc = html_module.unescape(meta_desc_m.group(1).strip()) if meta_desc_m else ""
+
+    h1_m = re.search(r'<div\s+class=["\']blog_top_txt["\'][^>]*>.*?<h1[^>]*>(.*?)</h1>', html, re.IGNORECASE | re.DOTALL)
+    title = html_module.unescape(strip_tags(h1_m.group(1))) if h1_m else seo_title
+
+    # Author: <span class="author_name"><span>Written by</span><span>NAME</span></span>
+    author_name = ""
+    author_slug = ""
+    auth_block_m = re.search(r'<span\s+class=["\']author_name["\'][^>]*>(.*?)</span\s*>', html, re.IGNORECASE | re.DOTALL)
+    if auth_block_m:
+        # strip "Written by" spans, keep the name
+        spans = re.findall(r'<span[^>]*>(.*?)</span>', auth_block_m.group(1), re.DOTALL)
+        parts = [strip_tags(s).strip().rstrip(".") for s in spans if strip_tags(s).strip() and "written by" not in strip_tags(s).lower()]
+        if parts:
+            author_name = parts[0]
+            author_slug = re.sub(r"[^a-z0-9]+", "-", author_name.lower()).strip("-")
+
+    # Date: <div class="blog_date"><span>Month DD, YYYY</span>
+    published_at = ""
+    date_m = re.search(r'<div\s+class=["\']blog_date["\'][^>]*>\s*<span>([^<]+)</span>', html, re.IGNORECASE)
+    if date_m:
+        raw = date_m.group(1).strip()
+        try:
+            from datetime import datetime
+            published_at = datetime.strptime(raw, "%B %d, %Y").strftime("%Y-%m-%d")
+        except ValueError:
+            published_at = ""
+
+    # Body: content of div.blog_content
+    body_m = re.search(r'<div\s+class=["\']blog_content["\'][^>]*>(.*?)</div\s*>\s*</section', html, re.IGNORECASE | re.DOTALL)
+    if not body_m:
+        body_m = re.search(r'<div\s+class=["\']blog_content["\'][^>]*>(.*?)</section', html, re.IGNORECASE | re.DOTALL)
+    if not body_m:
+        return None
+
+    body_html = body_m.group(1).strip()
+    first_p = re.search(r"<p[^>]*>(.*?)</p>", body_html, re.DOTALL | re.IGNORECASE)
+    excerpt = strip_tags(first_p.group(1))[:400].strip() if first_p else meta_desc
+    reading_time = max(1, round(len(re.findall(r"\w+", strip_tags(body_html))) / 238))
+
+    return {
+        "slug": slug, "title": title, "excerpt": excerpt, "body_html": body_html,
+        "category": "Blog", "tags": [],
+        "author_name": author_name or "NurseMyGrade Editorial Team",
+        "author_slug": author_slug or "nursemygrade-editorial",
+        "published_at": published_at,
+        "seo_title": seo_title, "search_description": meta_desc, "reading_time": reading_time,
+    }
+
+
+def _parse_researchpapermate(html: str, url: str) -> Optional[dict]:
+    """Same layout as GradeCrest (section.blog_content + mod_time div)."""
+    return _parse_gradecrest(html, url)
+
+
+def _parse_essaymaniacs(html: str, url: str) -> Optional[dict]:
+    """
+    EssayManiacs layout:
+      <div class="blog_titles"><div class="blog_header"><h1 class="white">…</h1>
+        <span class="author_name">By NAME</span>
+      <section class="company_content blog_cont">…</section>
+    """
+    slug = urlparse(url).path.strip("/").split("/")[-1]
+    if not slug:
+        return None
+
+    seo_title_m = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
+    seo_title = html_module.unescape(seo_title_m.group(1).strip()) if seo_title_m else ""
+
+    meta_desc_m = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+    meta_desc = html_module.unescape(meta_desc_m.group(1).strip()) if meta_desc_m else ""
+
+    h1_m = re.search(r'<h1[^>]*class=["\'][^"\']*white[^"\']*["\'][^>]*>(.*?)</h1>', html, re.IGNORECASE | re.DOTALL)
+    title = html_module.unescape(strip_tags(h1_m.group(1))) if h1_m else seo_title
+
+    # Author: <span class="author_name">By NAME</span>
+    author_name = ""
+    author_slug = ""
+    auth_m = re.search(r'<span\s+class=["\']author_name["\'][^>]*>(.*?)</span>', html, re.IGNORECASE | re.DOTALL)
+    if auth_m:
+        raw = strip_tags(auth_m.group(1)).strip()
+        name = re.sub(r"^by\s+", "", raw, flags=re.IGNORECASE).strip()
+        if name:
+            author_name = name
+            author_slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+    # Body: section.company_content.blog_cont
+    body_m = re.search(
+        r'<section\s+class=["\'][^"\']*company_content[^"\']*blog_cont[^"\']*["\'][^>]*>(.*?)</section>',
+        html, re.IGNORECASE | re.DOTALL,
+    )
+    if not body_m:
+        body_m = re.search(
+            r'<section\s+class=["\'][^"\']*blog_cont[^"\']*["\'][^>]*>(.*?)</section>',
+            html, re.IGNORECASE | re.DOTALL,
+        )
+    if not body_m:
+        return None
+
+    body_html = body_m.group(1).strip()
+    first_p = re.search(r"<p[^>]*>(.*?)</p>", body_html, re.DOTALL | re.IGNORECASE)
+    excerpt = strip_tags(first_p.group(1))[:400].strip() if first_p else meta_desc
+    reading_time = max(1, round(len(re.findall(r"\w+", strip_tags(body_html))) / 238))
+
+    return {
+        "slug": slug, "title": title, "excerpt": excerpt, "body_html": body_html,
+        "category": "Blog", "tags": [],
+        "author_name": author_name or "EssayManiacs Editorial Team",
+        "author_slug": author_slug or "essaymaniacs-editorial",
+        "published_at": "",
+        "seo_title": seo_title, "search_description": meta_desc, "reading_time": reading_time,
+    }
+
+
 PARSERS = {
     "gradecrest.com": _parse_gradecrest,
+    "nursemygrade.com": _parse_nursemygrade,
+    "researchpapermate.com": _parse_researchpapermate,
+    "essaymaniacs.com": _parse_essaymaniacs,
 }
 
 
@@ -288,8 +436,9 @@ def main() -> None:
     if site not in SITE_PROFILES:
         sys.exit(f"ERROR: unknown site '{site}'. Known: {', '.join(SITE_PROFILES)}")
 
-    profile = SITE_PROFILES[site]
+    profile  = SITE_PROFILES[site]
     parse_fn = PARSERS[site]
+    skip_paths = profile.get("skip_paths", set())
 
     # Resume: load existing output
     existing: dict[str, dict] = {}
@@ -301,8 +450,12 @@ def main() -> None:
 
     # Fetch sitemap
     print(f"Fetching sitemap: {profile['sitemap_url']}")
-    urls = _fetch_sitemap_urls(profile["sitemap_url"])
-    print(f"Found {len(urls)} URLs in sitemap.")
+    all_urls = _fetch_sitemap_urls(profile["sitemap_url"])
+    # Filter out index/non-article paths (e.g. /blog, /blog/)
+    urls = [u for u in all_urls if urlparse(u).path.rstrip("/") not in {p.rstrip("/") for p in skip_paths}]
+    if len(urls) != len(all_urls):
+        print(f"Skipped {len(all_urls) - len(urls)} non-article URLs (index pages).")
+    print(f"Found {len(urls)} article URLs.")
 
     if args.limit:
         urls = urls[: args.limit]
