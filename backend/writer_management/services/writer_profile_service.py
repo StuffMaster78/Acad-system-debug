@@ -425,12 +425,18 @@ class WriterProfileService:
         writer.deleted_at = now()
         writer.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
 
-        # Immediately disable from routing
+        # Immediately disable from routing.
         from writer_management.models.writer_capacity import WriterCapacity
         WriterCapacity.objects.filter(writer=writer).update(
             can_take_orders=False,
             is_accepting_orders=False,
         )
+
+        # Release any active order assignments so orders return to pool.
+        WriterProfileService._release_writer_assignments(writer=writer, actor=deleted_by)
+
+        # Decline any open bids so orders are not capacity-locked.
+        WriterProfileService._decline_writer_interests(writer=writer)
 
         WriterProfileService._create_update_log(
             writer=writer,
@@ -447,6 +453,50 @@ class WriterProfileService:
         )
 
         return writer
+
+    @staticmethod
+    def _release_writer_assignments(*, writer, actor) -> None:
+        from django.utils.timezone import now as tz_now
+        from orders.models.orders.order_assignment import OrderAssignment
+        from orders.models.orders.constants import (
+            ORDER_ASSIGNMENT_STATUS_ACTIVE,
+            ORDER_ASSIGNMENT_STATUS_RELEASED,
+        )
+        released = OrderAssignment.objects.filter(
+            writer=writer,
+            status=ORDER_ASSIGNMENT_STATUS_ACTIVE,
+        ).update(
+            status=ORDER_ASSIGNMENT_STATUS_RELEASED,
+            is_current=False,
+            released_at=tz_now(),
+            release_reason="writer_profile_soft_deleted",
+            updated_at=tz_now(),
+        )
+        if released:
+            logger.info(
+                "_release_writer_assignments: released %s assignment(s) for writer=%s",
+                released, writer.pk,
+            )
+
+    @staticmethod
+    def _decline_writer_interests(*, writer) -> None:
+        from django.utils.timezone import now as tz_now
+        from orders.models.orders.order_interest import OrderInterest
+        from orders.models.orders.constants import (
+            ORDER_INTEREST_STATUS_DECLINED,
+            ORDER_INTEREST_TERMINAL_STATUSES,
+        )
+        declined = OrderInterest.objects.filter(writer=writer).exclude(
+            status__in=ORDER_INTEREST_TERMINAL_STATUSES,
+        ).update(
+            status=ORDER_INTEREST_STATUS_DECLINED,
+            updated_at=tz_now(),
+        )
+        if declined:
+            logger.info(
+                "_decline_writer_interests: declined %s interest(s) for writer=%s",
+                declined, writer.pk,
+            )
 
     @staticmethod
     @transaction.atomic
