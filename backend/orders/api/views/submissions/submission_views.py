@@ -85,7 +85,7 @@ class SubmitOrderView(GenericAPIView):
                 "preferred_writer",
             ),
             pk=order_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )
 
 
@@ -148,7 +148,7 @@ class CompleteOrderView(GenericAPIView):
                 "preferred_writer",
             ),
             pk=order_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )
 
 
@@ -210,5 +210,5 @@ class ReopenOrderView(GenericAPIView):
                 "preferred_writer",
             ),
             pk=order_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )

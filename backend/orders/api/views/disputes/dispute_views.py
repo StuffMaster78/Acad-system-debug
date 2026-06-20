@@ -8,6 +8,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from core.utils.request_context import resolve_request_website
 from orders.api.permissions.dispute_permissions import (
     CanCloseDispute,
     CanEscalateDispute,
@@ -30,6 +31,51 @@ from orders.models import Order, OrderDispute
 from orders.services.dispute_orchestration_service import (
     DisputeOrchestrationService,
 )
+
+
+class DisputeWriterResponseView(GenericAPIView):
+    """
+    POST disputes/<dispute_id>/writer-response/
+
+    The assigned writer submits a formal written response to an open dispute.
+    Only one response is allowed per dispute; subsequent calls return 400.
+    """
+
+    serializer_class = None  # validated inline
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request: Request, dispute_id: int, *args: Any, **kwargs: Any) -> Response:
+        dispute = get_object_or_404(
+            OrderDispute.objects.select_related("order", "website"),
+            pk=dispute_id,
+            website=getattr(request, "website", None),
+        )
+
+        response_text = (request.data.get("response_text") or "").strip()
+        if not response_text:
+            return Response(
+                {"detail": "response_text is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            response = DisputeOrchestrationService.submit_writer_response(
+                dispute=dispute,
+                writer=request.user,
+                response_text=response_text,
+            )
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "detail": "Writer response submitted.",
+                "response_id": response.pk,
+                "dispute_id": dispute.pk,
+                "submitted_at": response.created_at.isoformat() if hasattr(response, "created_at") else None,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class DisputeOpenView(GenericAPIView):
@@ -92,7 +138,7 @@ class DisputeOpenView(GenericAPIView):
                 "preferred_writer",
             ),
             pk=order_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )
 
 
@@ -154,7 +200,7 @@ class DisputeEscalateView(GenericAPIView):
                 "opened_by",
             ),
             pk=dispute_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )
 
 
@@ -218,7 +264,7 @@ class DisputeResolveView(GenericAPIView):
                 "opened_by",
             ),
             pk=dispute_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )
 
 
@@ -280,5 +326,5 @@ class DisputeCloseView(GenericAPIView):
                 "opened_by",
             ),
             pk=dispute_id,
-            website=user.website,
+            website=resolve_request_website(request),
         )

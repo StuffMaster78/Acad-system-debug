@@ -7,6 +7,7 @@ from orders.api.views.disputes.dispute_views import (
     DisputeEscalateView,
     DisputeOpenView,
     DisputeResolveView,
+    DisputeWriterResponseView,
 )
 
 urlpatterns = [
@@ -29,5 +30,10 @@ urlpatterns = [
         "disputes/<int:dispute_id>/close/",
         DisputeCloseView.as_view(),
         name="dispute-close",
+    ),
+    path(
+        "disputes/<int:dispute_id>/writer-response/",
+        DisputeWriterResponseView.as_view(),
+        name="dispute-writer-response",
     ),
 ]

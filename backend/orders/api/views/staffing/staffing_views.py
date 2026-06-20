@@ -452,15 +452,14 @@ class AssignFromInterestView(GenericAPIView):
         interest_id: int,
     ) -> OrderInterest:
         user = cast(Any, request.user)
-        return get_object_or_404(
-            OrderInterest.objects.select_related(
-                "website",
-                "order",
-                "writer",
-            ),
-            pk=interest_id,
-            website=user.website,
-        )
+        # Prefer request.website (set by middleware from Host); fall back to user.website.
+        # Superadmin/platform-level users have user.website=None so we must use
+        # the request website for proper tenant scoping.
+        website = getattr(request, "website", None) or getattr(user, "website", None)
+        qs = OrderInterest.objects.select_related("website", "order", "writer")
+        if website is not None:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=interest_id)
 
 
 class AssignDirectView(GenericAPIView):

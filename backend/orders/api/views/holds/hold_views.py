@@ -27,6 +27,7 @@ from orders.api.serializers.holds.hold_request_serializer import (
 )
 from orders.models import Order, OrderHold
 from orders.services.order_hold_service import OrderHoldService
+from core.utils.request_context import resolve_request_website
 
 
 class HoldRequestView(GenericAPIView):
@@ -81,16 +82,11 @@ class HoldRequestView(GenericAPIView):
         request: Request,
         order_id: int,
     ) -> Order:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            Order.objects.select_related(
-                "website",
-                "client",
-                "preferred_writer",
-            ),
-            pk=order_id,
-            website=user.website,
-        )
+        website = resolve_request_website(request)
+        qs = Order.objects.select_related("website", "client", "preferred_writer")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=order_id)
 
 
 class HoldActivateView(GenericAPIView):
@@ -146,16 +142,11 @@ class HoldActivateView(GenericAPIView):
         request: Request,
         hold_id: int,
     ) -> OrderHold:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            OrderHold.objects.select_related(
-                "website",
-                "order",
-                "requested_by",
-            ),
-            pk=hold_id,
-            website=user.website,
-        )
+        website = resolve_request_website(request)
+        qs = OrderHold.objects.select_related("order", "website")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=hold_id)
 
 
 class HoldReleaseView(GenericAPIView):
@@ -208,16 +199,11 @@ class HoldReleaseView(GenericAPIView):
         request: Request,
         hold_id: int,
     ) -> OrderHold:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            OrderHold.objects.select_related(
-                "website",
-                "order",
-                "requested_by",
-            ),
-            pk=hold_id,
-            website=user.website,
-        )
+        website = resolve_request_website(request)
+        qs = OrderHold.objects.select_related("order", "website")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=hold_id)
 
 
 class HoldCancelView(GenericAPIView):
@@ -270,13 +256,8 @@ class HoldCancelView(GenericAPIView):
         request: Request,
         hold_id: int,
     ) -> OrderHold:
-        user = cast(Any, request.user)
-        return get_object_or_404(
-            OrderHold.objects.select_related(
-                "website",
-                "order",
-                "requested_by",
-            ),
-            pk=hold_id,
-            website=user.website,
-        )
+        website = resolve_request_website(request)
+        qs = OrderHold.objects.select_related("order", "website")
+        if website:
+            qs = qs.filter(website=website)
+        return get_object_or_404(qs, pk=hold_id)

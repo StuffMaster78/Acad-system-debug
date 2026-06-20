@@ -1398,10 +1398,18 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     description=f"Wallet payment for order #{order.id}",
                 )
 
-                # Mark paid by recording the amount and updating payment status.
-                order.amount_paid = order.amount_paid + order_total
-                order.payment_status = "paid"
-                order.save(update_fields=["amount_paid", "payment_status", "updated_at"])
+                # Route through the canonical payment application service so the
+                # order status transitions correctly (created → ready_for_staffing).
+                from orders.services.order_payment_application_service import (
+                    OrderPaymentApplicationService,
+                )
+                order = OrderPaymentApplicationService.apply_confirmed_payment(
+                    order=order,
+                    amount=order_total,
+                    payment_reference=f"wallet-{order.id}",
+                    source="wallet",
+                    triggered_by=user,
+                )
 
                 wallet.refresh_from_db()
 

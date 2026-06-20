@@ -71,6 +71,52 @@ class BidSerializer(serializers.ModelSerializer):
         return obj.metadata.get("rejection_reason") or None
 
 
+class WriterBidSubmitView(GenericAPIView):
+    """
+    POST /api/v1/orders/orders/<order_id>/bids/
+
+    Writer submits a bid on a pool-visible order.
+    Internally creates an OrderInterest; price and delivery_hours are
+    stored in metadata so the bid serializer can surface them.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request: Request, order_id: int, *args: Any, **kwargs: Any) -> Response:
+        from orders.models import Order
+        from orders.services.order_staffing_service import OrderStaffingService
+        from django.shortcuts import get_object_or_404
+
+        order = get_object_or_404(Order, pk=order_id, website=getattr(request, "website", None))
+
+        pitch = (request.data.get("pitch") or request.data.get("message") or "").strip()
+        price = str(request.data.get("price") or "0.00")
+        delivery_hours = int(request.data.get("delivery_hours") or 0)
+
+        try:
+            interest = OrderStaffingService.express_interest(
+                order=order,
+                writer=request.user,
+                message=pitch,
+                triggered_by=request.user,
+            )
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Persist bid-specific metadata (price / delivery offer)
+        if price or delivery_hours:
+            interest.metadata = {
+                **(interest.metadata or {}),
+                "price": price,
+                "delivery_hours": delivery_hours,
+            }
+            interest.save(update_fields=["metadata", "updated_at"])
+
+        return Response(
+            BidSerializer(interest).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class WriterMyBidsView(GenericAPIView):
     """
     GET /api/v1/bids/my/

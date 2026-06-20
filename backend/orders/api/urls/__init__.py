@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from django.urls import include
-from django.urls import path
+from django.urls import include, path
+from orders.api.views.staffing.bids_views import WriterBidSubmitView
 
 urlpatterns = [
+    path("orders/<int:order_id>/bids/", WriterBidSubmitView.as_view(), name="order-bid-submit"),
     path("", include("orders.api.urls.order_viewset_urls")),
     path("", include("orders.api.urls.staffing")),
     path("", include("orders.api.urls.reassignments")),
