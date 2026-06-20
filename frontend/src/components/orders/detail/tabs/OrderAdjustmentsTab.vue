@@ -1062,7 +1062,7 @@ async function submitResolve() {
           </form>
 
           <!-- ── Extra service form ── -->
-          <form v-else class="space-y-4" @submit.prevent="submitExtra">
+          <form v-else-if="createKind === 'extra'" class="space-y-4" @submit.prevent="submitExtra">
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label class="block">
