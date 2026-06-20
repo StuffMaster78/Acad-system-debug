@@ -178,6 +178,14 @@ export const ChevronDown = createIcon('ChevronDown', [
   ['path', { d: 'm6 9 6 6 6-6' }],
 ])
 
+export const ChevronLeft = createIcon('ChevronLeft', [
+  ['path', { d: 'm15 18-6-6 6-6' }],
+])
+
+export const ChevronRight = createIcon('ChevronRight', [
+  ['path', { d: 'm9 18 6-6-6-6' }],
+])
+
 export const Download = createIcon('Download', [
   ['path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }],
   ['path', { d: 'm7 10 5 5 5-5' }],
