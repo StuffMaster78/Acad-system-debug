@@ -246,4 +246,30 @@ class ServicePageSchemaOrgSerializer(serializers.Serializer):
                     page.last_substantive_update.isoformat()
                 )
 
+        # Aggregate rating (opt-in per page)
+        if getattr(page, "show_aggregate_rating", False):
+            try:
+                from cms_core.models import TenantSEOSettings
+                site = page.get_site()
+                if site:
+                    seo = TenantSEOSettings.for_site(site)
+                    rating_value = getattr(seo, "aggregate_rating_value", None)
+                    review_count = getattr(seo, "aggregate_rating_count", None)
+                    if rating_value and review_count:
+                        schema["aggregateRating"] = {
+                            "@type": "AggregateRating",
+                            "ratingValue": str(rating_value),
+                            "reviewCount": str(review_count),
+                            "bestRating": "5",
+                            "worstRating": "1",
+                        }
+            except Exception:
+                pass
+
+        # Freshness
+        if page.last_substantive_update:
+            schema["dateModified"] = page.last_substantive_update.isoformat()
+        if page.first_published_at:
+            schema["datePublished"] = page.first_published_at.isoformat()
+
         return schema

@@ -55,8 +55,18 @@ const faqSchema = service ? {
 
 useHead({
   link: [{ rel: 'canonical', href: canonicalUrl }],
-  script: [
-    {
+  script: faqSchema
+    ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }]
+    : [],
+})
+
+if (cmsPage.value?.schema) {
+  useHead({
+    script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(cmsPage.value.schema) }],
+  })
+} else {
+  useHead({
+    script: [{
       type: 'application/ld+json',
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -71,10 +81,9 @@ useHead({
           priceSpecification: { '@type': 'UnitPriceSpecification', price: displayPrice.value, priceCurrency: 'USD', unitText: 'page' },
         },
       }),
-    },
-    ...(faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : []),
-  ],
-})
+    }],
+  })
+}
 </script>
 
 <template>
