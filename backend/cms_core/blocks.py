@@ -535,28 +535,44 @@ class EmbedBlock(StructBlock):
 
 class IconListBlock(StructBlock):
     """
-    Bulleted list with a selectable icon and layout.
+    Bulleted list with selectable icon badge and layout.
 
-    icon choices apply to every item in the list — keeps the list visually
-    consistent. style controls whether items render inline, as cards, or in
-    a two-column grid.
+    Icon group 1 — flat icons (rendered inline):
+      check, arrow, star, lightning, shield, dot, plus, minus
+
+    Icon group 2 — sphere badges (icon rendered inside a circle):
+      tick_sphere        — white tick in a filled colour sphere
+      tick_sphere_outline — coloured tick in an outlined sphere
+      number_auto        — auto-incremented number in a filled sphere
+
+    Layout controls how items are arranged on the page.
     """
     icon = ChoiceBlock(
         choices=[
-            ("check",     "✓  Checkmark"),
-            ("arrow",     "→  Arrow"),
-            ("star",      "★  Star"),
-            ("lightning", "⚡  Lightning"),
-            ("shield",    "🛡  Shield"),
-            ("dot",       "●  Dot"),
+            # ── Flat icons ───────────────────────────────────────────────────
+            ("check",               "✓  Checkmark — flat"),
+            ("arrow",               "→  Arrow — flat"),
+            ("star",                "★  Star — flat"),
+            ("lightning",           "⚡  Lightning — flat"),
+            ("shield",              "🛡  Shield — flat"),
+            ("dot",                 "●  Dot — flat"),
+            ("plus",                "+  Plus — flat"),
+            ("minus",               "−  Minus / dash — flat"),
+            # ── Sphere badges ────────────────────────────────────────────────
+            ("tick_sphere",         "◉  Tick in filled sphere"),
+            ("tick_sphere_outline", "◎  Tick in outline sphere"),
+            ("number_auto",         "①  Auto-numbered filled sphere"),
         ],
         default="check",
     )
     style = ChoiceBlock(
         choices=[
-            ("simple", "Simple — inline list"),
-            ("cards",  "Cards — each item in a bordered card"),
-            ("grid",   "Grid — two-column"),
+            ("simple",       "Simple — single-column inline"),
+            ("cards",        "Cards — bordered card per item"),
+            ("cards_border", "Cards — left accent border"),
+            ("grid",         "Grid — two columns"),
+            ("grid_3",       "Grid 3 — three columns"),
+            ("inline_pills", "Inline pills — horizontal wrap"),
         ],
         default="simple",
     )
@@ -587,18 +603,36 @@ class NumberedItemBlock(StructBlock):
 
 class NumberedListBlock(StructBlock):
     """
-    Ordered list with three distinct visual styles:
-    - counter: large faded number beside text (editorial feel)
-    - badge: filled circle numbered badge (classic)
-    - steps: vertically connected flow with a guide line (how-it-works)
+    Ordered list with multiple sphere / number badge styles.
+
+    Sphere variants render the number inside a circle with different fills:
+      sphere_solid    — opaque brand-colour fill, white number
+      sphere_gradient — gradient fill, white number, subtle shadow
+      sphere_dark     — dark/charcoal fill, white number
+      sphere_soft     — pastel brand fill, dark number
+      sphere_outline  — outline circle (alias of the original 'badge')
+      squares         — square badge, brand colour
+
+    Flow/editorial variants:
+      steps   — vertically connected guide-line flow
+      counter — oversized faded number beside text
     """
     style = ChoiceBlock(
         choices=[
-            ("counter", "Counter — large faded numbers"),
-            ("badge",   "Badge — filled numbered circles"),
-            ("steps",   "Steps — connected vertical flow"),
+            # ── Sphere variants ──────────────────────────────────────────────
+            ("sphere_solid",    "Sphere — solid filled"),
+            ("sphere_gradient", "Sphere — gradient fill"),
+            ("sphere_dark",     "Sphere — dark / charcoal"),
+            ("sphere_soft",     "Sphere — soft pastel"),
+            ("sphere_outline",  "Sphere — outline only"),
+            ("squares",         "Squares — square badge"),
+            # ── Flow / editorial ─────────────────────────────────────────────
+            ("steps",           "Steps — connected vertical flow"),
+            ("counter",         "Counter — large faded numbers"),
+            # ── Legacy alias (kept for backward compat) ──────────────────────
+            ("badge",           "Badge — filled circle (classic)"),
         ],
-        default="badge",
+        default="sphere_solid",
     )
     heading = CharBlock(max_length=200, required=False)
     items = ListBlock(NumberedItemBlock(), min_num=2, max_num=20)
@@ -645,6 +679,46 @@ class ChipsBlock(StructBlock):
     class Meta:
         icon = "tag"
         label = "Chips / Tags"
+
+
+class HighlightListBlock(StructBlock):
+    """
+    List where each item has a coloured background treatment.
+
+    Styles:
+      zebra       — alternating brand-tint / white rows
+      boxed       — each item in a rounded coloured box
+      border_left — items with a thick left accent stripe
+      highlight   — full-width solid brand background per item
+    """
+    style = ChoiceBlock(
+        choices=[
+            ("zebra",       "Zebra — alternating tint rows"),
+            ("boxed",       "Boxed — rounded coloured box per item"),
+            ("border_left", "Border left — left accent stripe"),
+            ("highlight",   "Highlight — full brand background"),
+        ],
+        default="zebra",
+    )
+    color = ChoiceBlock(
+        choices=[
+            ("brand",  "Brand"),
+            ("green",  "Green"),
+            ("amber",  "Amber"),
+            ("purple", "Purple"),
+            ("slate",  "Slate"),
+        ],
+        default="brand",
+    )
+    items = ListBlock(
+        RichTextBlock(features=["bold", "italic", "link"]),
+        min_num=2,
+        max_num=20,
+    )
+
+    class Meta:
+        icon = "list-ul"
+        label = "Highlight List"
 
 
 class KeyTakeawaysBlock(StructBlock):
@@ -1224,6 +1298,7 @@ BLOG_BLOCKS = StreamBlock([
     ("list", ListBlock_()),
     ("icon_list", IconListBlock()),
     ("numbered_list", NumberedListBlock()),
+    ("highlight_list", HighlightListBlock()),
     ("pro_con", ProConBlock()),
     ("chips", ChipsBlock()),
     ("checklist", ChecklistBlock()),
@@ -1260,6 +1335,7 @@ SERVICE_PAGE_BLOCKS = StreamBlock([
     ("list", ListBlock_()),
     ("icon_list", IconListBlock()),
     ("numbered_list", NumberedListBlock()),
+    ("highlight_list", HighlightListBlock()),
     ("pro_con", ProConBlock()),
     ("chips", ChipsBlock()),
     ("checklist", ChecklistBlock()),

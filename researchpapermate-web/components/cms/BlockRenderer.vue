@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CheckCircle2, ArrowRight, ExternalLink, Download } from '@lucide/vue'
+import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Circle, Plus, Minus, X } from '@lucide/vue'
 
 const app = useAppUrl()
 
@@ -61,6 +61,33 @@ const CALLOUT_STYLE: Record<string, { border: string; bg: string; icon: string; 
 function calloutStyle(style: string) {
   return CALLOUT_STYLE[style] ?? CALLOUT_STYLE.note
 }
+
+// ── List badge helpers ────────────────────────────────────────────────────────
+const SPHERE_CLASS: Record<string, string> = {
+  sphere_solid:    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-sm',
+  sphere_gradient: 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-sm font-bold text-white shadow-md',
+  sphere_dark:     'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white',
+  sphere_soft:     'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700',
+  sphere_outline:  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-sm font-bold text-brand-600',
+  badge:           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-sm font-bold text-brand-600',
+  squares:         'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white',
+  steps:           'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white z-10',
+}
+function sphereClass(style: string): string { return SPHERE_CLASS[style] ?? SPHERE_CLASS.sphere_solid }
+const HL_COLORS: Record<string, Record<string, string>> = {
+  brand:  { zebra: 'bg-brand-50',    boxed: 'border border-brand-200 bg-brand-50',    border: 'border-brand-500',  full: 'bg-brand-600 text-white' },
+  green:  { zebra: 'bg-emerald-50',  boxed: 'border border-emerald-200 bg-emerald-50',border: 'border-emerald-500',full: 'bg-emerald-600 text-white' },
+  amber:  { zebra: 'bg-amber-50',    boxed: 'border border-amber-200 bg-amber-50',    border: 'border-amber-500',  full: 'bg-amber-500 text-white' },
+  purple: { zebra: 'bg-violet-50',   boxed: 'border border-violet-200 bg-violet-50',  border: 'border-violet-500', full: 'bg-violet-600 text-white' },
+  slate:  { zebra: 'bg-slate-50',    boxed: 'border border-slate-200 bg-slate-50',    border: 'border-slate-400',  full: 'bg-slate-700 text-white' },
+}
+function hlColor(color: string, key: string): string { return (HL_COLORS[color] ?? HL_COLORS.brand)[key] ?? '' }
+const CHIP_COLOR: Record<string, string> = {
+  brand: 'border-brand-200 bg-brand-50 text-brand-700', green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  amber: 'border-amber-200 bg-amber-50 text-amber-700', purple: 'border-violet-200 bg-violet-50 text-violet-700',
+  slate: 'border-slate-200 bg-slate-50 text-slate-600',
+}
+function chipColor(color: string): string { return CHIP_COLOR[color] ?? CHIP_COLOR.brand }
 
 // ── Disclaimer style map ──────────────────────────────────────────────────────
 const DISCLAIMER_STYLE: Record<string, { border: string; bg: string; label: string }> = {
@@ -232,6 +259,219 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           </div>
         </li>
       </ul>
+    </div>
+
+    <!-- ── Icon List ────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'icon_list'" class="my-6 not-prose">
+      <!-- Inline pills -->
+      <div v-if="asStr(asObj(block.value).style) === 'inline_pills'" class="flex flex-wrap gap-2">
+        <span v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700">
+          <span v-if="asStr(asObj(block.value).icon) === 'tick_sphere'" class="flex h-5 w-5 shrink-0 rounded-full bg-brand-600 items-center justify-center">
+            <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-5 w-5 shrink-0 rounded-full bg-brand-600 text-[10px] font-bold text-white items-center justify-center">{{ j + 1 }}</span>
+          <CheckCircle2 v-else class="size-3.5 text-brand-600" />
+          <span v-html="asStr(item)" />
+        </span>
+      </div>
+      <!-- 3-column grid -->
+      <div v-else-if="asStr(asObj(block.value).style) === 'grid_3'" class="grid gap-3 sm:grid-cols-3">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
+          <span v-if="asStr(asObj(block.value).icon) === 'tick_sphere'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'tick_sphere_outline'" class="flex h-7 w-7 shrink-0 rounded-full border-2 border-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 text-xs font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
+          <CheckCircle2 v-else class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+        </div>
+      </div>
+      <!-- 2-column grid -->
+      <div v-else-if="asStr(asObj(block.value).style) === 'grid'" class="grid gap-3 sm:grid-cols-2">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
+          <span v-if="asStr(asObj(block.value).icon) === 'tick_sphere'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 text-xs font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
+          <CheckCircle2 v-else class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+        </div>
+      </div>
+      <!-- Cards with left border -->
+      <div v-else-if="asStr(asObj(block.value).style) === 'cards_border'" class="space-y-2">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 border-l-4 border-brand-500 bg-brand-50/50 pl-4 pr-4 py-3 rounded-r-xl">
+          <span v-if="asStr(asObj(block.value).icon) === 'tick_sphere'" class="flex h-6 w-6 shrink-0 rounded-full bg-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-6 w-6 shrink-0 rounded-full bg-brand-600 text-[10px] font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
+          <CheckCircle2 v-else class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+        </div>
+      </div>
+      <!-- Cards (bordered) -->
+      <div v-else-if="asStr(asObj(block.value).style) === 'cards'" class="space-y-2">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
+          <span v-if="asStr(asObj(block.value).icon) === 'tick_sphere'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'tick_sphere_outline'" class="flex h-7 w-7 shrink-0 rounded-full border-2 border-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 text-xs font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
+          <CheckCircle2 v-else-if="!asStr(asObj(block.value).icon) || asStr(asObj(block.value).icon) === 'check'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <ArrowRight   v-else-if="asStr(asObj(block.value).icon) === 'arrow'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Star         v-else-if="asStr(asObj(block.value).icon) === 'star'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Plus         v-else-if="asStr(asObj(block.value).icon) === 'plus'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Minus        v-else-if="asStr(asObj(block.value).icon) === 'minus'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Circle       v-else class="size-2.5 shrink-0 mt-1.5 fill-brand-500 text-brand-500" />
+          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+        </div>
+      </div>
+      <!-- Simple (default) -->
+      <ul v-else class="space-y-3">
+        <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 text-sm text-ink">
+          <span v-if="asStr(asObj(block.value).icon) === 'tick_sphere'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'tick_sphere_outline'" class="flex h-7 w-7 shrink-0 rounded-full border-2 border-brand-600 items-center justify-center mt-0.5">
+            <svg class="h-3.5 w-3.5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-7 w-7 shrink-0 rounded-full bg-brand-600 text-xs font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
+          <CheckCircle2 v-else-if="!asStr(asObj(block.value).icon) || asStr(asObj(block.value).icon) === 'check'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <ArrowRight   v-else-if="asStr(asObj(block.value).icon) === 'arrow'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Star         v-else-if="asStr(asObj(block.value).icon) === 'star'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Zap          v-else-if="asStr(asObj(block.value).icon) === 'lightning'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Shield       v-else-if="asStr(asObj(block.value).icon) === 'shield'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Plus         v-else-if="asStr(asObj(block.value).icon) === 'plus'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Minus        v-else-if="asStr(asObj(block.value).icon) === 'minus'" class="size-4 shrink-0 mt-0.5 text-brand-600" />
+          <Circle       v-else class="size-2.5 shrink-0 mt-1.5 fill-brand-500 text-brand-500" />
+          <div class="leading-relaxed" v-html="asStr(item)" />
+        </li>
+      </ul>
+    </div>
+
+    <!-- ── Numbered List ──────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'numbered_list'" class="my-6 not-prose space-y-3">
+      <p v-if="asStr(asObj(block.value).heading)" class="text-base font-bold text-ink">
+        {{ asStr(asObj(block.value).heading) }}
+      </p>
+      <!-- Steps: connected vertical flow -->
+      <ol v-if="asStr(asObj(block.value).style) === 'steps'" class="space-y-0">
+        <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j" class="flex gap-4">
+          <div class="flex flex-col items-center">
+            <span :class="sphereClass('steps')">{{ j + 1 }}</span>
+            <div v-if="j < asArr(asObj(block.value).items).length - 1" class="w-0.5 flex-1 bg-brand-200 my-1" />
+          </div>
+          <div class="pb-5 min-w-0">
+            <p class="text-sm font-semibold text-ink">{{ asStr(asObj(item).title) }}</p>
+            <div v-if="asStr(asObj(item).description)" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="asStr(asObj(item).description)" />
+          </div>
+        </li>
+      </ol>
+      <!-- Counter: large faded numbers -->
+      <ol v-else-if="asStr(asObj(block.value).style) === 'counter'" class="space-y-6">
+        <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j" class="flex gap-4 items-start">
+          <span class="text-5xl font-black text-brand-100 leading-none w-14 shrink-0 text-right tabular-nums select-none">
+            {{ String(j + 1).padStart(2, '0') }}
+          </span>
+          <div class="pt-1 min-w-0">
+            <p class="text-sm font-semibold text-ink">{{ asStr(asObj(item).title) }}</p>
+            <div v-if="asStr(asObj(item).description)" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="asStr(asObj(item).description)" />
+          </div>
+        </li>
+      </ol>
+      <!-- All sphere + square styles -->
+      <ol v-else class="space-y-4">
+        <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j" class="flex gap-4 items-start">
+          <span :class="sphereClass(asStr(asObj(block.value).style))" class="mt-0.5 shrink-0">{{ j + 1 }}</span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-ink">{{ asStr(asObj(item).title) }}</p>
+            <div v-if="asStr(asObj(item).description)" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="asStr(asObj(item).description)" />
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- ── Highlight List ──────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'highlight_list'" class="my-6 not-prose">
+      <!-- Boxed -->
+      <div v-if="asStr(asObj(block.value).style) === 'boxed'" class="space-y-2">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="rounded-xl px-5 py-3.5 text-sm leading-relaxed"
+          :class="hlColor(asStr(asObj(block.value).color), 'boxed')"
+          v-html="asStr(item)" />
+      </div>
+      <!-- Border left -->
+      <div v-else-if="asStr(asObj(block.value).style) === 'border_left'" class="space-y-2">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="border-l-4 bg-slate-50 pl-4 pr-4 py-3 rounded-r-xl text-sm text-ink leading-relaxed"
+          :class="hlColor(asStr(asObj(block.value).color), 'border')"
+          v-html="asStr(item)" />
+      </div>
+      <!-- Full highlight -->
+      <div v-else-if="asStr(asObj(block.value).style) === 'highlight'" class="space-y-1.5">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="rounded-xl px-5 py-3 text-sm font-medium leading-relaxed"
+          :class="hlColor(asStr(asObj(block.value).color), 'full')"
+          v-html="asStr(item)" />
+      </div>
+      <!-- Zebra (default) -->
+      <div v-else class="divide-y divide-slate-100 rounded-2xl border border-slate-100 overflow-hidden">
+        <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="px-5 py-3.5 text-sm text-ink leading-relaxed"
+          :class="j % 2 === 0 ? hlColor(asStr(asObj(block.value).color), 'zebra') : 'bg-white'"
+          v-html="asStr(item)" />
+      </div>
+    </div>
+
+    <!-- ── Pro / Con ──────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'pro_con'" class="my-6 not-prose">
+      <p v-if="asStr(asObj(block.value).heading)" class="mb-4 text-base font-bold text-ink">
+        {{ asStr(asObj(block.value).heading) }}
+      </p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <p class="mb-3 text-sm font-bold text-emerald-800">{{ asStr(asObj(block.value).pro_heading) || 'Pros' }}</p>
+          <ul class="space-y-2">
+            <li v-for="(pro, j) in asArr(asObj(block.value).pros)" :key="j"
+              class="flex items-start gap-2 text-sm text-emerald-900">
+              <CheckCircle2 class="size-4 shrink-0 mt-0.5 text-emerald-600" />
+              {{ asStr(pro) }}
+            </li>
+          </ul>
+        </div>
+        <div class="rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p class="mb-3 text-sm font-bold text-red-800">{{ asStr(asObj(block.value).con_heading) || 'Cons' }}</p>
+          <ul class="space-y-2">
+            <li v-for="(con, j) in asArr(asObj(block.value).cons)" :key="j"
+              class="flex items-start gap-2 text-sm text-red-900">
+              <X class="size-4 shrink-0 mt-0.5 text-red-400" />
+              {{ asStr(con) }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Chips / Tags ────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'chips'" class="my-5 not-prose">
+      <p v-if="asStr(asObj(block.value).heading)" class="mb-3 text-sm font-semibold text-ink">
+        {{ asStr(asObj(block.value).heading) }}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <span v-for="(chip, j) in asArr(asObj(block.value).items)" :key="j"
+          class="rounded-full border px-3 py-1.5 text-xs font-medium"
+          :class="chipColor(asStr(asObj(block.value).color))"
+        >{{ asStr(chip) }}</span>
+      </div>
     </div>
 
     <!-- ── Stats Highlight ──────────────────────────────────────────────── -->
