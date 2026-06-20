@@ -42,15 +42,12 @@ class RefundApplicationService:
         """
         Apply a successful provider refund internally.
 
-        Args:
-            refund: PaymentRefund instance
-            triggered_by: optional actor
-            journal_entry_to_reverse: optional posted journal entry to
-                reverse if already known
-
-        Returns:
-            Structured result describing refund application.
+        Locks the PaymentRefund row with SELECT FOR UPDATE before checking
+        applied_at so concurrent Celery retries cannot double-credit.
         """
+        # Lock the row for the duration of this transaction.
+        refund = PaymentRefund.objects.select_for_update().get(pk=refund.pk)
+
         cls._validate_refund_for_application(refund=refund)
 
         if cls._is_already_applied(refund=refund):
@@ -98,13 +95,23 @@ class RefundApplicationService:
         *,
         refund: PaymentRefund,
     ) -> None:
-        """
-        Validate whether refund can be applied internally.
-        """
         if refund.status != PaymentRefundStatus.SUCCEEDED:
             raise PaymentError(
                 f"Refund '{refund.pk}' is not internally applicable from "
                 f"status '{refund.status}'."
+            )
+
+        # Bounds check — never apply more than what the PaymentIntent can refund.
+        # refundable_amount = intent.amount - intent.amount_refunded.
+        # This catches cases where amount_refunded was updated by a prior refund
+        # (e.g., a wallet cancellation path) making this refund excess.
+        payment_intent = refund.payment_intent
+        refundable = payment_intent.refundable_amount
+        if refund.amount > refundable:
+            raise PaymentError(
+                f"Refund '{refund.pk}' amount {refund.amount} exceeds the "
+                f"remaining refundable amount {refundable} on intent "
+                f"'{payment_intent.pk}'."
             )
 
     @staticmethod
@@ -112,11 +119,10 @@ class RefundApplicationService:
         *,
         refund: PaymentRefund,
     ) -> bool:
-        """
-        Check whether refund has already been applied internally.
-
-        Uses metadata until dedicated application fields are added.
-        """
+        # applied_at is the authoritative DB-level idempotency marker.
+        # Fall back to the legacy metadata flag for records that predate the field.
+        if refund.applied_at is not None:
+            return True
         metadata = refund.metadata or {}
         return bool(metadata.get("internally_applied", False))
 
@@ -194,12 +200,13 @@ class RefundApplicationService:
         *,
         refund: PaymentRefund,
     ) -> None:
-        """
-        Mark refund as internally applied.
-        """
+        now = timezone.now()
+        # Write the DB field as the primary idempotency marker, and keep the
+        # metadata flag for backwards-compatibility with older records.
         metadata = refund.metadata or {}
         metadata["internally_applied"] = True
-        metadata["internally_applied_at"] = timezone.now().isoformat()
+        metadata["internally_applied_at"] = now.isoformat()
 
+        refund.applied_at = now
         refund.metadata = metadata
-        refund.save(update_fields=["metadata"])
+        refund.save(update_fields=["applied_at", "metadata"])

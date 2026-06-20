@@ -236,6 +236,15 @@ class OrderCancellationService:
         if refund_destination == cls.REFUND_DESTINATION_WALLET:
             try:
                 from wallets.services.client_wallet_service import ClientWalletService
+
+                # Create an audit Refund record before crediting so the
+                # refunds app has a row regardless of what happens next.
+                refund_record = cls._create_wallet_refund_record(
+                    order=order,
+                    amount=amount_to_refund,
+                    requested_by=cancelled_by,
+                )
+
                 ClientWalletService.refund_to_wallet(
                     website=order.website,
                     client=order.client,
@@ -253,6 +262,7 @@ class OrderCancellationService:
                     },
                 )
                 cls._update_payment_intent_refunded(order=order, refunded=amount_to_refund)
+                cls._mark_wallet_refund_processed(refund_record=refund_record, processed_by=cancelled_by)
             except Exception:
                 log.exception("Wallet refund failed for order_id=%s", order.pk)
 
@@ -261,6 +271,65 @@ class OrderCancellationService:
                 order=order,
                 amount=amount_to_refund,
                 requested_by=cancelled_by,
+            )
+
+    @staticmethod
+    def _create_wallet_refund_record(*, order: Order, amount: Decimal, requested_by: Any):
+        """
+        Create a Refund audit record before the wallet credit so the refunds
+        app always has a row for this cancellation. Returns None if no
+        PaymentIntent can be found (old/wallet-funded orders).
+        """
+        import logging
+        log = logging.getLogger(__name__)
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from payments_processor.models.payment_intent import PaymentIntent
+            from payments_processor.enums import PaymentIntentStatus
+            from refunds.services.refunds_processor import RefundProcessorService
+
+            ct = ContentType.objects.get_for_model(order.__class__)
+            pi = PaymentIntent.objects.filter(
+                payable_content_type=ct,
+                payable_object_id=order.pk,
+                status=PaymentIntentStatus.SUCCEEDED,
+            ).first()
+            if pi is None:
+                return None
+
+            return RefundProcessorService.create_for_payment(
+                payment_intent=pi,
+                wallet_amount=amount,
+                requested_by=requested_by,
+                refund_type="automated",
+                reason=f"Order #{order.pk} cancelled",
+                metadata={"order_id": order.pk, "source": "order_cancellation"},
+            )
+        except Exception:
+            log.warning(
+                "_create_wallet_refund_record: could not create Refund record "
+                "for order %s — continuing without audit record.", order.pk,
+                exc_info=True,
+            )
+            return None
+
+    @staticmethod
+    def _mark_wallet_refund_processed(*, refund_record: Any, processed_by: Any) -> None:
+        if refund_record is None:
+            return
+        import logging
+        log = logging.getLogger(__name__)
+        try:
+            from refunds.models import Refund
+            from django.utils import timezone as tz
+            refund_record.status = Refund.PROCESSED
+            refund_record.processed_by = processed_by
+            refund_record.processed_at = tz.now()
+            refund_record.save(update_fields=["status", "processed_by", "processed_at"])
+        except Exception:
+            log.warning(
+                "_mark_wallet_refund_processed: could not mark Refund #%s processed.",
+                getattr(refund_record, "pk", "?"), exc_info=True,
             )
 
     @staticmethod

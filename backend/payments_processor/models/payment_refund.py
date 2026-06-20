@@ -69,9 +69,11 @@ class PaymentRefund(models.Model):
     metadata = models.JSONField(default=dict, blank=True)
 
     requested_at = models.DateTimeField(auto_now_add=True)
-    processed_at = models.DateTimeField(
+    processed_at = models.DateTimeField(null=True, blank=True)
+    applied_at = models.DateTimeField(
         null=True,
         blank=True,
+        help_text="Set when the refund has been applied internally (wallet credited / ledger reversed). Replaces the metadata.internally_applied flag for DB-level idempotency.",
     )
 
     class Meta:
