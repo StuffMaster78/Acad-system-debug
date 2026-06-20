@@ -56,15 +56,18 @@ export default defineNuxtConfig({
     devProxy: {
       '/api/v1': {
         target: 'http://localhost:8000/api/v1',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'nursemygrade.com' },
       },
       '/api/v2': {
         target: 'http://localhost:8000/api/v2',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'nursemygrade.com' },
       },
       '/cms-api': {
         target: 'http://localhost:8000/cms-api',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'nursemygrade.com' },
       },
     },
   },
@@ -80,6 +83,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    siteHostname: 'nursemygrade.com',
     public: {
       apiBase: '',
       appUrl: '',

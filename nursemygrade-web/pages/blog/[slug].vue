@@ -2,9 +2,10 @@
 import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 
 const route   = useRoute()
-const slug    = route.params.slug as string
-const config  = useRuntimeConfig()
-const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+const slug       = route.params.slug as string
+const config     = useRuntimeConfig()
+const apiBase    = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+const ssrHeaders = import.meta.server ? { Host: (config as any).siteHostname ?? 'nursemygrade.com' } : undefined
 
 // ── CMS types ─────────────────────────────────────────────────────────────
 interface Block { type: string; value: unknown }
@@ -34,7 +35,7 @@ const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
     try {
       const res = await $fetch<{ items: CmsArticle[] }>(
         `${apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
+        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' }, headers: ssrHeaders },
       )
       return res.items?.[0] ?? null
     } catch { return null }
@@ -49,7 +50,7 @@ const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title:
     try {
       const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
         `${apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 } },
+        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 }, headers: ssrHeaders },
       )
       return (res.items ?? []).filter(p => p.meta?.slug !== slug).slice(0, 3)
     } catch { return [] }

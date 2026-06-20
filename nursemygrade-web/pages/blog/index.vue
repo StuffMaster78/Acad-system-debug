@@ -32,9 +32,10 @@ interface CmsPost {
   author_name: string
 }
 
-const config   = useRuntimeConfig()
-const apiBase  = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
-const PAGE_SIZE = 12
+const config     = useRuntimeConfig()
+const apiBase    = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+const ssrHeaders = import.meta.server ? { Host: (config as any).siteHostname ?? 'nursemygrade.com' } : undefined
+const PAGE_SIZE  = 12
 
 const cmsPosts   = ref<CmsPost[]>([])
 const cmsTotal   = ref(0)
@@ -49,7 +50,7 @@ async function loadCmsPage(p: number) {
   try {
     const res = await $fetch<{ meta: { total_count: number }; items: CmsPost[] }>(
       `${apiBase}/api/v2/pages/`,
-      { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE } },
+      { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE }, headers: ssrHeaders },
     )
     cmsTotal.value = res?.meta?.total_count ?? 0
     cmsPosts.value = res.items ?? []
