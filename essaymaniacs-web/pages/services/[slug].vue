@@ -19,26 +19,30 @@ const displayIcon     = computed(() => service?.icon ?? 'pen-line')
 const displayMeta     = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
 const displayIncludes = computed(() =>
   cmsPage.value?.includes_items?.length
-    ? cmsPage.value.includes_items.map(i => i.value)
+    ? cmsPage.value.includes_items.map((i: { value: string }) => i.value)
     : (service?.includes ?? [])
 )
-const displayDelivers = computed(() =>
-  cmsPage.value?.delivers_items?.length
-    ? cmsPage.value.delivers_items.map(i => i.value)
-    : (service?.delivers ?? [])
-)
-const displayWhoFor   = computed(() => cmsPage.value?.who_for || service?.whoFor || '')
+const displayWhoFor = computed(() => cmsPage.value?.who_for || service?.whoFor || '')
 
-const related = service ? getRelated(service.relatedSlugs) : []
+const related   = service ? getRelated(service.relatedSlugs) : []
+const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
 
-const config = useRuntimeConfig()
+// Sticky bottom bar visibility
+const showBar = ref(false)
+onMounted(() => {
+  const onScroll = () => { showBar.value = window.scrollY > 320 }
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onUnmounted(() => window.removeEventListener('scroll', onScroll))
+})
+
+const config  = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://essaymaniacs.com'
 const canonicalUrl = `${siteUrl}/services/${route.params.slug}`
 
 useSeoMeta({
-  title: displayMeta.value.title || displayTitle.value,
-  description: displayMeta.value.description,
-  ogTitle: displayMeta.value.title || displayTitle.value,
+  title:         displayMeta.value.title || displayTitle.value,
+  description:   displayMeta.value.description,
+  ogTitle:       displayMeta.value.title || displayTitle.value,
   ogDescription: displayMeta.value.description,
 })
 
@@ -55,15 +59,11 @@ const faqSchema = service ? {
 
 useHead({
   link: [{ rel: 'canonical', href: canonicalUrl }],
-  script: faqSchema
-    ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }]
-    : [],
+  script: faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : [],
 })
 
 if (cmsPage.value?.schema) {
-  useHead({
-    script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(cmsPage.value.schema) }],
-  })
+  useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(cmsPage.value.schema) }] })
 } else {
   useHead({
     script: [{
@@ -87,295 +87,202 @@ if (cmsPage.value?.schema) {
 </script>
 
 <template>
-  <div>
+  <!-- Editorial single-column layout with sticky bottom pricing bar -->
+  <div class="pb-20 lg:pb-24">
 
-    <!-- ── Breadcrumb ────────────────────────────────────────────────── -->
-    <div class="border-b border-slate-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-7xl">
-        <Breadcrumbs :items="[{ label: 'Services', href: '/services' }, { label: displayTitle }]" />
-      </div>
-    </div>
+    <!-- ── Full-width purple hero ─────────────────────────────────────────── -->
+    <section class="relative overflow-hidden bg-brand-900 py-16 sm:py-24" aria-label="Service overview">
+      <!-- Subtle texture -->
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(139,92,246,0.15)_0%,transparent_50%)]" />
+      <div class="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-brand-600 opacity-20 blur-[120px]" />
 
-    <!-- ── Split hero ────────────────────────────────────────────────── -->
-    <section class="bg-brand-900">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid min-h-[360px] items-center gap-8 py-16 lg:grid-cols-[1fr_380px]">
+      <div class="relative mx-auto max-w-3xl px-4 sm:px-6 text-center">
 
-          <!-- Left: copy -->
-          <div>
-            <div class="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-brand-300 ring-1 ring-white/20">
-              <Icon :name="displayIcon" class="h-3.5 w-3.5" />
-              From ${{ displayPrice }}/page
-            </div>
-            <h1 class="font-serif text-4xl font-bold leading-tight text-white sm:text-5xl">
-              {{ displayHero.headline }}
-            </h1>
-            <p v-if="displayHero.sub" class="mt-5 max-w-xl text-lg leading-relaxed text-brand-200">
-              {{ displayHero.sub }}
-            </p>
-            <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-300">
-              <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Grade or money back</li>
-              <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Zero AI content</li>
-              <li class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Free revisions</li>
-            </ul>
-          </div>
+        <!-- Breadcrumb -->
+        <nav aria-label="Breadcrumb" class="mb-8 flex items-center justify-center gap-1.5 text-xs text-brand-400">
+          <NuxtLink to="/" class="hover:text-brand-200 transition-colors">Home</NuxtLink>
+          <span>/</span>
+          <NuxtLink to="/services" class="hover:text-brand-200 transition-colors">Services</NuxtLink>
+          <span>/</span>
+          <span class="text-brand-300" aria-current="page">{{ displayTitle }}</span>
+        </nav>
 
-          <!-- Right: floating price card -->
-          <div class="rounded-3xl bg-white/10 p-7 ring-1 ring-white/20 backdrop-blur-sm">
-            <p class="text-brand-300 text-sm">Starting from</p>
-            <p class="mt-1 text-5xl font-bold text-white">${{ displayPrice }}<span class="text-xl font-normal text-brand-300">/page</span></p>
-            <div class="my-5 h-px bg-white/10" />
-            <ul class="space-y-3 text-sm text-brand-200">
-              <li class="flex items-center gap-2.5">
-                <svg class="h-4 w-4 shrink-0 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Free plagiarism report
-              </li>
-              <li class="flex items-center gap-2.5">
-                <svg class="h-4 w-4 shrink-0 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Unlimited free revisions
-              </li>
-              <li class="flex items-center gap-2.5">
-                <svg class="h-4 w-4 shrink-0 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Grade or money back
-              </li>
-              <li class="flex items-center gap-2.5">
-                <svg class="h-4 w-4 shrink-0 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                As fast as 2 hours
-              </li>
-            </ul>
-            <div class="mt-6 space-y-3">
-              <NuxtLink to="/order" class="block rounded-xl bg-white py-3.5 text-center text-base font-bold text-brand-700 transition-colors hover:bg-brand-50">
-                Place an order
-              </NuxtLink>
-              <NuxtLink to="/contact" class="block rounded-xl border border-white/20 py-3 text-center text-sm font-semibold text-brand-200 transition-colors hover:bg-white/10">
-                Ask us first
-              </NuxtLink>
-            </div>
-          </div>
+        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl lg:text-6xl leading-tight">
+          {{ displayHero.headline }}
+        </h1>
 
+        <p v-if="displayHero.sub" class="mx-auto mt-5 max-w-xl text-lg text-brand-300 leading-relaxed">
+          {{ displayHero.sub }}
+        </p>
+
+        <!-- CTAs -->
+        <div class="mt-10 flex flex-wrap justify-center gap-4">
+          <NuxtLink
+            to="/order"
+            class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50"
+          >
+            Order from ${{ displayPrice }}/page →
+          </NuxtLink>
+          <a
+            href="#calculator"
+            class="inline-flex items-center gap-2 rounded-xl border border-brand-500 px-8 py-3.5 text-sm font-semibold text-brand-200 transition-colors hover:bg-brand-800"
+          >
+            Get instant price ↓
+          </a>
         </div>
+
+        <!-- Trust strip -->
+        <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-brand-400">
+          <span>✓ Grade or money back</span>
+          <span>✓ Master's &amp; PhD writers</span>
+          <span>✓ Zero AI content</span>
+          <span>✓ Free plagiarism report</span>
+        </div>
+
       </div>
     </section>
 
-    <!-- ── Main content ──────────────────────────────────────────────── -->
-    <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div class="grid gap-12 lg:grid-cols-[1fr_340px]">
+    <!-- ── Single-column content ──────────────────────────────────────────── -->
+    <main class="bg-white">
+      <div class="mx-auto max-w-3xl px-4 sm:px-6 py-14 space-y-16">
 
-        <!-- Left: reading flow -->
-        <div class="space-y-12">
+        <!-- Who it's for -->
+        <section v-if="displayWhoFor" aria-labelledby="who-heading">
+          <h2 id="who-heading" class="font-serif text-2xl font-bold text-slate-900 mb-4">Who this is for</h2>
+          <p class="text-slate-600 leading-relaxed text-[15px]">{{ displayWhoFor }}</p>
+        </section>
 
-          <!-- What's included — numbered grid -->
-          <div v-if="displayIncludes.length">
-            <h2 class="mb-6 font-serif text-2xl font-bold text-slate-900">What's included</h2>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div
-                v-for="(item, i) in displayIncludes"
-                :key="item"
-                class="flex items-start gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-5"
-              >
-                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-700 text-sm font-bold text-white">
-                  {{ i + 1 }}
-                </span>
-                <p class="text-sm leading-relaxed text-slate-700">{{ item }}</p>
-              </div>
-            </div>
-            <!-- Inline CTA -->
-            <div class="mt-6 flex items-center gap-4 rounded-2xl bg-brand-50 p-5">
-              <div class="flex-1">
-                <p class="font-semibold text-brand-900">Ready to order?</p>
-                <p class="text-sm text-brand-700">From ${{ displayPrice }}/page · Grade or money back</p>
-              </div>
-              <NuxtLink to="/order" class="shrink-0 btn-primary py-2 text-sm">Order now</NuxtLink>
+        <!-- What's included -->
+        <section v-if="displayIncludes.length" aria-labelledby="includes-heading">
+          <h2 id="includes-heading" class="font-serif text-2xl font-bold text-slate-900 mb-5">What's included</h2>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div
+              v-for="item in displayIncludes"
+              :key="item"
+              class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4"
+            >
+              <Icon name="check-circle" class="h-4 w-4 shrink-0 mt-0.5 text-brand-500" />
+              <span class="text-sm text-slate-700 leading-relaxed">{{ item }}</span>
             </div>
           </div>
+        </section>
 
-          <!-- What you receive — checklist -->
-          <div v-if="displayDelivers.length">
-            <h2 class="mb-6 font-serif text-2xl font-bold text-slate-900">What you receive</h2>
-            <ul class="space-y-3">
-              <li
-                v-for="item in displayDelivers"
-                :key="item"
-                class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4"
-              >
-                <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                <p class="text-sm text-slate-700">{{ item }}</p>
-              </li>
-            </ul>
-            <div class="mt-4 rounded-xl bg-slate-900 px-5 py-4 text-sm text-slate-300">
-              Everything included — no hidden extras. Title page, reference list, and revisions are all free.
-            </div>
-          </div>
-
-          <!-- Who it's for -->
-          <div v-if="displayWhoFor">
-            <h2 class="mb-4 font-serif text-2xl font-bold text-slate-900">Who this is for</h2>
-            <p class="text-base leading-relaxed text-slate-700">{{ displayWhoFor }}</p>
-            <div class="mt-5 grid grid-cols-3 gap-3">
-              <div
-                v-for="level in ['Undergraduate', `Master's`, 'PhD / Doctoral']"
-                :key="level"
-                class="rounded-xl border border-brand-100 bg-brand-50 py-3 text-center text-sm font-semibold text-brand-800"
-              >{{ level }}</div>
-            </div>
-          </div>
-
-          <!-- Related services -->
-          <div v-if="related.length">
-            <h2 class="mb-5 text-xs font-bold uppercase tracking-wider text-slate-400">Related services</h2>
-            <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width: none;">
-              <NuxtLink
-                v-for="r in related"
-                :key="r.slug"
-                :href="`/services/${r.slug}`"
-                class="group flex w-52 shrink-0 items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 transition-all hover:border-brand-200 hover:shadow-sm"
-              >
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 transition-colors group-hover:bg-brand-700">
-                  <Icon :name="r.icon" class="h-4 w-4 text-brand-700 transition-colors group-hover:text-white" />
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-xs font-semibold text-slate-800">{{ r.navLabel }}</p>
-                  <p class="text-xs text-brand-600">From ${{ r.priceFrom }}/page</p>
-                </div>
-              </NuxtLink>
-            </div>
-          </div>
+        <!-- CMS body — full prose, single wide column -->
+        <div v-if="bodyBlocks.length && hasCmsContent" class="service-body">
+          <ServicePageBody :blocks="bodyBlocks" />
         </div>
 
-        <!-- Right: sticky sidebar -->
-        <div class="lg:sticky lg:top-24 lg:self-start space-y-5">
-          <MultiStepOrderForm />
+        <!-- Pricing calculator — id="calculator" for anchor link from hero -->
+        <section id="calculator" aria-labelledby="calc-heading" class="scroll-mt-20">
+          <h2 id="calc-heading" class="font-serif text-2xl font-bold text-slate-900 mb-5">Get an instant price</h2>
+          <OrderCalculator />
+        </section>
 
-          <!-- Quick FAQ -->
-          <div class="rounded-3xl border border-slate-100 bg-white p-6">
-            <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Quick questions</p>
-            <div class="space-y-4 divide-y divide-slate-100">
-              <div v-for="faq in [
-                { q: 'How fast?', a: 'As fast as 2 hours. Most essays matched within minutes of ordering.' },
-                { q: 'Are writers qualified?', a: `Master's degree minimum, matched to your subject. PhD writers available.` },
-                { q: 'Free revisions?', a: 'Unlimited within the revision window. Always by your original writer.' },
-              ]" :key="faq.q" class="pt-4 first:pt-0">
-                <p class="text-sm font-semibold text-slate-900">{{ faq.q }}</p>
-                <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ faq.a }}</p>
-              </div>
-            </div>
-            <NuxtLink href="/faq" class="mt-4 inline-flex text-xs font-semibold text-brand-600 hover:underline">
-              Full FAQ →
+        <!-- FAQ -->
+        <section aria-labelledby="faq-heading">
+          <h2 id="faq-heading" class="font-serif text-2xl font-bold text-slate-900 mb-5">
+            Frequently asked questions
+          </h2>
+          <div class="space-y-2">
+            <details
+              v-for="faq in [
+                { q: 'How fast can you deliver?', a: 'As fast as 2 hours for urgent orders up to 4 pages. Most essays are matched with a writer within minutes of placing your order.' },
+                { q: 'Are your writers qualified?', a: 'Yes. Every writer holds at minimum a Master\'s degree in their subject area. PhD-qualified writers are available for doctoral work.' },
+                { q: 'What if I need revisions?', a: 'Unlimited free revisions within the revision window, always handled by your original writer at no extra cost.' },
+                { q: 'Is using an essay writing service legal?', a: 'Yes. We provide model academic papers for reference and study, the same as a tutoring service or writing centre.' },
+              ]"
+              :key="faq.q"
+              class="group rounded-2xl border border-slate-200 bg-white shadow-sm"
+            >
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 text-sm font-semibold text-slate-900">
+                {{ faq.q }}
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 text-xs font-bold transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p class="px-6 pb-5 pt-1 text-sm text-slate-500 leading-relaxed">{{ faq.a }}</p>
+            </details>
+          </div>
+        </section>
+
+        <!-- Related services -->
+        <section v-if="related.length" aria-labelledby="related-heading">
+          <h2 id="related-heading" class="font-serif text-lg font-bold text-slate-900 mb-4">Related services</h2>
+          <div class="flex flex-wrap gap-3">
+            <NuxtLink
+              v-for="r in related"
+              :key="r.slug"
+              :to="`/services/${r.slug}`"
+              class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
+            >
+              {{ r.navLabel }}
             </NuxtLink>
           </div>
+        </section>
 
-          <!-- Testimonial -->
-          <div class="rounded-3xl border border-brand-100 bg-brand-50 p-6">
-            <div class="mb-3 flex gap-0.5">
-              <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-              </svg>
-            </div>
-            <p class="text-sm italic leading-relaxed text-slate-700">"I was genuinely impressed — the writer actually knew the subject. Not generic, not AI. A real expert."</p>
-            <p class="mt-3 text-xs font-semibold text-slate-600">— Student, University of Edinburgh</p>
-          </div>
-
-        </div>
       </div>
-    </div>
+    </main>
 
-    <!-- ── CMS or static long-form SEO content ──────────────────────── -->
-    <div class="border-t border-slate-100 bg-slate-50">
-      <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+    <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
+    <section class="bg-brand-800 py-14 text-center" aria-label="Get started">
+      <div class="mx-auto max-w-xl px-4 space-y-5">
+        <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">Ready to get started?</h2>
+        <p class="text-brand-300 text-sm">
+          Place your order in under 2 minutes. Grade or money back — no conditions.
+        </p>
+        <NuxtLink
+          to="/order"
+          class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg hover:bg-brand-50 transition-colors"
+        >
+          Order {{ displayTitle.toLowerCase() }} →
+        </NuxtLink>
+      </div>
+    </section>
 
-        <div v-if="cmsLoading" class="space-y-4">
-          <div v-for="i in 3" :key="i" class="space-y-2">
-            <div class="h-6 w-1/2 animate-pulse rounded bg-slate-200" />
-            <div class="h-4 w-full animate-pulse rounded bg-slate-200" />
-            <div class="h-4 w-4/5 animate-pulse rounded bg-slate-200" />
+    <!-- ── Sticky bottom pricing bar (appears after scroll) ───────────────── -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="translate-y-full opacity-0"
+      leave-active-class="transition duration-200 ease-in"
+      leave-to-class="translate-y-full opacity-0"
+    >
+      <div
+        v-if="showBar"
+        class="fixed bottom-0 inset-x-0 z-40 border-t border-brand-700 bg-brand-900/95 backdrop-blur-sm px-4 py-3"
+      >
+        <div class="mx-auto flex max-w-3xl items-center justify-between gap-4">
+          <div>
+            <p class="text-xs text-brand-400 uppercase tracking-wider font-bold">{{ displayTitle }}</p>
+            <p class="text-white font-bold">From <span class="text-gold-300 text-lg">${{ displayPrice }}</span>/page</p>
           </div>
-        </div>
-
-        <template v-else-if="hasCmsContent && cmsPage">
-          <div v-if="cmsPage.reviewer" class="mb-8 flex items-center gap-2 text-sm text-slate-500">
-            <Icon name="check-circle" class="h-4 w-4 text-brand-500" />
-            Reviewed by <strong class="text-slate-700">{{ cmsPage.reviewer.name }}</strong>
-            <span v-if="cmsPage.last_substantive_update" class="text-slate-400">
-              · Updated {{ new Date(cmsPage.last_substantive_update).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }}
-            </span>
-          </div>
-          <ServicePageBody :blocks="cmsPage.body" />
-          <div v-if="cmsPage.primary_cta_text && cmsPage.primary_cta_url" class="mt-10 text-center">
-            <NuxtLink :href="cmsPage.primary_cta_url" class="btn-primary px-10 py-4 text-base">
-              {{ cmsPage.primary_cta_text }}
+          <div class="flex gap-3">
+            <a
+              href="#calculator"
+              class="flex h-11 items-center gap-1 rounded-xl border border-brand-600 px-4 text-sm font-semibold text-brand-300 hover:bg-brand-800 transition-colors"
+            >
+              Price it
+            </a>
+            <NuxtLink
+              to="/order"
+              class="flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-brand-700 hover:bg-brand-50 shadow-sm transition-colors"
+            >
+              Order now →
             </NuxtLink>
           </div>
-        </template>
-
-        <template v-else-if="service">
-          <div class="prose prose-slate prose-lg max-w-none
-                       prose-headings:font-serif prose-headings:font-bold
-                       prose-a:text-brand-600 prose-strong:text-slate-900">
-
-            <h2>Why {{ service.navLabel }} Matters</h2>
-            <p>{{ displayHero.sub }}</p>
-            <p>
-              Academic work is demanding. Between deadlines, multiple modules, and the pressure to perform, producing well-structured, properly cited work consistently is genuinely hard. Our writers are subject specialists — not generic content writers — who understand what your marker is looking for because they have worked in the same field.
-            </p>
-
-            <h2>What Sets Our Approach Apart</h2>
-            <div class="not-prose my-6 grid gap-4 sm:grid-cols-2">
-              <div v-for="(item, i) in service.includes" :key="item"
-                class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{{ i + 1 }}</span>
-                <span class="text-sm leading-relaxed text-slate-700">{{ item }}</span>
-              </div>
-            </div>
-
-            <h2>What You Receive</h2>
-            <ul>
-              <li v-for="item in service.delivers" :key="item">{{ item }}</li>
-            </ul>
-
-            <h2>Who This Is For</h2>
-            <p>{{ service.whoFor }}</p>
-
-            <h2>Common Challenges We Solve</h2>
-            <ul>
-              <li><strong>Time pressure:</strong> Multiple deadlines, work, family — we work to your schedule, as fast as 2 hours.</li>
-              <li><strong>Subject depth:</strong> Generic writers produce surface-level work. Our writers are degree-holders in your subject.</li>
-              <li><strong>Citation accuracy:</strong> APA, MLA, Harvard, Chicago — formatted correctly, every time.</li>
-              <li><strong>Source quality:</strong> Peer-reviewed journals and academic databases, not unreliable web sources.</li>
-            </ul>
-
-            <h2>How to Order {{ service.navLabel }}</h2>
-            <ol>
-              <li><strong>Submit your brief:</strong> Essay type, subject, academic level, deadline, word count, and any rubric files.</li>
-              <li><strong>Get matched:</strong> We assign a writer whose subject background and degree level fit your assignment.</li>
-              <li><strong>Communicate directly:</strong> Message your writer, share additional files, track progress in real time.</li>
-              <li><strong>Download and review:</strong> Receive your essay with a free plagiarism report. Request revisions if needed.</li>
-            </ol>
-
-          </div>
-        </template>
-
+        </div>
       </div>
-    </div>
-
-    <!-- ── Sample templates for this service ────────────────────────── -->
-    <ClientOnly>
-      <ServiceTemplates
-        v-if="service"
-        :service-slug="service.slug"
-        :service-name="service.navLabel"
-      />
-    </ClientOnly>
-
-    <!-- ── Final CTA ─────────────────────────────────────────────────── -->
-    <div v-if="service" class="bg-brand-700 py-12 text-center">
-      <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">
-        Ready to get your {{ service.navLabel.toLowerCase() }} done?
-      </h2>
-      <p class="mt-3 text-brand-100">Subject-obsessed writer ready. Grade guaranteed or full refund.</p>
-      <NuxtLink to="/order" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
-        Place an order — from ${{ displayPrice }}/page
-      </NuxtLink>
-    </div>
+    </Transition>
 
   </div>
 </template>
+
+<style scoped>
+.service-body :deep(h2) { font-family: Georgia, serif; font-weight: 700; color: #1e1b4b; margin-top: 2.5rem; margin-bottom: 1rem; font-size: 1.5rem; }
+.service-body :deep(h3) { font-weight: 600; color: #312e81; margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.125rem; }
+.service-body :deep(p)  { color: #475569; line-height: 1.75; margin-bottom: 1rem; font-size: 0.9375rem; }
+.service-body :deep(ul), .service-body :deep(ol) { padding-left: 1.5rem; color: #475569; font-size: 0.9375rem; margin-bottom: 1rem; }
+.service-body :deep(li) { margin-bottom: 0.5rem; line-height: 1.65; }
+.service-body :deep(strong) { color: #1e1b4b; font-weight: 600; }
+.service-body :deep(table) { display: block; overflow-x: auto; border-collapse: collapse; width: 100%; margin-bottom: 1.5rem; }
+.service-body :deep(th), .service-body :deep(td) { padding: 0.625rem 1rem; border: 1px solid #ede9fe; font-size: 0.875rem; }
+.service-body :deep(th) { background: #f5f3ff; font-weight: 600; color: #4c1d95; }
+.service-body :deep(a)  { color: #7c3aed; text-decoration: underline; }
+</style>

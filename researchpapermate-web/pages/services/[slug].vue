@@ -3,30 +3,50 @@ const route = useRoute()
 const { getBySlug, getRelated } = useServices()
 
 const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(route.params.slug as string)
-
 const service = getBySlug(route.params.slug as string)
 
 if (!service && !cmsPage.value) {
   throw createError({ statusCode: 404, message: 'Service not found' })
 }
 
-const displayTitle   = computed(() => service?.title ?? cmsPage.value?.title ?? '')
-const displayHero    = computed(() => service?.hero ?? { headline: displayTitle.value, sub: '' })
-const displayPrice   = computed(() => service?.priceFrom ?? parseFloat(cmsPage.value?.pricing_from ?? '15'))
-const displayIcon    = computed(() => service?.icon ?? 'file-text')
-const displayMeta    = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
+const displayTitle = computed(() => service?.title ?? cmsPage.value?.title ?? '')
+const displayHero  = computed(() => service?.hero ?? { headline: displayTitle.value, sub: '' })
+const displayPrice = computed(() => service?.priceFrom ?? parseFloat(cmsPage.value?.pricing_from ?? '15'))
+const displayIcon  = computed(() => service?.icon ?? 'file-text')
+const displayMeta  = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
+const displayIncludes = computed(() => service?.includes ?? [])
 
-const related = service ? getRelated(service.relatedSlugs) : []
-const serviceTab = ref("What's Included")
+const related    = service ? getRelated(service.relatedSlugs) : []
+const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
 
-const config = useRuntimeConfig()
+// ── Methodology selector ──────────────────────────────────────────────────
+type Methodology = { label: string; paper: string; price: string; desc: string }
+
+const METHODOLOGIES: Methodology[] = [
+  { label: 'Essay / Report',    paper: 'essay',           price: '15', desc: 'Argumentative, analytical, reflective and critical essays across all disciplines.' },
+  { label: 'Research Paper',    paper: 'research_paper',  price: '15', desc: 'Original research with full methodology, citations, and peer-reviewed sources.' },
+  { label: 'Dissertation',      paper: 'dissertation',    price: '22', desc: 'Full dissertation or individual chapters — proposal through final defence.' },
+  { label: 'Literature Review', paper: 'literature_review', price: '16', desc: 'Critically synthesised systematic, narrative, or integrative reviews.' },
+  { label: 'Other',             paper: '',                price: String(displayPrice.value), desc: 'Capstone projects, case studies, term papers, and specialist work.' },
+]
+
+const activeMethod = ref(0)
+const selectedMethod = computed(() => METHODOLOGIES[activeMethod.value])
+
+// ── Drawer ────────────────────────────────────────────────────────────────
+const drawerOpen = ref(false)
+function openDrawer() { drawerOpen.value = true; document.body.style.overflow = 'hidden' }
+function closeDrawer() { drawerOpen.value = false; document.body.style.overflow = '' }
+onUnmounted(() => { document.body.style.overflow = '' })
+
+const config  = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://researchpapermate.com'
 const canonicalUrl = `${siteUrl}/services/${route.params.slug}`
 
 useSeoMeta({
-  title: displayMeta.value.title || displayTitle.value,
-  description: displayMeta.value.description,
-  ogTitle: displayMeta.value.title || displayTitle.value,
+  title:         displayMeta.value.title || displayTitle.value,
+  description:   displayMeta.value.description,
+  ogTitle:       displayMeta.value.title || displayTitle.value,
   ogDescription: displayMeta.value.description,
 })
 
@@ -43,15 +63,11 @@ const faqSchema = service ? {
 
 useHead({
   link: [{ rel: 'canonical', href: canonicalUrl }],
-  script: faqSchema
-    ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }]
-    : [],
+  script: faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : [],
 })
 
 if (cmsPage.value?.schema) {
-  useHead({
-    script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(cmsPage.value.schema) }],
-  })
+  useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(cmsPage.value.schema) }] })
 } else {
   useHead({
     script: [{
@@ -75,390 +91,308 @@ if (cmsPage.value?.schema) {
 </script>
 
 <template>
+  <!-- Methodology selector + drawer calculator — scholarly, parchment-toned -->
   <div>
-    <!-- Breadcrumb bar -->
-    <div class="border-b border-slate-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-7xl">
-        <Breadcrumbs :items="[
-          { label: 'Services', href: '/services' },
-          { label: displayTitle },
-        ]" />
-      </div>
-    </div>
 
-    <!-- Hero -->
-    <section class="relative overflow-hidden bg-claret-950 py-20 text-center">
-      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-claret-600 opacity-20 blur-[80px]" />
-      <div class="relative mx-auto max-w-3xl px-4 sm:px-6">
-        <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-          <Icon :name="displayIcon" class="h-7 w-7 text-white" />
+    <!-- ── Hero: parchment/white, left-aligned, minimal ──────────────────── -->
+    <section class="bg-parchment-50 border-b border-parchment-200 py-12 sm:py-16" aria-label="Service overview">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        <!-- Breadcrumb -->
+        <nav aria-label="Breadcrumb" class="mb-7 flex items-center gap-1.5 text-xs text-claret-400">
+          <NuxtLink to="/" class="hover:text-claret-700 transition-colors">Home</NuxtLink>
+          <span>/</span>
+          <NuxtLink to="/services" class="hover:text-claret-700 transition-colors">Services</NuxtLink>
+          <span>/</span>
+          <span class="text-claret-700" aria-current="page">{{ displayTitle }}</span>
+        </nav>
+
+        <div class="max-w-3xl">
+          <h1 class="font-serif text-3xl font-bold text-claret-950 sm:text-4xl xl:text-5xl leading-tight">
+            {{ displayHero.headline }}
+          </h1>
+          <p v-if="displayHero.sub" class="mt-3 text-claret-600 leading-relaxed text-lg">
+            {{ displayHero.sub }}
+          </p>
+
+          <!-- Methodology tab selector -->
+          <div class="mt-8" role="tablist" aria-label="Paper type selector">
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="(m, i) in METHODOLOGIES"
+                :key="m.label"
+                role="tab"
+                :aria-selected="activeMethod === i"
+                type="button"
+                class="rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all"
+                :class="activeMethod === i
+                  ? 'border-claret-600 bg-claret-600 text-white shadow-sm'
+                  : 'border-parchment-300 bg-white text-claret-700 hover:border-claret-300 hover:bg-parchment-100'"
+                @click="activeMethod = i"
+              >{{ m.label }}</button>
+            </div>
+
+            <!-- Selected methodology description -->
+            <Transition name="fade" mode="out-in">
+              <div :key="activeMethod" class="mt-4 flex items-center justify-between gap-4 rounded-xl border border-parchment-200 bg-white px-5 py-4">
+                <p class="text-sm text-slate-600 leading-relaxed">{{ selectedMethod.desc }}</p>
+                <p class="shrink-0 text-right">
+                  <span class="block text-xs text-claret-400 uppercase tracking-wider font-bold">From</span>
+                  <span class="text-2xl font-bold text-claret-800">${{ selectedMethod.price }}</span>
+                  <span class="text-xs text-claret-400">/page</span>
+                </p>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- CTA -->
+          <div class="mt-6 flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-claret-700 px-8 py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-claret-800"
+              @click="openDrawer"
+            >
+              Get a quote — from ${{ selectedMethod.price }}/page
+            </button>
+            <NuxtLink
+              to="/order"
+              class="text-sm font-semibold text-claret-600 hover:text-claret-800 transition-colors"
+            >
+              Order directly →
+            </NuxtLink>
+          </div>
+
+          <!-- Trust line -->
+          <p class="mt-5 text-xs text-claret-500">
+            ✓ Grade or money back &nbsp;·&nbsp; ✓ Master's &amp; PhD writers &nbsp;·&nbsp; ✓ Free plagiarism report
+          </p>
         </div>
-        <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">{{ displayHero.headline }}</h1>
-        <p v-if="displayHero.sub" class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-claret-200">{{ displayHero.sub }}</p>
-        <div class="mt-8 flex flex-wrap justify-center gap-4">
-          <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-claret-700 shadow-lg transition-colors hover:bg-parchment-100">
-            Order from ${{ displayPrice }}/page
-          </NuxtLink>
-          <NuxtLink to="/pricing" class="inline-flex items-center rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10">
-            See full pricing
-          </NuxtLink>
-        </div>
-        <div class="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-claret-300">
-          <span>✓ Grade or money back</span>
-          <span>✓ Master's &amp; PhD writers</span>
-          <span>✓ Free Turnitin report</span>
-        </div>
+
       </div>
     </section>
 
-    <!-- Main content + sidebar -->
-    <div class="section">
-      <div class="grid gap-10 lg:grid-cols-[1fr_300px]">
+    <!-- ── Main content: article + compact trust sidebar ─────────────────── -->
+    <main class="bg-white">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-12">
 
-        <!-- Left: tabbed service content -->
-        <div v-if="service">
+          <!-- Article: 7/12 columns -->
+          <article class="lg:col-span-7 space-y-12 min-w-0" aria-label="Service details">
 
-          <!-- Tab navigation — scrollable on mobile -->
-          <div class="overflow-x-auto" style="scrollbar-width: none;">
-            <div class="mb-8 flex min-w-max gap-1 rounded-2xl bg-slate-100 p-1.5">
-              <button
-                v-for="tab in ['What\'s Included', 'What You Receive', 'Who It\'s For', 'Our Guarantees']"
-                :key="tab"
-                class="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
-                :class="serviceTab === tab ? 'bg-white text-claret-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
-                @click="serviceTab = tab"
-              >{{ tab }}</button>
+            <!-- What's included -->
+            <section v-if="displayIncludes.length" aria-labelledby="includes-heading">
+              <h2 id="includes-heading" class="font-serif text-xl font-bold text-claret-900 mb-5">What's included</h2>
+              <ul class="space-y-3" role="list">
+                <li
+                  v-for="item in displayIncludes"
+                  :key="item"
+                  class="flex items-start gap-3 text-sm text-slate-700"
+                >
+                  <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 mt-0.5">
+                    <Icon name="check" class="h-3 w-3 text-amber-700" />
+                  </span>
+                  {{ item }}
+                </li>
+              </ul>
+            </section>
+
+            <!-- CMS body -->
+            <div v-if="bodyBlocks.length && hasCmsContent" class="service-body">
+              <ServicePageBody :blocks="bodyBlocks" />
             </div>
-          </div>
 
-          <!-- Tab: What's Included -->
-          <div v-if="serviceTab === 'What\'s Included'" class="space-y-4">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div
-                v-for="(item, i) in service.includes"
-                :key="item"
-                class="flex items-start gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
-              >
-                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-claret-600 text-xs font-bold text-white">
-                  {{ i + 1 }}
-                </span>
-                <span class="text-sm leading-relaxed text-slate-700">{{ item }}</span>
+            <!-- FAQ -->
+            <section aria-labelledby="faq-heading">
+              <h2 id="faq-heading" class="font-serif text-xl font-bold text-claret-900 mb-5">
+                Common questions
+              </h2>
+              <div class="space-y-2">
+                <details
+                  v-for="faq in [
+                    { q: 'How fast can you deliver?', a: 'As fast as 2 hours for urgent orders up to 4 pages. Most papers are matched with a qualified writer within minutes of placing your order.' },
+                    { q: 'Are your writers qualified?', a: 'Yes. Every writer holds at minimum a Master\'s degree in their subject area, verified against the issuing institution. PhD-qualified writers are available for doctoral work.' },
+                    { q: 'What if I need revisions?', a: 'Unlimited free revisions are included within the revision window, always handled by your original writer.' },
+                    { q: 'Is using an academic writing service legal?', a: 'Yes. We provide model academic papers for reference and study — the same as a tutoring service or writing centre. Every order includes an academic-use acknowledgement.' },
+                  ]"
+                  :key="faq.q"
+                  class="group rounded-xl border border-parchment-200 bg-parchment-50"
+                >
+                  <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold text-claret-900">
+                    {{ faq.q }}
+                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-parchment-200 text-claret-600 text-xs font-bold transition-transform group-open:rotate-45">+</span>
+                  </summary>
+                  <p class="px-5 pb-4 pt-0 text-sm text-slate-600 leading-relaxed">{{ faq.a }}</p>
+                </details>
               </div>
-            </div>
-            <div class="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-amber-100 bg-parchment-100 p-5">
-              <div>
-                <p class="font-semibold text-claret-900">Ready to place your order?</p>
-                <p class="mt-0.5 text-sm text-claret-700">From ${{ displayPrice }}/page · Grade or money back</p>
-              </div>
-              <NuxtLink to="/order" class="shrink-0 btn-primary">Order now</NuxtLink>
-            </div>
-          </div>
+            </section>
 
-          <!-- Tab: What You Receive -->
-          <div v-else-if="serviceTab === 'What You Receive'" class="space-y-3">
-            <div
-              v-for="item in service.delivers"
-              :key="item"
-              class="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
-            >
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100">
-                <Icon name="check-circle" class="h-5 w-5 text-green-600" />
-              </div>
-              <p class="text-sm text-slate-700">{{ item }}</p>
-            </div>
-            <div class="mt-4 rounded-2xl bg-claret-900 p-5 text-white">
-              <p class="font-semibold">Everything is included — no hidden extras</p>
-              <p class="mt-1 text-sm text-slate-300">Plagiarism report, title page, reference list, and revisions are all free.</p>
-            </div>
-          </div>
-
-          <!-- Tab: Who It's For -->
-          <div v-else-if="serviceTab === 'Who It\'s For'">
-            <div class="rounded-2xl border border-slate-100 bg-white p-7 shadow-sm">
-              <div class="mb-5 flex items-start gap-4">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                  <Icon :name="displayIcon" class="h-6 w-6 text-amber-700" />
-                </div>
-                <div>
-                  <h3 class="font-serif text-xl font-bold text-slate-900">{{ service.navLabel }}</h3>
-                  <p class="text-sm text-amber-700">From ${{ displayPrice }}/page</p>
-                </div>
-              </div>
-              <p class="leading-relaxed text-slate-700">{{ service.whoFor }}</p>
-            </div>
-            <div class="mt-5 grid gap-4 sm:grid-cols-3">
-              <div v-for="level in ['Undergraduate', `Master\\'s Level`, 'PhD / Doctoral']" :key="level"
-                class="rounded-xl border border-amber-100 bg-parchment-100 p-4 text-center">
-                <p class="text-sm font-semibold text-claret-800">{{ level }}</p>
-              </div>
-            </div>
-            <div class="mt-5 rounded-2xl bg-claret-950 p-5 text-center">
-              <p class="font-semibold text-white">Not sure if this service fits your assignment?</p>
-              <NuxtLink to="/contact" class="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-claret-300 transition-colors hover:text-white">
-                Talk to our team → we'll confirm in minutes
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Tab: Guarantees -->
-          <div v-else-if="serviceTab === 'Our Guarantees'">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div v-for="g in [
-                { icon: 'trophy',       title: 'Grade or money back',         desc: 'If the paper doesn\'t meet your stated requirements after revisions, we refund in full.', color: 'bg-amber-100 text-amber-600' },
-                { icon: 'graduation-cap', title: 'Master\'s & PhD writers',   desc: 'Every writer is degree-verified in their subject. PhD writers available for doctoral work.', color: 'bg-amber-100 text-amber-700' },
-                { icon: 'shield-check', title: 'Free Turnitin report',        desc: 'Every paper is checked for plagiarism before delivery. Report included at no extra charge.', color: 'bg-green-100 text-green-600' },
-                { icon: 'bot',          title: 'Zero AI content',             desc: '100% human-written by a real expert. Free AI-detection report available on request.', color: 'bg-blue-100 text-blue-600' },
-                { icon: 'refresh-cw',   title: 'Unlimited free revisions',    desc: 'Request changes within the revision window — always free, always by your original writer.', color: 'bg-violet-100 text-violet-600' },
-                { icon: 'lock',         title: 'Complete confidentiality',    desc: 'Your identity and order details are never shared with any third party.', color: 'bg-slate-100 text-slate-600' },
-              ]" :key="g.title" class="flex gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" :class="g.color.split(' ')[0]">
-                  <Icon :name="g.icon" class="h-5 w-5" :class="g.color.split(' ')[1]" />
-                </div>
-                <div>
-                  <p class="text-sm font-semibold text-slate-900">{{ g.title }}</p>
-                  <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ g.desc }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Related services (always visible below tabs) -->
-          <div v-if="related.length" class="mt-10">
-            <h2 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Related services</h2>
-            <div class="flex gap-3 snap-x snap-mandatory overflow-x-auto pb-2" style="scrollbar-width: none;">
-              <NuxtLink
-                v-for="r in related"
-                :key="r.slug"
-                :href="`/services/${r.slug}`"
-                class="group flex w-52 shrink-0 snap-start items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm transition-all hover:border-amber-200 hover:shadow-md"
-              >
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 transition-colors group-hover:bg-claret-600">
-                  <Icon :name="r.icon" class="h-4 w-4 text-amber-700 transition-colors group-hover:text-white" />
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-xs font-semibold text-slate-800 group-hover:text-claret-700">{{ r.navLabel }}</p>
-                  <p class="text-xs text-amber-700">From ${{ r.priceFrom }}/page</p>
-                </div>
-              </NuxtLink>
-            </div>
-          </div>
-        </div>
-
-        <!-- Fallback if no static data -->
-        <div v-else class="rounded-2xl border border-amber-100 bg-parchment-100 p-8 text-center">
-          <Icon name="graduation-cap" class="mx-auto mb-4 h-12 w-12 text-amber-700" />
-          <p class="text-lg font-semibold text-slate-900">Expert writers ready</p>
-          <p class="mt-2 text-slate-600">Place your order and we'll match you with the right specialist for this service.</p>
-          <NuxtLink to="/order" class="btn-primary mt-6 inline-flex">Place an order</NuxtLink>
-        </div>
-
-        <!-- Right: sticky sidebar -->
-        <div class="lg:sticky lg:top-24 lg:self-start space-y-5">
-          <MultiStepOrderForm />
-          <div class="rounded-2xl bg-claret-950 p-5 text-center text-white">
-            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-              <Icon name="graduation-cap" class="h-6 w-6 text-white" />
-            </div>
-            <p class="text-sm font-semibold">Master's &amp; PhD writers</p>
-            <p class="mt-1 text-xs text-claret-300">4.8★ · 14,700+ papers delivered</p>
-            <NuxtLink to="/order" class="mt-4 block rounded-xl bg-white py-2.5 text-sm font-bold text-claret-700 transition-colors hover:bg-parchment-100">
-              Place an order
-            </NuxtLink>
-          </div>
-          <div v-if="related.length" class="rounded-2xl border border-slate-100 bg-white p-5">
-            <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Related services</p>
-            <ul class="space-y-2">
-              <li v-for="r in related" :key="r.slug">
-                <NuxtLink :href="`/services/${r.slug}`"
-                  class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-parchment-100 hover:text-claret-700">
-                  <Icon :name="r.icon" class="h-4 w-4 shrink-0 text-amber-600" />
+            <!-- Related -->
+            <section v-if="related.length" aria-labelledby="related-heading">
+              <h2 id="related-heading" class="font-serif text-lg font-bold text-claret-900 mb-4">Related services</h2>
+              <div class="flex flex-wrap gap-2">
+                <NuxtLink
+                  v-for="r in related"
+                  :key="r.slug"
+                  :to="`/services/${r.slug}`"
+                  class="rounded-full border border-parchment-300 bg-parchment-50 px-4 py-2 text-xs font-medium text-claret-700 transition-colors hover:border-claret-300 hover:bg-claret-50"
+                >
                   {{ r.navLabel }}
                 </NuxtLink>
-              </li>
-            </ul>
-          </div>
-        </div>
+              </div>
+            </section>
 
-      </div>
-    </div>
+          </article>
 
-    <!-- ── Long-form editorial content ─────────────────────────────────────
-         CMS content (Wagtail) when available; static SEO fallback always shown
-         so every service page is substantive before staff have added CMS copy.
-    ──────────────────────────────────────────────────────────────────── -->
-    <div class="border-t border-slate-100 bg-white">
-      <div class="section max-w-5xl">
+          <!-- Trust sidebar: 5/12 columns, sticky -->
+          <aside class="hidden lg:block lg:col-span-5" aria-label="Order and pricing">
+            <div class="sticky top-24 space-y-4">
 
-        <!-- Loading skeleton -->
-        <div v-if="cmsLoading" class="space-y-6">
-          <div v-for="i in 4" :key="i" class="space-y-3">
-            <div class="h-7 w-1/2 animate-pulse rounded-lg bg-slate-100" />
-            <div class="h-4 w-full animate-pulse rounded bg-slate-100" />
-            <div class="h-4 w-5/6 animate-pulse rounded bg-slate-100" />
-          </div>
-        </div>
-
-        <!-- CMS content from Wagtail -->
-        <template v-else-if="hasCmsContent && cmsPage">
-          <div v-if="cmsPage.reviewer" class="mb-8 flex items-center gap-2 text-sm text-slate-500">
-            <Icon name="check-circle" class="h-4 w-4 text-amber-600" />
-            Reviewed by <strong class="text-slate-700">{{ cmsPage.reviewer.name }}</strong>
-            <span v-if="cmsPage.last_substantive_update" class="text-slate-400">
-              · Updated {{ new Date(cmsPage.last_substantive_update).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }}
-            </span>
-          </div>
-          <ServicePageBody :blocks="cmsPage.body" />
-          <div v-if="cmsPage.primary_cta_text && cmsPage.primary_cta_url" class="mt-10 text-center">
-            <NuxtLink :href="cmsPage.primary_cta_url" class="btn-primary px-10 py-4 text-base">
-              {{ cmsPage.primary_cta_text }}
-            </NuxtLink>
-          </div>
-        </template>
-
-        <!-- Static fallback — always present until CMS copy is added -->
-        <template v-else-if="service">
-          <div class="grid gap-16 lg:grid-cols-[1fr_340px]">
-
-            <!-- Left: editorial content -->
-            <div class="prose prose-slate prose-lg max-w-none
-                         prose-headings:font-serif prose-headings:font-bold
-                         prose-a:text-amber-700 prose-strong:text-slate-900">
-
-              <h2>Why {{ service.navLabel }} Matters for Students</h2>
-              <p>{{ displayHero.sub }}</p>
-              <p>
-                Academic programmes are demanding. Between part-time work, family responsibilities, multiple modules,
-                and tight submission deadlines, producing consistently high-quality written work is genuinely difficult.
-                That's why thousands of students — from first-year undergraduates through doctoral candidates — rely on
-                qualified subject specialists to support their academic writing.
-              </p>
-
-              <h2>What Sets Our Approach to {{ service.navLabel }} Apart</h2>
-              <div class="not-prose my-6 grid gap-4 sm:grid-cols-2">
-                <div v-for="(item, i) in service.includes" :key="item"
-                  class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-claret-600 text-xs font-bold text-white">{{ i + 1 }}</span>
-                  <span class="text-sm leading-relaxed text-slate-700">{{ item }}</span>
+              <!-- Quote card -->
+              <div class="overflow-hidden rounded-2xl border border-parchment-200 bg-white shadow-sm">
+                <div class="border-b border-parchment-200 bg-parchment-50 px-5 py-4">
+                  <p class="text-xs uppercase tracking-widest font-bold text-claret-400 mb-0.5">Starting from</p>
+                  <p class="text-3xl font-bold text-claret-900">
+                    ${{ selectedMethod.price }}<span class="text-sm font-normal text-claret-400">/page</span>
+                  </p>
+                  <p class="mt-0.5 text-xs text-claret-500">{{ selectedMethod.label }}</p>
+                </div>
+                <div class="p-5 space-y-3">
+                  <button
+                    type="button"
+                    class="block w-full rounded-xl bg-claret-700 py-3 text-center text-sm font-bold text-white shadow-sm transition-colors hover:bg-claret-800"
+                    @click="openDrawer"
+                  >
+                    Get a quote →
+                  </button>
+                  <NuxtLink
+                    to="/order"
+                    class="block w-full rounded-xl border border-claret-200 py-2.5 text-center text-xs font-semibold text-claret-700 transition-colors hover:bg-claret-50"
+                  >
+                    Place order directly
+                  </NuxtLink>
+                  <ul class="space-y-2 pt-1">
+                    <li v-for="t in ['Grade or money back', 'Master\'s &amp; PhD writers', 'Free plagiarism report', 'Zero AI content', 'Unlimited revisions']" :key="t"
+                      class="flex items-center gap-2 text-xs text-slate-600" v-html="`<svg class='h-3 w-3 shrink-0 text-amber-600' fill='none' stroke='currentColor' stroke-width='3' viewBox='0 0 24 24'><polyline points='20 6 9 17 4 12'/></svg>${t}`" />
+                  </ul>
                 </div>
               </div>
 
-              <h2>What You Receive</h2>
-              <ul>
-                <li v-for="item in service.delivers" :key="item">{{ item }}</li>
-              </ul>
-
-              <h2>Who This Service is For</h2>
-              <p>{{ service.whoFor }}</p>
-
-              <h2>We Understand the Challenges Students Face</h2>
-              <p>
-                Academic writing isn't just about putting words on a page — it's demonstrating subject mastery,
-                constructing a coherent argument, citing sources correctly, and meeting the exact formatting
-                requirements of your institution, all under deadline pressure. Our writers are subject specialists
-                who have done this professionally. They write the way your marker expects — because they know
-                academic standards from the inside.
-              </p>
-
-              <h3>Common Challenges We Solve</h3>
-              <ul>
-                <li><strong>Time pressure:</strong> Work, family, and multiple deadlines leave little room for long-form writing. We work to your deadline — as fast as 2 hours for shorter assignments.</li>
-                <li><strong>Subject depth:</strong> Generic writers can produce surface-level work. Our writers are degree-holders in your subject — the difference shows in the quality of the argument.</li>
-                <li><strong>Citation accuracy:</strong> APA, MLA, Harvard, Chicago — every style handled correctly, every time.</li>
-                <li><strong>Source quality:</strong> We draw from peer-reviewed journals, academic databases, and credible primary sources — not outdated or unreliable material.</li>
-              </ul>
-
-              <h2>How to Order {{ service.navLabel }}</h2>
-              <ol>
-                <li><strong>Submit your brief:</strong> Complete the order form with your assignment details, word count, deadline, and any rubric or reading list requirements.</li>
-                <li><strong>Get matched:</strong> We assign a writer whose subject background and degree level match your assignment.</li>
-                <li><strong>Track progress:</strong> Message your writer directly through your dashboard, share additional files, and follow real-time progress.</li>
-                <li><strong>Download and review:</strong> Receive your paper with a free Turnitin report. Request unlimited free revisions within the review window.</li>
-              </ol>
-
-            </div>
-
-            <!-- Right: sticky conversion panel -->
-            <div class="space-y-5 lg:sticky lg:top-24 lg:self-start">
-
-              <!-- Price card -->
-              <div class="rounded-2xl bg-claret-950 p-6 text-white">
-                <div class="mb-4 flex items-start justify-between">
-                  <div>
-                    <p class="text-sm text-claret-300">Starting from</p>
-                    <p class="text-4xl font-bold">${{ displayPrice }}<span class="text-lg font-normal text-claret-300">/page</span></p>
-                  </div>
-                  <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                    <Icon :name="displayIcon" class="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <NuxtLink to="/order"
-                  class="block w-full rounded-xl bg-white py-3.5 text-center text-base font-bold text-claret-700 transition-colors hover:bg-parchment-100">
-                  Place an order
-                </NuxtLink>
-                <NuxtLink to="/contact"
-                  class="mt-2 block w-full rounded-xl border border-white/20 py-2.5 text-center text-sm font-semibold text-claret-200 transition-colors hover:bg-white/10">
-                  Talk to us first
-                </NuxtLink>
+              <!-- Reviewer -->
+              <div v-if="cmsPage?.reviewer" class="rounded-2xl border border-parchment-200 bg-parchment-50 p-4">
+                <p class="text-xs text-claret-400 mb-1">Reviewed by</p>
+                <p class="text-sm font-semibold text-claret-900">{{ cmsPage.reviewer.name }}</p>
+                <p v-if="cmsPage.reviewer.role" class="text-xs text-claret-500 mt-0.5">{{ cmsPage.reviewer.role }}</p>
               </div>
 
-              <!-- Quick FAQ -->
-              <div class="rounded-2xl border border-slate-100 bg-white p-5">
-                <p class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Common questions</p>
-                <div class="divide-y divide-slate-100">
-                  <div v-for="faq in [
-                    { q: 'How fast can you deliver?', a: 'As fast as 2 hours for urgent orders up to 4 pages. Most papers are matched with a writer within minutes.' },
-                    { q: 'Are your writers qualified?', a: 'Yes — every writer holds at minimum a Master\'s degree in their field. PhD writers are available for doctoral work.' },
-                    { q: 'What if I need revisions?', a: 'Unlimited free revisions within the revision window — always handled by your original writer at no extra cost.' },
-                  ]" :key="faq.q" class="py-3">
-                    <p class="text-sm font-semibold text-slate-900">{{ faq.q }}</p>
-                    <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ faq.a }}</p>
-                  </div>
-                </div>
-                <NuxtLink href="/contact" class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:underline">
-                  More questions → talk to our team
-                </NuxtLink>
-              </div>
-
-              <!-- Testimonial -->
-              <div class="rounded-2xl border border-amber-100 bg-parchment-100 p-5">
-                <div class="mb-3 flex gap-0.5">
-                  <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              <!-- Star rating -->
+              <div class="rounded-2xl border border-parchment-200 bg-parchment-50 p-4 text-center">
+                <div class="flex justify-center gap-0.5 mb-2">
+                  <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                 </div>
-                <p class="text-sm italic leading-relaxed text-slate-700">"I had three submissions in one week during my dissertation semester. My writer knew the subject inside out — not just how to write. Got a distinction."</p>
-                <p class="mt-3 text-xs font-semibold text-slate-600">— Master's Student, University of Manchester</p>
+                <p class="text-xs text-slate-500">4.9 · 22,000+ papers delivered</p>
               </div>
 
             </div>
-          </div>
-        </template>
+          </aside>
 
+        </div>
       </div>
-    </div>
+    </main>
 
-    <!-- Sample templates -->
-    <ClientOnly>
-      <ServiceTemplates
-        v-if="service"
-        :service-slug="service.slug"
-        :service-name="service.navLabel"
-      />
-    </ClientOnly>
+    <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
+    <section class="bg-claret-950 py-14 text-center" aria-label="Get started">
+      <div class="mx-auto max-w-xl px-4 space-y-5">
+        <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">Ready to get started?</h2>
+        <p class="text-claret-300 text-sm">Expert academic writing. Grade or money back — guaranteed.</p>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-3.5 text-sm font-bold text-claret-950 shadow-sm hover:bg-amber-400 transition-colors"
+          @click="openDrawer"
+        >
+          Get a quote →
+        </button>
+      </div>
+    </section>
 
-    <!-- Final CTA strip -->
-    <div v-if="service" class="bg-claret-700 py-12 text-center">
-      <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">
-        Ready to get your {{ service.navLabel.toLowerCase() }} done?
-      </h2>
-      <p class="mt-3 text-claret-100">
-        A qualified subject-specialist writer is ready. Grade guaranteed or full refund.
-      </p>
-      <NuxtLink to="/order" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-bold text-claret-700 shadow-lg transition-colors hover:bg-parchment-100">
-        Place an order — from ${{ displayPrice }}/page
-      </NuxtLink>
-    </div>
+    <!-- ── Slide-in drawer with OrderCalculator ───────────────────────────── -->
+    <Teleport to="body">
+      <!-- Backdrop -->
+      <Transition name="fade">
+        <div
+          v-if="drawerOpen"
+          class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          aria-hidden="true"
+          @click="closeDrawer"
+        />
+      </Transition>
+
+      <!-- Panel -->
+      <Transition name="slide-drawer">
+        <div
+          v-if="drawerOpen"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pricing calculator"
+          class="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+        >
+          <!-- Drawer header -->
+          <div class="flex items-center justify-between border-b border-parchment-200 bg-parchment-50 px-5 py-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-claret-400">Instant price</p>
+              <p class="text-sm font-semibold text-claret-900">{{ displayTitle }}</p>
+            </div>
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-parchment-300 text-claret-500 hover:bg-parchment-100 transition-colors"
+              aria-label="Close"
+              @click="closeDrawer"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Calculator -->
+          <div class="flex-1 overflow-y-auto p-5">
+            <OrderCalculator />
+          </div>
+
+          <!-- Drawer footer -->
+          <div class="border-t border-parchment-200 bg-parchment-50 px-5 py-4">
+            <NuxtLink
+              to="/order"
+              class="block w-full rounded-xl bg-claret-700 py-3 text-center text-sm font-bold text-white hover:bg-claret-800 transition-colors shadow-sm"
+              @click="closeDrawer"
+            >
+              Place order directly →
+            </NuxtLink>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
+
+<style scoped>
+/* Body prose */
+.service-body :deep(h2) { font-family: Georgia, serif; font-weight: 700; color: #3D1025; margin-top: 2.5rem; margin-bottom: 1rem; font-size: 1.375rem; }
+.service-body :deep(h3) { font-weight: 600; color: #5C1A38; margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.125rem; }
+.service-body :deep(p)  { color: #4b5563; line-height: 1.8; margin-bottom: 1rem; font-size: 0.9375rem; }
+.service-body :deep(ul), .service-body :deep(ol) { padding-left: 1.5rem; color: #4b5563; font-size: 0.9375rem; margin-bottom: 1rem; }
+.service-body :deep(li) { margin-bottom: 0.5rem; line-height: 1.65; }
+.service-body :deep(strong) { color: #3D1025; font-weight: 600; }
+.service-body :deep(table) { display: block; overflow-x: auto; border-collapse: collapse; width: 100%; margin-bottom: 1.5rem; }
+.service-body :deep(th), .service-body :deep(td) { padding: 0.625rem 1rem; border: 1px solid #fce4ee; font-size: 0.875rem; }
+.service-body :deep(th) { background: #fdf2f6; font-weight: 600; color: #7B2241; }
+.service-body :deep(a)  { color: #9e1540; text-decoration: underline; }
+
+/* Drawer transition */
+.slide-drawer-enter-active, .slide-drawer-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.slide-drawer-enter-from, .slide-drawer-leave-to { transform: translateX(100%); }
+
+/* Backdrop + method tab */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>

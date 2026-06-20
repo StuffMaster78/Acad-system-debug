@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ArrowRight, CheckCircle2 } from '@lucide/vue'
-import ServiceBlocks from '~/components/cms/ServiceBlocks.vue'
+import { ArrowRight, CheckCircle2, Shield, Clock, Star } from '@lucide/vue'
+import HeroCalculator from '~/components/ui/HeroCalculator.vue'
 import PricingCalculator from '~/components/ui/PricingCalculator.vue'
 import type { CmsServicePage } from '~/types/cms'
 
@@ -30,7 +30,6 @@ type ServiceView = {
   ctaUrl?: string
 }
 
-// ── Service definitions (CMS-ready: can swap to Wagtail API fetch) ────────────
 const SERVICE_MAP: Record<string, ServiceView> = {
   'essay-writing': {
     title: 'Essay Writing Service',
@@ -258,7 +257,7 @@ const SERVICE_MAP: Record<string, ServiceView> = {
       'Analysis structured around recognised academic frameworks',
       'Evidence-based conclusions with cited supporting sources',
       'SWOT, PESTLE, Porter\'s Five Forces, and other models applied correctly',
-      'APA, Harvard, APA, Chicago, MLA formatting',
+      'APA, Harvard, Chicago, MLA formatting',
       'Plagiarism report included at no extra cost',
     ],
     process: [
@@ -367,37 +366,6 @@ const SERVICE_MAP: Record<string, ServiceView> = {
     ],
     related: ['dissertations', 'literature-review', 'data-analysis'],
   },
-  'capstone-projects': {
-    title: 'Capstone Project Writing Service',
-    tagline: 'End-of-programme projects delivered with depth and precision.',
-    description: 'Custom capstone project support from research and analysis through to presentation. Expert writers matched to your programme and institution from $22/page.',
-    price: 22,
-    metaTitle: 'Capstone Project Writing Service from $22/Page | GradeCrest',
-    metaDesc: 'Expert capstone project support: research, analysis, and presentation. Undergraduate through postgraduate. Grade guaranteed. From $22/page.',
-    intro: 'A capstone project is the defining piece of your programme — it synthesises everything you have learned and is assessed at the highest standard. GradeCrest assigns writers who understand capstone expectations at your level and in your discipline, delivering work that reflects genuine command of the subject.',
-    bullets: [
-      'Full capstone support or individual sections',
-      'Research design, literature review, methodology, analysis, and discussion',
-      'Quantitative, qualitative, and mixed-methods research',
-      'Business, nursing, education, STEM, and all other disciplines',
-      'Presentation and executive summary support included',
-      'APA, Harvard, Chicago, and all major citation styles',
-      'Plagiarism report and AI-detection certificate included',
-    ],
-    process: [
-      { title: 'Brief your project',    desc: 'Your programme, discipline, research question or topic, required methodology, and any marking criteria or rubric.' },
-      { title: 'Expert matched',        desc: 'Assigned to a writer with capstone experience in your specific field and academic level.' },
-      { title: 'Research and writing',  desc: 'Your writer builds the project from your brief — research, analysis, structured writing, and accurate citation.' },
-      { title: 'Review and refine',     desc: 'Receive your project with all reports. Free revisions within the extended revision window.' },
-    ],
-    faqs: [
-      { q: 'Can you help with the full capstone or just part of it?', a: 'Either. We can handle the full project from proposal to final submission, or just the sections you need most help with.' },
-      { q: 'Do you cover capstone presentations and posters?',        a: 'Yes. We can write your presentation script, speaker notes, executive summary, or project abstract alongside the written work.' },
-      { q: 'How do you match the writer to my programme?',           a: 'We match by discipline, academic level, and research methodology type. You can review your writer\'s credentials before work begins.' },
-      { q: 'What is the revision window for a capstone project?',    a: 'Up to 30 days from delivery. We revise until the work meets your requirements.' },
-    ],
-    related: ['dissertations', 'research-papers', 'data-analysis'],
-  },
   'data-analysis': {
     title: 'Data Analysis Service',
     tagline: 'SPSS, R, Python, and Excel — results and written interpretation.',
@@ -492,11 +460,10 @@ const SERVICE_MAP: Record<string, ServiceView> = {
   },
 }
 
-// Fallback for slugs not explicitly defined
-const DEFAULT_SERVICE = {
+const DEFAULT_SERVICE: ServiceView = {
   title: 'Academic Writing Service',
   tagline: 'Expert help across every subject.',
-  description: 'Custom academic writing by verified human experts.',
+  description: 'Custom academic writing by verified human experts. Human-written, plagiarism-free, grade guaranteed.',
   price: 14,
   metaTitle: 'Academic Writing Service | GradeCrest',
   metaDesc: 'Expert academic writing from GradeCrest. Human-written, plagiarism-free, grade guaranteed.',
@@ -510,15 +477,15 @@ const DEFAULT_SERVICE = {
     'Unlimited revisions within the revision window',
   ],
   process: [
-    { title: 'Fill in your brief',        desc: 'Your topic, deadline, level, and instructions.' },
-    { title: 'Expert matching',           desc: 'Matched with a writer who holds a degree in your subject.' },
-    { title: 'Direct communication',      desc: 'Message your writer, share files, and track progress.' },
-    { title: 'Review & revisions',        desc: 'Request free revisions until you are satisfied.' },
+    { title: 'Fill in your brief',    desc: 'Your topic, deadline, level, and instructions.' },
+    { title: 'Expert matching',        desc: 'Matched with a writer who holds a degree in your subject.' },
+    { title: 'Direct communication',   desc: 'Message your writer, share files, and track progress.' },
+    { title: 'Review & revisions',     desc: 'Request free revisions until you are satisfied.' },
   ],
   faqs: [
-    { q: 'Is the work plagiarism-free?',     a: 'Yes. Every paper is written from scratch with a plagiarism report included.' },
-    { q: 'Do you use AI?',                    a: 'No. Every paper is written by a verified human expert.' },
-    { q: 'What is the grade guarantee?',      a: 'If the work does not meet your stated requirements, we rewrite or refund in full.' },
+    { q: 'Is the work plagiarism-free?',  a: 'Yes. Every paper is written from scratch with a plagiarism report included.' },
+    { q: 'Do you use AI?',                 a: 'No. Every paper is written by a verified human expert.' },
+    { q: 'What is the grade guarantee?',   a: 'If the work does not meet your stated requirements, we rewrite or refund in full.' },
   ],
   related: ['essay-writing', 'research-papers'],
 }
@@ -528,48 +495,44 @@ const fallbackService = SERVICE_MAP[slug] ?? DEFAULT_SERVICE
 const processFromBlocks = (page: CmsServicePage) => {
   const howItWorks = page.body.find(block => block.type === 'how_it_works')
   const value = howItWorks?.value as { steps?: Array<{ title?: string; description?: string }> } | undefined
-
   return value?.steps?.length
-    ? value.steps.map(step => ({
-        title: step.title || 'Step',
-        desc: step.description || '',
-      }))
+    ? value.steps.map(step => ({ title: step.title || 'Step', desc: step.description || '' }))
     : fallbackService.process
 }
 
 const serviceFromCms = (page: CmsServicePage): ServiceView => {
   const price = Number(page.pricing_from ?? fallbackService.price) || fallbackService.price
-  const faqs = page.faqs.map(faq => ({ q: faq.question, a: faq.answer }))
-  const description = page.search_description
-    || page.meta?.search_description
-    || page.hero?.subheadline
-    || fallbackService.description
+  const faqs  = page.faqs.map(faq => ({ q: faq.question, a: faq.answer }))
+  const description = page.search_description || page.meta?.search_description || page.hero?.subheadline || fallbackService.description
 
   return {
-    title: page.hero?.headline || page.title,
-    tagline: page.hero?.subheadline || description,
+    title:       page.hero?.headline || page.title,
+    tagline:     page.hero?.subheadline || description,
     description,
     price,
-    metaTitle: page.meta?.seo_title || page.title,
-    metaDesc: page.meta?.search_description || description,
-    intro: page.who_for || page.hero?.subheadline || fallbackService.intro,
-    bullets: page.includes_items.length
-      ? page.includes_items
-      : page.delivers_items.length
-        ? page.delivers_items
-        : fallbackService.bullets,
-    process: processFromBlocks(page),
-    faqs: faqs.length ? faqs : fallbackService.faqs,
-    related: page.related_services.map(service => service.slug),
-    ctaText: page.primary_cta_text || 'Order now',
-    ctaUrl: page.primary_cta_url || '/order',
+    metaTitle:   page.meta?.seo_title || page.title,
+    metaDesc:    page.meta?.search_description || description,
+    intro:       page.who_for || page.hero?.subheadline || fallbackService.intro,
+    bullets:     page.includes_items.length ? page.includes_items : page.delivers_items.length ? page.delivers_items : fallbackService.bullets,
+    process:     processFromBlocks(page),
+    faqs:        faqs.length ? faqs : fallbackService.faqs,
+    related:     page.related_services.map(s => s.slug),
+    ctaText:     page.primary_cta_text || 'Order now',
+    ctaUrl:      page.primary_cta_url || '/order',
   }
 }
 
 const svc = computed(() => cmsService.value ? serviceFromCms(cmsService.value) : fallbackService)
 
-// Route to the on-site /order page with this service pre-selected.
-// The /order page reads ?service= on mount and skips to step 1.
+// Extract paragraph body HTML from CMS blocks — all scraped pages are stored as a single paragraph block.
+const bodyHtml = computed(() => {
+  if (!cmsService.value?.body?.length) return ''
+  return cmsService.value.body
+    .filter(b => b.type === 'paragraph')
+    .map(b => String(b.value ?? ''))
+    .join('\n')
+})
+
 const ctaOrderUrl = computed(() => {
   const override = svc.value.ctaUrl
   if (override && override !== '/order') return override
@@ -577,9 +540,9 @@ const ctaOrderUrl = computed(() => {
 })
 
 useSeoMeta({
-  title:       () => svc.value.metaTitle,
-  description: () => svc.value.metaDesc,
-  ogTitle:     () => svc.value.metaTitle,
+  title:         () => svc.value.metaTitle,
+  description:   () => svc.value.metaDesc,
+  ogTitle:       () => svc.value.metaTitle,
   ogDescription: () => svc.value.metaDesc,
 })
 
@@ -587,16 +550,11 @@ useSeoBase(`https://gradecrest.com/services/${slug}`)
 useBreadcrumbs([
   { name: 'Home',     url: 'https://gradecrest.com/' },
   { name: 'Services', url: 'https://gradecrest.com/services' },
-  { name: svc.value.title,  url: `https://gradecrest.com/services/${slug}` },
+  { name: svc.value.title, url: `https://gradecrest.com/services/${slug}` },
 ])
 
 if (cmsService.value?.schema) {
-  useHead({
-    script: [{
-      type: 'application/ld+json',
-      innerHTML: JSON.stringify(cmsService.value.schema),
-    }],
-  })
+  useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(cmsService.value.schema) }] })
 } else {
   useServiceLd({
     name:        svc.value.title,
@@ -609,6 +567,7 @@ if (cmsService.value?.schema) {
 }
 
 useFaqLd(svc.value.faqs)
+
 useHead({
   script: [{
     type: 'application/ld+json',
@@ -628,98 +587,235 @@ useHead({
 </script>
 
 <template>
-  <div class="pt-16">
+  <!-- bottom padding on mobile prevents the fixed CTA bar from overlapping content -->
+  <div class="pt-16 pb-20 lg:pb-0">
 
-    <!-- Hero -->
-    <section class="bg-forest-950 py-16 relative overflow-hidden">
+    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+    <section class="bg-forest-950 py-12 sm:py-16 relative overflow-hidden" aria-label="Service overview">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-2 gap-10 items-center">
-          <div class="space-y-5">
-            <!-- Breadcrumb -->
-            <nav class="flex items-center gap-1.5 text-xs text-slate-500">
-              <NuxtLink to="/" class="hover:text-slate-300">Home</NuxtLink>
-              <span>/</span>
-              <NuxtLink to="/services" class="hover:text-slate-300">Services</NuxtLink>
-              <span>/</span>
-              <span class="text-slate-300">{{ svc.title }}</span>
-            </nav>
-            <h1 class="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">{{ svc.title }}</h1>
-            <p class="text-xl text-gold-300 font-medium">{{ svc.tagline }}</p>
-            <p class="text-slate-300 leading-relaxed max-w-lg">{{ svc.intro }}</p>
-            <div class="flex items-center gap-4 text-sm text-slate-400">
-              <span class="font-semibold text-white">From ${{ svc.price }}/page</span>
-              <span>·</span>
-              <span>Grade or money back</span>
-              <span>·</span>
-              <span>Zero AI content</span>
+
+        <!-- Breadcrumb -->
+        <nav aria-label="Breadcrumb" class="mb-6 flex items-center gap-1.5 text-xs text-slate-500">
+          <NuxtLink to="/" class="hover:text-slate-300 transition-colors">Home</NuxtLink>
+          <span aria-hidden="true">/</span>
+          <NuxtLink to="/services" class="hover:text-slate-300 transition-colors">Services</NuxtLink>
+          <span aria-hidden="true">/</span>
+          <span class="text-slate-300" aria-current="page">{{ svc.title }}</span>
+        </nav>
+
+        <div class="grid gap-10 lg:grid-cols-2 lg:items-start xl:gap-16">
+
+          <!-- Left: copy -->
+          <div class="flex flex-col justify-center">
+            <h1 class="text-3xl font-bold text-white sm:text-4xl xl:text-5xl leading-tight">{{ svc.title }}</h1>
+            <p class="mt-3 text-lg text-gold-300 font-semibold">{{ svc.tagline }}</p>
+
+            <!-- Trust signals — E-E-A-T above the fold -->
+            <div class="mt-6 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-400 sm:flex sm:flex-wrap sm:gap-x-5">
+              <span class="flex items-center gap-1.5"><CheckCircle2 class="size-3.5 text-gc-400 shrink-0" /> Grade or money back</span>
+              <span class="flex items-center gap-1.5"><CheckCircle2 class="size-3.5 text-gc-400 shrink-0" /> Zero AI content</span>
+              <span class="flex items-center gap-1.5"><CheckCircle2 class="size-3.5 text-gc-400 shrink-0" /> Plagiarism-free</span>
+              <span class="flex items-center gap-1.5"><CheckCircle2 class="size-3.5 text-gc-400 shrink-0" /> On-time delivery</span>
             </div>
-            <a :href="ctaOrderUrl" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
-              {{ svc.ctaText || 'Order now' }} <ArrowRight class="size-4" />
-            </a>
+
+            <!-- Social proof strip -->
+            <div class="mt-6 flex items-center gap-3 text-xs text-slate-500">
+              <span class="flex">
+                <Star v-for="i in 5" :key="i" class="size-3.5 fill-gold-400 text-gold-400" />
+              </span>
+              <span>4.9 rating · 50,000+ papers delivered</span>
+            </div>
+
+            <!-- Mobile CTA (calculator is below on mobile) -->
+            <div class="mt-7 lg:hidden">
+              <a
+                :href="ctaOrderUrl"
+                class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-7 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors shadow-sm"
+              >
+                {{ svc.ctaText || 'Order now' }} — from ${{ svc.price }}/page <ArrowRight class="size-4" />
+              </a>
+            </div>
           </div>
+
+          <!-- Right: multistep calculator — conversion anchor above the fold -->
           <div>
-            <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400 text-center">Get an instant quote</p>
-            <PricingCalculator />
+            <HeroCalculator :preselected-paper="null" />
           </div>
+
         </div>
       </div>
     </section>
 
-    <!-- What's included -->
-    <section class="bg-mist py-14">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-2 gap-10 items-start">
-          <div>
-            <h2 class="text-2xl font-bold text-ink mb-6">What's included</h2>
-            <ul class="space-y-3">
-              <li v-for="b in svc.bullets" :key="b" class="flex items-start gap-3 text-sm text-ink">
-                <CheckCircle2 class="size-4 text-gc-600 shrink-0 mt-0.5" />
-                {{ b }}
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-ink mb-6">How it works</h2>
-            <div class="space-y-4">
-              <div v-for="(step, i) in svc.process" :key="step.title" class="flex gap-4">
-                <span class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-gc-600 text-xs font-bold text-gc-600">{{ i + 1 }}</span>
-                <div>
-                  <p class="text-sm font-semibold text-ink">{{ step.title }}</p>
-                  <p class="mt-0.5 text-sm text-graphite leading-relaxed">{{ step.desc }}</p>
+    <!-- ── Two-column main content ────────────────────────────────────────── -->
+    <main class="bg-white">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        <div class="lg:grid lg:grid-cols-3 lg:gap-12 xl:gap-16">
+
+          <!-- LEFT COLUMN: long-form content — fully in DOM for crawlers -->
+          <article class="lg:col-span-2 space-y-12 min-w-0" aria-label="Service details">
+
+            <!-- Who this is for -->
+            <section v-if="svc.intro" aria-labelledby="who-for-heading">
+              <h2 id="who-for-heading" class="text-xl font-bold text-ink mb-3">Who this is for</h2>
+              <p class="text-graphite leading-relaxed">{{ svc.intro }}</p>
+            </section>
+
+            <!-- What's included -->
+            <section aria-labelledby="includes-heading">
+              <h2 id="includes-heading" class="text-xl font-bold text-ink mb-4">What's included</h2>
+              <ul class="space-y-2.5" role="list">
+                <li v-for="bullet in svc.bullets" :key="bullet" class="flex items-start gap-3 text-sm text-ink">
+                  <CheckCircle2 class="size-4 text-gc-600 shrink-0 mt-0.5" aria-hidden="true" />
+                  {{ bullet }}
+                </li>
+              </ul>
+            </section>
+
+            <!-- How it works — HowTo schema already injected above -->
+            <section aria-labelledby="how-it-works-heading">
+              <h2 id="how-it-works-heading" class="text-xl font-bold text-ink mb-4">How it works</h2>
+              <ol class="space-y-5">
+                <li v-for="(step, i) in svc.process" :key="step.title" class="flex gap-4">
+                  <span
+                    class="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-gc-600 text-xs font-bold text-gc-600"
+                    aria-hidden="true"
+                  >{{ i + 1 }}</span>
+                  <div>
+                    <p class="text-sm font-semibold text-ink">{{ step.title }}</p>
+                    <p class="mt-0.5 text-sm text-graphite leading-relaxed">{{ step.desc }}</p>
+                  </div>
+                </li>
+              </ol>
+            </section>
+
+            <!-- SEO body — scraped long-form HTML, fully in DOM for indexing.
+                 Sticky sidebar achieves the "scrollable alongside" effect without
+                 hiding any content from crawlers. -->
+            <div
+              v-if="bodyHtml"
+              class="service-body prose prose-slate max-w-none
+                     prose-headings:text-ink prose-headings:font-bold
+                     prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+                     prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
+                     prose-p:text-graphite prose-p:leading-relaxed
+                     prose-a:text-gc-700 prose-a:no-underline hover:prose-a:underline
+                     prose-strong:text-ink
+                     prose-li:text-graphite
+                     prose-th:bg-slate-50 prose-th:text-ink prose-th:font-semibold
+                     prose-td:text-graphite prose-td:align-top"
+              v-html="bodyHtml"
+            />
+
+            <!-- FAQ — native <details> renders without JS; works with FAQPage schema -->
+            <section v-if="svc.faqs.length" aria-labelledby="faq-heading">
+              <h2 id="faq-heading" class="text-xl font-bold text-ink mb-5">
+                Frequently asked questions about {{ svc.title.toLowerCase() }}
+              </h2>
+              <div class="space-y-2">
+                <details
+                  v-for="faq in svc.faqs"
+                  :key="faq.q"
+                  class="group rounded-2xl border border-slate-200 bg-white shadow-card"
+                >
+                  <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 text-sm font-semibold text-ink">
+                    {{ faq.q }}
+                    <span
+                      class="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 transition-transform duration-200 group-open:rotate-45"
+                      aria-hidden="true"
+                    >+</span>
+                  </summary>
+                  <p class="px-6 pb-5 pt-1 text-sm text-graphite leading-relaxed">{{ faq.a }}</p>
+                </details>
+              </div>
+            </section>
+
+          </article>
+
+          <!-- RIGHT COLUMN: sticky sidebar — conversion + trust, visible as user reads -->
+          <aside class="hidden lg:block" aria-label="Order and pricing">
+            <div class="sticky top-24 space-y-4">
+
+              <!-- Order card -->
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-card overflow-hidden">
+                <div class="bg-forest-950 px-5 py-4">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-gold-400 mb-1">Starting from</p>
+                  <p class="text-3xl font-extrabold text-white">
+                    ${{ svc.price }}<span class="text-base font-normal text-slate-300">/page</span>
+                  </p>
+                </div>
+                <div class="p-5 space-y-4">
+                  <a
+                    :href="ctaOrderUrl"
+                    class="flex w-full items-center justify-center gap-2 rounded-xl bg-gc-600 py-3 text-sm font-bold text-white hover:bg-gc-700 transition-colors shadow-sm"
+                  >
+                    {{ svc.ctaText || 'Order now' }} <ArrowRight class="size-4" />
+                  </a>
+
+                  <!-- Trust bullets -->
+                  <ul class="space-y-2.5" role="list">
+                    <li class="flex items-center gap-2.5 text-xs text-graphite">
+                      <Shield class="size-3.5 text-gc-600 shrink-0" aria-hidden="true" />
+                      Grade or money back — guaranteed
+                    </li>
+                    <li class="flex items-center gap-2.5 text-xs text-graphite">
+                      <CheckCircle2 class="size-3.5 text-gc-600 shrink-0" aria-hidden="true" />
+                      Written by a verified human expert
+                    </li>
+                    <li class="flex items-center gap-2.5 text-xs text-graphite">
+                      <CheckCircle2 class="size-3.5 text-gc-600 shrink-0" aria-hidden="true" />
+                      Plagiarism-free with full report
+                    </li>
+                    <li class="flex items-center gap-2.5 text-xs text-graphite">
+                      <CheckCircle2 class="size-3.5 text-gc-600 shrink-0" aria-hidden="true" />
+                      Zero AI content
+                    </li>
+                    <li class="flex items-center gap-2.5 text-xs text-graphite">
+                      <Clock class="size-3.5 text-gc-600 shrink-0" aria-hidden="true" />
+                      Delivered before your deadline
+                    </li>
+                  </ul>
+
+                  <!-- Social proof -->
+                  <div class="border-t border-slate-100 pt-3 flex items-center gap-2">
+                    <span class="flex">
+                      <Star v-for="i in 5" :key="i" class="size-3.5 fill-gold-400 text-gold-400" />
+                    </span>
+                    <span class="text-xs text-graphite">4.9 · 50,000+ papers delivered</span>
+                  </div>
                 </div>
               </div>
+
+              <!-- Pricing calculator -->
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-card p-5">
+                <p class="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">Get an instant quote</p>
+                <PricingCalculator />
+              </div>
+
+              <!-- Reviewer badge (shown when CMS page has a reviewer assigned) -->
+              <div v-if="cmsService?.reviewer" class="rounded-2xl border border-slate-200 bg-mist p-4">
+                <p class="text-xs text-slate-500 mb-1">Content reviewed by</p>
+                <p class="text-sm font-semibold text-ink">{{ cmsService.reviewer.name }}</p>
+                <p v-if="cmsService.reviewer.credentials" class="mt-0.5 text-xs text-graphite">
+                  {{ cmsService.reviewer.credentials }}
+                </p>
+              </div>
+
             </div>
-          </div>
+          </aside>
+
         </div>
       </div>
-    </section>
+    </main>
 
-    <ServiceBlocks v-if="cmsService?.body?.length" :blocks="cmsService.body" />
-
-    <!-- FAQ -->
-    <section class="bg-white py-14">
-      <div class="mx-auto max-w-3xl px-4 sm:px-6">
-        <h2 class="text-2xl font-bold text-ink mb-8">Questions about {{ svc.title.toLowerCase() }}</h2>
-        <div class="space-y-3">
-          <details v-for="faq in svc.faqs" :key="faq.q" class="group rounded-2xl border border-slate-200 bg-white shadow-card">
-            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 text-sm font-semibold text-ink">
-              {{ faq.q }}
-              <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 transition-transform group-open:rotate-45">+</span>
-            </summary>
-            <p class="px-6 pb-5 text-sm text-graphite leading-relaxed">{{ faq.a }}</p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <!-- Related services -->
-    <section v-if="svc.related.length" class="bg-mist py-12">
+    <!-- ── Related services ───────────────────────────────────────────────── -->
+    <section v-if="svc.related.length" class="bg-mist py-12" aria-label="Related services">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 class="text-lg font-bold text-ink mb-5">Related services</h2>
+        <h2 class="text-base font-bold text-ink mb-5">Related services</h2>
         <div class="flex flex-wrap gap-3">
           <NuxtLink
-            v-for="rel in svc.related" :key="rel"
+            v-for="rel in svc.related"
+            :key="rel"
             :to="`/services/${rel}`"
             class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-graphite hover:border-gc-300 hover:text-gc-700 transition-colors"
           >
@@ -729,17 +825,60 @@ useHead({
       </div>
     </section>
 
-    <!-- Final CTA -->
-    <section class="bg-forest-950 py-14 text-center relative overflow-hidden">
+    <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
+    <section class="bg-forest-950 py-14 text-center relative overflow-hidden" aria-label="Get started">
       <div class="absolute inset-0 bg-hero-grid bg-grid-40 pointer-events-none" />
       <div class="relative mx-auto max-w-xl px-4 space-y-5">
         <h2 class="text-2xl font-bold text-white">Ready to get started?</h2>
-        <p class="text-slate-300 text-sm">Place your order in under 2 minutes. Grade or money back guaranteed.</p>
-        <a :href="ctaOrderUrl" class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors">
+        <p class="text-slate-300 text-sm leading-relaxed">
+          Place your order in under 2 minutes. Grade or money back — no conditions.
+        </p>
+        <a
+          :href="ctaOrderUrl"
+          class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-gc-700 transition-colors shadow-sm"
+        >
           {{ svc.ctaText || `Order ${svc.title.toLowerCase()}` }} <ArrowRight class="size-4" />
         </a>
       </div>
     </section>
 
+    <!-- ── Mobile fixed CTA bar (replaces sidebar on small screens) ───────── -->
+    <div class="fixed bottom-0 inset-x-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-sm px-4 py-3 flex gap-3 lg:hidden">
+      <a
+        :href="app.login"
+        class="flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-ink"
+      >Sign in</a>
+      <a
+        :href="ctaOrderUrl"
+        class="flex h-11 flex-[2] items-center justify-center gap-1.5 rounded-xl bg-gc-600 text-sm font-bold text-white"
+      >
+        {{ svc.ctaText || 'Order now' }} <ArrowRight class="size-4" />
+      </a>
+    </div>
+
   </div>
 </template>
+
+<style scoped>
+/* Tables in scraped body HTML scroll horizontally on narrow viewports
+   without clipping content for crawlers. */
+.service-body :deep(table) {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.service-body :deep(th),
+.service-body :deep(td) {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+
+.service-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+</style>
