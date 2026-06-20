@@ -65,20 +65,20 @@ export default defineNuxtConfig({
     // (matches the Website/PortalDefinition records seeded for local dev).
     // Production: nginx handles this — API calls go to api.researchpapermate.com.
     devProxy: {
-      // Nitro strips the matched prefix, then appends remainder to target.
       '/api/v1': {
         target: 'http://localhost:8000/api/v1',
-        changeOrigin: false, // keeps Host: localhost:3000 so Django resolves the right tenant
+        changeOrigin: true,
+        headers: { Host: 'researchpapermate.com' },
       },
-      // Wagtail API v2 — service pages, blog pages, images
       '/api/v2': {
         target: 'http://localhost:8000/api/v2',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'researchpapermate.com' },
       },
-      // Custom CMS API — attachments, authors, engagement, blog history
       '/cms-api': {
         target: 'http://localhost:8000/cms-api',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'researchpapermate.com' },
       },
     },
   },
@@ -97,9 +97,11 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    apiBaseInternal: '',     // NUXT_API_BASE_INTERNAL — http://localhost:8000 for SSR
+    siteHostname: 'researchpapermate.com',
     public: {
-      apiBase: '',   // override with NUXT_PUBLIC_API_BASE in .env
-      appUrl: '',    // override with NUXT_PUBLIC_APP_URL in .env
+      apiBase: '',           // NUXT_PUBLIC_API_BASE — set in .env
+      appUrl: '',
       siteUrl: 'https://researchpapermate.com',
     },
   },

@@ -4,7 +4,8 @@ import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 const route   = useRoute()
 const slug    = route.params.slug as string
 const config  = useRuntimeConfig()
-const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+const apiBase     = config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
 
 // ── CMS types ─────────────────────────────────────────────────────────────
 interface Block { type: string; value: unknown }
@@ -30,10 +31,10 @@ interface CmsArticle {
 const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
   `rpm-blog-${slug}`,
   async () => {
-    if (!apiBase) return null
+    if (!wagtailBase) return null
     try {
       const res = await $fetch<{ items: CmsArticle[] }>(
-        `${apiBase}/api/v2/pages/`,
+        `${wagtailBase}/api/v2/pages/`,
         { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
       )
       return res.items?.[0] ?? null
@@ -45,10 +46,10 @@ const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
 const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[]>(
   `rpm-blog-related-${slug}`,
   async () => {
-    if (!apiBase || !cmsArticle.value) return []
+    if (!wagtailBase || !cmsArticle.value) return []
     try {
       const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
-        `${apiBase}/api/v2/pages/`,
+        `${wagtailBase}/api/v2/pages/`,
         { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 } },
       )
       return (res.items ?? []).filter(p => p.meta?.slug !== slug).slice(0, 3)

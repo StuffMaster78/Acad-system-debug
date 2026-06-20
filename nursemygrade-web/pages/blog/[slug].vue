@@ -2,10 +2,10 @@
 import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 
 const route   = useRoute()
-const slug       = route.params.slug as string
-const config     = useRuntimeConfig()
-const apiBase    = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
-const ssrHeaders = import.meta.server ? { Host: (config as any).siteHostname ?? 'nursemygrade.com' } : undefined
+const slug        = route.params.slug as string
+const config      = useRuntimeConfig()
+const apiBase     = config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
 
 // ── CMS types ─────────────────────────────────────────────────────────────
 interface Block { type: string; value: unknown }
@@ -34,8 +34,8 @@ const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
     if (!apiBase) return null
     try {
       const res = await $fetch<{ items: CmsArticle[] }>(
-        `${apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' }, headers: ssrHeaders },
+        `${wagtailBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
       )
       return res.items?.[0] ?? null
     } catch { return null }
@@ -49,8 +49,8 @@ const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title:
     if (!apiBase || !cmsArticle.value) return []
     try {
       const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
-        `${apiBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 }, headers: ssrHeaders },
+        `${wagtailBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 } },
       )
       return (res.items ?? []).filter(p => p.meta?.slug !== slug).slice(0, 3)
     } catch { return [] }

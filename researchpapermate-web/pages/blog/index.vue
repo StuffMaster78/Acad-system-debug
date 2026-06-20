@@ -32,9 +32,10 @@ interface CmsPost {
   author_name: string
 }
 
-const config   = useRuntimeConfig()
-const apiBase  = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
-const PAGE_SIZE = 12
+const config      = useRuntimeConfig()
+const apiBase     = config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
+const PAGE_SIZE   = 12
 
 const cmsPosts   = ref<CmsPost[]>([])
 const cmsTotal   = ref(0)
@@ -48,7 +49,7 @@ async function loadCmsPage(p: number) {
   cmsLoading.value = true; cmsError.value = false
   try {
     const res = await $fetch<{ meta: { total_count: number }; items: CmsPost[] }>(
-      `${apiBase}/api/v2/pages/`,
+      `${wagtailBase}/api/v2/pages/`,
       { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE } },
     )
     cmsTotal.value = res?.meta?.total_count ?? 0
