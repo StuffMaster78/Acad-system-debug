@@ -275,6 +275,7 @@ class OrderAdjustmentType(models.TextChoices):
     EXTRA_SERVICE = "extra_service", "Extra Service"
     PAID_REVISION = "paid_revision", "Paid Revision"
     SCOPE_EXPANSION = "scope_expansion", "Scope Expansion"
+    DEADLINE_EXTENSION = "deadline_extension", "Deadline Extension"
     OTHER = "other", "Other"
 
 

@@ -49,6 +49,16 @@ export const adjustmentsApi = {
   escalate: (adjustmentId: number | string, reason: string) =>
     api.post<{ message: string }>(`${adj(adjustmentId)}/escalate/`, { reason }),
 
+  // --- Deadline extension (writer) ---
+  createDeadlineExtension: (
+    orderId: number | string,
+    payload: { requested_deadline: string; reason: string; writer_justification?: string },
+  ) =>
+    api.post<{ id: number; status: string; requested_deadline: string; hours_requested: number | null }>(
+      ordersApiPath(`/orders/${orderId}/adjustments/deadline-extension/`),
+      payload,
+    ),
+
   // --- Staff actions ---
   staffOverride: (adjustmentId: number | string, amount: string, notes: string) =>
     api.post<{ message: string; status: string }>(`${adj(adjustmentId)}/staff-override/`, { amount, notes }),

@@ -15,6 +15,7 @@ from orders.services.adjustment_negotiation_service import (
     AdjustmentNegotiationService,
 )
 from orders.services.order_notification_service import OrderNotificationService
+from orders.services.writer_scope_pricing_service import WriterScopePricingService
 
 
 class CreateScopeIncrementAdjustmentView(GenericAPIView):
@@ -34,10 +35,12 @@ class CreateScopeIncrementAdjustmentView(GenericAPIView):
 
         data = serializer.validated_data
 
-        pricing_result = {
-            "total_price": "0.00",
-            "writer_compensation_amount": "0.00",
-        }
+        pricing_result = WriterScopePricingService.scope_increment_pricing(
+            writer=user,
+            order=order,
+            quantity_delta=data["requested_quantity"] - getattr(order, "base_quantity", 0),
+            unit_type=data["unit_type"],
+        )
         source_pricing_snapshot = None
 
         adjustment = AdjustmentNegotiationService.create_scope_increment_request(

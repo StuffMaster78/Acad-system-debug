@@ -7,6 +7,7 @@ from orders.api.views.staffing.staffing_views import (
     RouteOrderToStaffingView,
     TakeOrderView,
 )
+from orders.api.views.staffing.writer_eligibility_views import WriterOrderEligibilityView
 from orders.api.views.staffing.staffing_views import (
     AssignDirectView,
     AssignFromInterestView,
@@ -81,5 +82,10 @@ urlpatterns = [
         "preferred-writer-lookup/<str:registration_id>/",
         PreferredWriterLookupView.as_view(),
         name="preferred-writer-lookup",
+    ),
+    path(
+        "orders/<int:order_id>/eligibility/",
+        WriterOrderEligibilityView.as_view(),
+        name="writer-order-eligibility",
     ),
 ]

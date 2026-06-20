@@ -19,6 +19,7 @@ import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import { useBidsStore } from "@/stores/bids";
+import { writerApi } from "@/api/writer";
 import type { OrderSummary } from "@/types/orders";
 
 const workspace = useWriterWorkspaceStore();
@@ -28,6 +29,28 @@ const searchQuery = ref("");
 const urgentOnly = ref(false);
 const expandedOrderId = ref<number | null>(null);
 const interestMessage = ref("");
+
+// — Eligibility cache (fetched when bid form opens) ——————————————
+type EligibilityResult = Awaited<ReturnType<typeof writerApi.orderEligibility>>["data"];
+const eligibilityCache = ref<Record<number, EligibilityResult>>({});
+const eligibilityLoading = ref<Record<number, boolean>>({});
+
+async function fetchEligibility(orderId: number) {
+  if (eligibilityCache.value[orderId]) return;
+  eligibilityLoading.value[orderId] = true;
+  try {
+    const { data } = await writerApi.orderEligibility(orderId);
+    eligibilityCache.value[orderId] = data;
+    // Pre-populate bid price from level-based suggestion
+    if (data.suggested_bid_price && !bids.bidForm.price) {
+      bids.bidForm.price = data.suggested_bid_price;
+    }
+  } catch {
+    // non-critical — writer can still enter price manually
+  } finally {
+    eligibilityLoading.value[orderId] = false;
+  }
+}
 
 const filteredOrders = computed(() => {
   let list = workspace.poolOrders;
@@ -84,6 +107,7 @@ function toggleInterestForm(orderId: number) {
     expandedOrderId.value = orderId;
     interestMessage.value = "";
     bids.openBidForm(orderId);
+    void fetchEligibility(orderId);
   }
 }
 
@@ -291,7 +315,10 @@ onMounted(() => {
               <DollarSign class="h-3.5 w-3.5" />
               Submit a bid
             </button>
+            <!-- "Take order" only shown when server confirms can_take.
+                 Defaults to visible until eligibility is resolved. -->
             <button
+              v-if="eligibilityCache[order.id]?.can_take !== false"
               class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
               type="button"
               :disabled="workspace.isMutating"
@@ -340,7 +367,18 @@ onMounted(() => {
               </div>
             </div>
 
-            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your Bid</p>
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your Bid</p>
+              <span
+                v-if="eligibilityCache[order.id]?.rate_breakdown?.per_page"
+                class="text-xs text-graphite"
+              >
+                Your rate: ${{ eligibilityCache[order.id].rate_breakdown.per_page }}/page
+                <template v-if="parseFloat(eligibilityCache[order.id].rate_breakdown.per_slide ?? '0') > 0">
+                  · ${{ eligibilityCache[order.id].rate_breakdown.per_slide }}/slide
+                </template>
+              </span>
+            </div>
 
             <div class="grid grid-cols-2 gap-3">
               <label class="block">
@@ -356,6 +394,12 @@ onMounted(() => {
                     class="focus-ring h-9 w-full rounded-md border border-slate-300 pl-8 pr-3 text-sm"
                   />
                 </div>
+                <p
+                  v-if="eligibilityCache[order.id]?.suggested_bid_price"
+                  class="mt-1 text-xs text-graphite"
+                >
+                  Suggested: ${{ eligibilityCache[order.id].suggested_bid_price }}
+                </p>
               </label>
               <label class="block">
                 <span class="text-xs font-medium text-graphite">Delivery time *</span>

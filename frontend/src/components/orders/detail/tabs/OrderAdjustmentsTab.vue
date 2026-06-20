@@ -153,8 +153,38 @@ onMounted(loadActive);
 
 const showCreateForm = ref(false);
 
-// Which kind to create: "scope" | "extra"
-const createKind = ref<"scope" | "extra">("scope");
+// Which kind to create: "scope" | "extra" | "deadline"
+const createKind = ref<"scope" | "extra" | "deadline">("scope");
+
+// — Deadline extension form ——
+const deadlineForm = reactive({
+  requested_deadline: "",
+  reason: "",
+  writer_justification: "",
+});
+
+async function submitDeadlineExtension() {
+  if (!deadlineForm.requested_deadline || !deadlineForm.reason) return;
+  busy.value = true;
+  createError.value = "";
+  try {
+    await adjustmentsApi.createDeadlineExtension(props.orderId, {
+      requested_deadline: new Date(deadlineForm.requested_deadline).toISOString(),
+      reason: deadlineForm.reason,
+      writer_justification: deadlineForm.writer_justification,
+    });
+    showCreateForm.value = false;
+    deadlineForm.requested_deadline = "";
+    deadlineForm.reason = "";
+    deadlineForm.writer_justification = "";
+    ui.toast("Deadline extension request submitted. The client will be notified.", "success");
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    createError.value = msg ?? "Failed to submit request. Please try again.";
+  } finally {
+    busy.value = false;
+  }
+}
 
 const SCOPE_TYPES: { value: AdjustmentType; label: string; unit: ScopeUnitType }[] = [
   { value: "page_increase", label: "Additional pages", unit: "page" },
@@ -823,7 +853,7 @@ async function submitResolve() {
         <div v-if="showCreateForm" class="border-t border-slate-200 p-5 space-y-5">
 
           <!-- Kind toggle -->
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button
               class="focus-ring rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
               :class="createKind === 'scope' ? 'border-signal bg-signal/10 text-signal' : 'border-slate-200 text-graphite'"
@@ -837,6 +867,14 @@ async function submitResolve() {
               @click="createKind = 'extra'"
             >
               Extra service
+            </button>
+            <button
+              v-if="role === 'writer'"
+              class="focus-ring rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+              :class="createKind === 'deadline' ? 'border-signal bg-signal/10 text-signal' : 'border-slate-200 text-graphite'"
+              @click="createKind = 'deadline'"
+            >
+              Deadline extension
             </button>
           </div>
 
@@ -969,6 +1007,58 @@ async function submitResolve() {
             >
               <Plus class="h-4 w-4" />
               {{ busy ? "Submitting…" : "Submit extra service" }}
+            </button>
+          </form>
+
+          <!-- ── Deadline extension form (writer only) ── -->
+          <form v-else-if="createKind === 'deadline'" class="space-y-4" @submit.prevent="submitDeadlineExtension">
+            <p class="text-sm text-graphite">
+              Request more time to complete this order. The client will be notified and must approve.
+            </p>
+
+            <label class="block">
+              <span class="text-sm font-medium text-graphite">New requested deadline <span class="text-rose-400">*</span></span>
+              <input
+                v-model="deadlineForm.requested_deadline"
+                type="datetime-local"
+                required
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+              />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-medium text-graphite">Reason for extension <span class="text-rose-400">*</span></span>
+              <textarea
+                v-model="deadlineForm.reason"
+                rows="3"
+                required
+                placeholder="Explain why you need more time (this will be shown to the client)."
+                class="focus-ring mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-medium text-graphite">Internal note <span class="text-slate-400">(optional)</span></span>
+              <input
+                v-model="deadlineForm.writer_justification"
+                type="text"
+                placeholder="Any extra context for the review team."
+                class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+              />
+            </label>
+
+            <p v-if="createError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
+              {{ createError }}
+            </p>
+
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              type="submit"
+              :disabled="busy || !deadlineForm.requested_deadline || !deadlineForm.reason"
+            >
+              <Loader2 v-if="busy" class="h-4 w-4 animate-spin" />
+              <Plus v-else class="h-4 w-4" />
+              {{ busy ? "Submitting…" : "Request deadline extension" }}
             </button>
           </form>
 

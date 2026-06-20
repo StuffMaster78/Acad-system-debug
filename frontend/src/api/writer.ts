@@ -104,6 +104,22 @@ export const writerApi = {
       apiPath("/writer-compensation/writer/compensation/events/"),
       { params },
     ),
+  orderEligibility: (orderId: number | string) =>
+    api.get<{
+      can_take: boolean;
+      can_bid: boolean;
+      has_capacity: boolean;
+      reason: string;
+      suggested_bid_price: string | null;
+      rate_breakdown: {
+        per_page: string;
+        per_slide: string;
+        per_chart: string;
+        urgent_surcharge: string;
+        urgent_multiplier: string;
+        earning_mode: string;
+      };
+    }>(ordersApiPath(`/orders/${orderId}/eligibility/`)),
   eventsForOrder: (orderId: number | string) =>
     api.get<WriterEvent[]>(
       apiPath("/writer-compensation/writer/compensation/events/"),

@@ -12,6 +12,9 @@ from orders.api.views.adjustments.extra_service_adjustment_views import (
 from orders.api.views.adjustments.scope_increment_adjustment_views import (
     CreateScopeIncrementAdjustmentView,
 )
+from orders.api.views.adjustments.deadline_extension_views import (
+    CreateDeadlineExtensionView,
+)
 from orders.api.views.adjustments.adjustment_negotiation_views import (
     AdjustmentAcceptView,
     AdjustmentCancelView,
@@ -52,6 +55,11 @@ urlpatterns = [
         "orders/<int:order_id>/adjustments/extra-service/",
         CreateExtraServiceAdjustmentView.as_view(),
         name="order-adjustment-extra-service-create",
+    ),
+    path(
+        "orders/<int:order_id>/adjustments/deadline-extension/",
+        CreateDeadlineExtensionView.as_view(),
+        name="order-adjustment-deadline-extension-create",
     ),
 
     # --- Client actions ---
