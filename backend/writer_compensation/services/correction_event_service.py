@@ -7,9 +7,10 @@ from django.utils import timezone
 
 from writer_compensation.models.compensation_event import CompensationEvent
 from writer_compensation.enums.compensation_enums import (
-    EventType,
     EventStatus,
+    EventType,
 )
+from writer_compensation.services.event_intake_service import EventIntakeService
 
 
 # -----------------------------
@@ -85,17 +86,22 @@ class CorrectionEventService:
         if not isinstance(metadata, dict):
             raise TypeError("metadata must be a dict")
 
-        # -----------------------------
-        # CREATE IMMUTABLE EVENT
-        # -----------------------------
-        return CompensationEvent.objects.create(
+        # Route through EventIntakeService so the event gets a payment_window
+        # (direct objects.create() would raise IntegrityError on the non-nullable FK).
+        event, _ = EventIntakeService.record(
             website=website,
             writer=writer,
             event_type=EventType.ADJUSTMENT,
-            status=EventStatus.MATURED,
             amount=amount,
             title="Correction Event",
-            description=reason,
+            notes=reason,
+            idempotency_key=idempotency_key or "",
             created_by=created_by,
-            metadata=metadata,
         )
+
+        # Mature immediately and attach metadata — corrections are pre-approved.
+        event.status = EventStatus.MATURED
+        event.metadata = metadata
+        event.save(update_fields=["status", "metadata"])
+
+        return event

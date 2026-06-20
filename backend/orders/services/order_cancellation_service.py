@@ -121,6 +121,11 @@ class OrderCancellationService:
             ]
         )
 
+        compensation_action = cls._reverse_writer_compensation(
+            order=locked_order,
+            cancelled_by=cancelled_by,
+        )
+
         cls._create_timeline_event(
             order=locked_order,
             actor=triggered_by or cancelled_by,
@@ -131,7 +136,7 @@ class OrderCancellationService:
                 "refund_destination": refund_destination,
                 "released_assignment_id": released_assignment_id,
                 "released_writer_id": released_writer_id,
-                "writer_compensation_action": "revoke_or_reverse_later",
+                "writer_compensation_action": compensation_action,
             },
         )
 
@@ -259,6 +264,98 @@ class OrderCancellationService:
                 order.pk,
                 amount_paid,
             )
+
+    @classmethod
+    def _reverse_writer_compensation(
+        cls,
+        *,
+        order: Order,
+        cancelled_by: Any,
+    ) -> str:
+        """
+        Void or reverse the ORDER_EARNING CompensationEvent tied to this order.
+
+        Window still OPEN   → void the event (excluded from the next batch close).
+        Window CLOSED+      → create a REVERSAL in the next open window.
+
+        Returns a string describing the action taken, for timeline metadata.
+        """
+        import logging
+        log = logging.getLogger(__name__)
+
+        try:
+            from writer_compensation.models.compensation_event import CompensationEvent
+            from writer_compensation.enums.compensation_enums import EventStatus, WindowStatus
+            from writer_compensation.services.event_intake_service import EventIntakeService
+
+            event = (
+                CompensationEvent.objects
+                .select_related("payment_window", "writer")
+                .filter(source_type="order", source_id=order.pk)
+                .exclude(status__in=[EventStatus.VOIDED, EventStatus.REVERSED])
+                .first()
+            )
+
+            if event is None:
+                log.info(
+                    "_reverse_writer_compensation: no active earning event for order %s — skip.",
+                    order.pk,
+                )
+                return "no_earning_event"
+
+            window_status = event.payment_window.status if event.payment_window else None
+            cancellation_note = f"Order #{order.pk} cancelled"
+
+            if window_status == WindowStatus.OPEN and event.status != EventStatus.PAID:
+                EventIntakeService.void_event(
+                    event,
+                    voided_by=cancelled_by,
+                    reason=cancellation_note,
+                )
+                action = "voided"
+            else:
+                EventIntakeService.create_reversal(
+                    original_event=event,
+                    created_by=cancelled_by,
+                    notes=cancellation_note,
+                )
+                action = "reversed"
+
+            log.info(
+                "_reverse_writer_compensation: %s event %s for order %s.",
+                action, event.pk, order.pk,
+            )
+
+            try:
+                writer = event.writer
+                writer_user = getattr(writer, "user", None) or writer.account_profile.user
+                from notifications_system.services.notification_service import NotificationService
+                NotificationService.notify(
+                    event_key="compensation.earning_reversed",
+                    recipient=writer_user,
+                    website=order.website,
+                    context={
+                        "order_id": order.pk,
+                        "amount": str(abs(event.amount)),
+                        "action": action,
+                    },
+                )
+            except Exception:
+                log.warning(
+                    "_reverse_writer_compensation: notification failed for order %s",
+                    order.pk,
+                    exc_info=True,
+                )
+
+            return action
+
+        except Exception:
+            log.exception(
+                "_reverse_writer_compensation: failed for order %s — compensation "
+                "reversal skipped. Manual review required.",
+                order.pk,
+            )
+            return "reversal_failed"
 
     @staticmethod
     def _notify_cancelled(*, order: Order, actor, reason: str) -> None:

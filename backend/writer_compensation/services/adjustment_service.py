@@ -15,6 +15,7 @@ from writer_compensation.exceptions.exceptions import ZeroAmountError
 from writer_compensation.models.payment_window import PaymentWindow
 from writer_compensation.services.event_intake_service import EventIntakeService
 from writer_compensation.services.outbox_service import OutboxService
+from writer_compensation.signals import adjustment_event_created
 
 
 class AdjustmentService:
@@ -39,6 +40,7 @@ class AdjustmentService:
         reason: str,
         created_by: Any | None = None,
         metadata: dict[str, Any] | None = None,
+        adjustment: Any | None = None,
     ) -> Any:
         """
         Create an immutable ADJUSTMENT CompensationEvent.
@@ -50,6 +52,10 @@ class AdjustmentService:
         The event is immediately matured (status = MATURED) because admin
         adjustments are confirmed at creation time — they do not need a
         separate review step.
+
+        Pass `adjustment` (a CompensationAdjustment instance) when the call
+        originates from an admin correction record — it will be stamped
+        is_applied=True and linked to the created event.
 
         Raises:
             ZeroAmountError — amount is zero
@@ -91,6 +97,16 @@ class AdjustmentService:
                 "amount": str(amount),
             },
         )
+
+        # Mark the admin adjustment record applied if one was supplied.
+        if adjustment is not None:
+            adjustment.is_applied = True
+            adjustment.applied_at = timezone.now()
+            adjustment.related_financial_event = event
+            adjustment.save(update_fields=["is_applied", "applied_at", "related_financial_event"])
+
+        # Notify the writer (handler: on_adjustment_event_created).
+        adjustment_event_created.send(sender=AdjustmentService, event=event)
 
         return event
 
