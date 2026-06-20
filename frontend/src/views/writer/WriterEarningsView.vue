@@ -5,6 +5,7 @@ import {
   Banknote,
   CalendarClock,
   CheckCircle2,
+  ChevronRight,
   Clock3,
   CreditCard,
   Gift,
@@ -16,6 +17,7 @@ import {
   TrendingUp,
   X,
 } from "@lucide/vue";
+import { RouterLink } from "vue-router";
 import { writerApi, type AdvanceRecord } from "@/api/writer";
 import type { WriterEvent } from "@/types/writer";
 import { finesApi, type FineRecord } from "@/api/fines";
@@ -563,10 +565,17 @@ onMounted(async () => {
         </div>
 
         <div v-else class="divide-y divide-slate-100">
-          <div
+          <component
+            :is="event.source_type === 'order' && event.source_id ? RouterLink : 'div'"
             v-for="event in filteredEvents"
             :key="String(event.id ?? event.created_at)"
-            class="flex items-center gap-3 px-5 py-3.5"
+            :to="event.source_type === 'order' && event.source_id
+              ? { name: 'writer-order-detail', params: { id: event.source_id } }
+              : undefined"
+            class="flex items-center gap-3 px-5 py-3.5 transition-colors"
+            :class="event.source_type === 'order' && event.source_id
+              ? 'hover:bg-slate-50 cursor-pointer'
+              : ''"
           >
             <div
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
@@ -591,7 +600,11 @@ onMounted(async () => {
             >
               {{ event.is_positive === false ? '−' : '+' }}{{ money(event.amount) }}
             </p>
-          </div>
+            <ChevronRight
+              v-if="event.source_type === 'order' && event.source_id"
+              class="h-4 w-4 shrink-0 text-slate-300"
+            />
+          </component>
         </div>
 
         <Pagination
