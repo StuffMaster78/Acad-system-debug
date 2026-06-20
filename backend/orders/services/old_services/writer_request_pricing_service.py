@@ -91,15 +91,13 @@ class WriterRequestPricingService:
         if save:
             self.writer_request.save()
 
-def get_breakdown(self):
-    """
-    Returns a breakdown of the pricing for the writer request.
-    """
-    return {
-        "page_unit_price": float(self.config.base_price_per_page),
-        "slide_unit_price": float(self.config.base_price_per_slide),
-        "pages": self.writer_request.additional_pages,
-        "slides": self.writer_request.additional_slides,
-        "raw_total": float(self.writer_request.estimated_cost),
-        "final_total": float(self.writer_request.final_cost),
-    }
+    def get_breakdown(self):
+        """Returns a pricing breakdown dict for API responses."""
+        return {
+            "page_unit_price": float(self.config.base_price_per_page),
+            "slide_unit_price": float(self.config.base_price_per_slide),
+            "pages": self.writer_request.additional_pages,
+            "slides": self.writer_request.additional_slides,
+            "raw_total": float(self.writer_request.estimated_cost or 0),
+            "final_total": float(self.writer_request.final_cost or 0),
+        }

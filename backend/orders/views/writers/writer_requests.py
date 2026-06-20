@@ -256,7 +256,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
             additional_slides=int(additional_slides) if additional_slides else None
         )
 
-        from orders.services.writer_request_pricing_service import WriterRequestPricingService
+        from orders.services.old_services.writer_request_pricing_service import WriterRequestPricingService
         pricing_service = WriterRequestPricingService(temp_request)
         pricing_service.update_writer_request_costs(save=False)
 
