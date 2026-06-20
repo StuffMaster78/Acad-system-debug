@@ -194,8 +194,8 @@ class Command(BaseCommand):
         if not slug:
             raise ValueError("Article has no slug or title.")
 
-        # ── Check if exists ──────────────────────────────────────────────────────
-        existing = BlogPostPage.objects.filter(slug=slug).first()
+        # ── Check if exists under THIS site's blog index (not cross-site) ──────
+        existing = BlogPostPage.objects.descendant_of(blog_index).filter(slug=slug).first()
         if existing and not do_update:
             self.stdout.write(f"  SKIP  {slug}")
             return "skipped"
