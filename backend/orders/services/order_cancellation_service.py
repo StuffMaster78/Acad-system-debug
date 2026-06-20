@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, Optional
 
 from django.core.exceptions import ValidationError
@@ -59,6 +60,7 @@ class OrderCancellationService:
         refund_destination: str,
         triggered_by: Optional[Any] = None,
         notes: str = "",
+        refund_amount: Optional[Decimal] = None,
     ) -> Order:
         """
         Cancel an order and perform local order domain side effects.
@@ -134,6 +136,7 @@ class OrderCancellationService:
                 "reason": reason,
                 "notes": notes,
                 "refund_destination": refund_destination,
+                "refund_amount": str(refund_amount) if refund_amount is not None else None,
                 "released_assignment_id": released_assignment_id,
                 "released_writer_id": released_writer_id,
                 "writer_compensation_action": compensation_action,
@@ -144,6 +147,7 @@ class OrderCancellationService:
             order=locked_order,
             refund_destination=refund_destination,
             cancelled_by=cancelled_by,
+            refund_amount=refund_amount,
         )
 
         cls._notify_cancelled(
@@ -204,21 +208,18 @@ class OrderCancellationService:
         order: Order,
         refund_destination: str,
         cancelled_by,
+        refund_amount: Optional[Decimal] = None,
     ) -> None:
         """
         Trigger a refund after cancellation.
 
-        For wallet destination: credits the paid amount back to the client
-        wallet immediately via ClientWalletService.
+        refund_amount: forfeiture-adjusted amount from OrderCancellationRequest.
+        When None (direct cancellation without a request), falls back to
+        order.amount_paid. Always clamped to amount_paid so we never
+        refund more than was received.
 
-        For external_gateway destination: the refund must be initiated
-        through the payment provider. This method creates the ledger record
-        and logs the intent; the actual provider call is handled by ops or
-        an async reconciliation task since gateway refunds require the
-        original payment transaction reference.
-
-        Payout reversal for the writer (if already paid) is queued via
-        timeline metadata and handled by the compensation system separately.
+        Wallet: credits immediately; updates PaymentIntent.amount_refunded.
+        External gateway: creates a Refund record and queues a provider call.
         """
         import logging
         log = logging.getLogger(__name__)
@@ -227,15 +228,18 @@ class OrderCancellationService:
         if not amount_paid or amount_paid <= 0:
             return
 
+        amount_to_refund = refund_amount if refund_amount is not None else amount_paid
+        if amount_to_refund <= 0:
+            return
+        amount_to_refund = min(Decimal(str(amount_to_refund)), Decimal(str(amount_paid)))
+
         if refund_destination == cls.REFUND_DESTINATION_WALLET:
             try:
-                from wallets.services.client_wallet_service import (
-                    ClientWalletService,
-                )
+                from wallets.services.client_wallet_service import ClientWalletService
                 ClientWalletService.refund_to_wallet(
                     website=order.website,
                     client=order.client,
-                    amount=amount_paid,
+                    amount=amount_to_refund,
                     created_by=cancelled_by,
                     description=f"Refund for cancelled order #{order.pk}",
                     reference=f"order_{order.pk}_cancellation",
@@ -243,26 +247,88 @@ class OrderCancellationService:
                     reference_id=str(order.pk),
                     metadata={
                         "order_id": order.pk,
-                        "cancellation_reason": getattr(
-                            order, "cancellation_reason", ""
-                        ),
+                        "cancellation_reason": getattr(order, "cancellation_reason", ""),
+                        "amount_paid": str(amount_paid),
+                        "refund_amount": str(amount_to_refund),
                     },
                 )
-            except Exception as exc:
-                log.exception(
-                    "Wallet refund failed for order_id=%s: %s",
-                    order.pk,
-                    exc,
-                )
+                cls._update_payment_intent_refunded(order=order, refunded=amount_to_refund)
+            except Exception:
+                log.exception("Wallet refund failed for order_id=%s", order.pk)
 
         elif refund_destination == cls.REFUND_DESTINATION_EXTERNAL:
-            # External gateway refunds require the original PaymentIntent.
-            # Log the intent and let the reconciliation task or ops action pick it up.
+            cls._queue_external_refund(
+                order=order,
+                amount=amount_to_refund,
+                requested_by=cancelled_by,
+            )
+
+    @staticmethod
+    def _update_payment_intent_refunded(*, order: Order, refunded: Decimal) -> None:
+        import logging
+        log = logging.getLogger(__name__)
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from django.db.models import F
+            from payments_processor.models.payment_intent import PaymentIntent
+            from payments_processor.enums import PaymentIntentStatus
+
+            ct = ContentType.objects.get_for_model(order.__class__)
+            PaymentIntent.objects.filter(
+                payable_content_type=ct,
+                payable_object_id=order.pk,
+                status=PaymentIntentStatus.SUCCEEDED,
+            ).update(amount_refunded=F("amount_refunded") + refunded)
+        except Exception:
+            log.warning(
+                "_update_payment_intent_refunded: failed for order %s",
+                order.pk, exc_info=True,
+            )
+
+    @staticmethod
+    def _queue_external_refund(*, order: Order, amount: Decimal, requested_by: Any) -> None:
+        import logging
+        log = logging.getLogger(__name__)
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from django.db import transaction as db_transaction
+            from payments_processor.models.payment_intent import PaymentIntent
+            from payments_processor.enums import PaymentIntentStatus
+            from refunds.services.refunds_processor import RefundProcessorService
+            from refunds.tasks import retry_external_refund
+
+            ct = ContentType.objects.get_for_model(order.__class__)
+            pi = PaymentIntent.objects.filter(
+                payable_content_type=ct,
+                payable_object_id=order.pk,
+                status=PaymentIntentStatus.SUCCEEDED,
+            ).first()
+
+            if pi is None:
+                log.warning(
+                    "_queue_external_refund: no succeeded PaymentIntent for order %s — "
+                    "external refund of %s requires manual ops action.",
+                    order.pk, amount,
+                )
+                return
+
+            refund = RefundProcessorService.create_for_payment(
+                payment_intent=pi,
+                external_amount=amount,
+                requested_by=requested_by,
+                refund_type="automated",
+                reason=f"Order #{order.pk} cancelled",
+                metadata={"order_id": order.pk},
+            )
+            db_transaction.on_commit(lambda: retry_external_refund.delay(refund.pk))
             log.info(
-                "External gateway refund pending for order_id=%s amount=%s. "
-                "Manual action or reconciliation task required.",
+                "_queue_external_refund: Refund #%s queued for order %s amount %s",
+                refund.pk, order.pk, amount,
+            )
+        except Exception:
+            log.exception(
+                "_queue_external_refund: failed for order %s — manual ops required.",
                 order.pk,
-                amount_paid,
             )
 
     @classmethod

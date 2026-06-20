@@ -149,6 +149,7 @@ class OrderCancellationRequestService:
             refund_destination=refund_destination,
             triggered_by=cancellation_request.requested_by,
             notes=notes,
+            refund_amount=cancellation_request.refund_amount,
         )
 
         OrderTimelineEvent.objects.create(

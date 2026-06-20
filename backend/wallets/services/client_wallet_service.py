@@ -6,7 +6,8 @@ from typing import Any, cast
 from django.db import transaction
 
 from notifications_system.services.notification_service import NotificationService
-from wallets.constants import WalletEntryType
+from wallets.constants import WalletEntryStatus, WalletEntryType
+from wallets.models.wallet_entry import WalletEntry
 from wallets.models import Wallet, WalletHold
 from wallets.services.wallet_hold_service import WalletHoldService
 from wallets.services.wallet_ledger_integration_service import (
@@ -159,6 +160,17 @@ class ClientWalletService:
             website=website,
             client=client,
         )
+
+        # Idempotency guard — if a wallet refund with the same reference_id
+        # has already been posted, return without crediting again.
+        if reference_id and WalletEntry.objects.filter(
+            wallet=wallet,
+            entry_type=WalletEntryType.ORDER_REFUND,
+            reference_id=reference_id,
+            status=WalletEntryStatus.POSTED,
+        ).exists():
+            wallet.refresh_from_db()
+            return wallet
 
         journal_entry = WalletLedgerIntegrationService.post_wallet_refund(
             website=website,
