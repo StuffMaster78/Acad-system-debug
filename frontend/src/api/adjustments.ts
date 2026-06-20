@@ -49,6 +49,29 @@ export const adjustmentsApi = {
   escalate: (adjustmentId: number | string, reason: string) =>
     api.post<{ message: string }>(`${adj(adjustmentId)}/escalate/`, { reason }),
 
+  // --- Deadline decrease / rush (client) ---
+  createDeadlineDecrease: (
+    orderId: number | string,
+    payload: { new_deadline: string; reason?: string },
+  ) =>
+    api.post<{
+      id: number;
+      status: string;
+      adjustment_type: string;
+      new_deadline: string;
+      surcharge: string;
+      surcharge_breakdown: {
+        original_multiplier: string;
+        new_multiplier: string;
+        original_hours: number;
+        new_hours: number;
+      };
+      message: string;
+    }>(
+      ordersApiPath(`/orders/${orderId}/adjustments/deadline-decrease/`),
+      payload,
+    ),
+
   // --- Deadline extension (writer) ---
   createDeadlineExtension: (
     orderId: number | string,

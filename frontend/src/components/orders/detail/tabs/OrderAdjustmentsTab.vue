@@ -8,10 +8,12 @@ import {
   ChevronUp,
   ChevronsRight,
   FileText,
+  Loader2,
   Plus,
   RotateCcw,
   ShieldAlert,
   XCircle,
+  Zap,
 } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderLifecycle, OrderSummary } from "@/types/orders";
@@ -155,6 +157,42 @@ const showCreateForm = ref(false);
 
 // Which kind to create: "scope" | "extra" | "deadline"
 const createKind = ref<"scope" | "extra" | "deadline">("scope");
+
+// — Deadline decrease (rush) form — client-initiated ——
+const rushForm = reactive({
+  new_deadline: "",
+  reason: "I need this delivered sooner.",
+});
+const rushPreview = ref<{ surcharge: string; new_hours: number; original_hours: number } | null>(null);
+const rushSubmitting = ref(false);
+const rushError = ref("");
+const rushSuccess = ref("");
+const showRushForm = ref(false);
+
+async function submitRushRequest() {
+  rushError.value = "";
+  rushSuccess.value = "";
+  if (!rushForm.new_deadline) return;
+  rushSubmitting.value = true;
+  try {
+    const { data } = await adjustmentsApi.createDeadlineDecrease(props.orderId, {
+      new_deadline: new Date(rushForm.new_deadline).toISOString(),
+      reason: rushForm.reason,
+    });
+    rushSuccess.value = data.message;
+    rushPreview.value = null;
+    rushForm.new_deadline = "";
+    showRushForm.value = false;
+    // Reload active adjustment — the rush request is now ACCEPTED/FUNDING_PENDING
+    await loadActive();
+    ui.toast("Rush request submitted — proceed to payment to confirm.", "success");
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    rushError.value = msg ?? "Could not submit rush request.";
+  } finally {
+    rushSubmitting.value = false;
+  }
+}
 
 // — Deadline extension form ——
 const deadlineForm = reactive({
@@ -833,6 +871,76 @@ async function submitResolve() {
       <template v-if="role === 'client'">
         If you need additional work, contact your support team.
       </template>
+    </div>
+
+    <!-- ── Client: rush delivery request ──────────────────────── -->
+    <div v-if="canActAsClient && order" class="rounded-lg border border-amber-200 bg-amber-50">
+      <button
+        class="flex w-full items-center justify-between px-5 py-4 text-left"
+        @click="showRushForm = !showRushForm"
+      >
+        <div class="flex items-center gap-2">
+          <Zap class="h-4 w-4 text-amber-600" />
+          <span class="text-base font-semibold text-ink">Request rush delivery</span>
+          <span class="text-xs text-amber-700">(additional charge may apply)</span>
+        </div>
+        <component :is="showRushForm ? ChevronUp : ChevronDown" class="h-4 w-4 text-graphite" />
+      </button>
+
+      <Transition name="slide-down">
+        <div v-if="showRushForm" class="border-t border-amber-200 p-5 space-y-4">
+          <p class="text-sm text-amber-900">
+            Moving your deadline to an earlier date may incur a rush surcharge based on
+            our pricing bands. The exact amount will be shown after you submit.
+          </p>
+
+          <label class="block">
+            <span class="text-sm font-medium text-graphite">New deadline <span class="text-rose-400">*</span></span>
+            <input
+              v-model="rushForm.new_deadline"
+              type="datetime-local"
+              required
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+            />
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-medium text-graphite">Reason</span>
+            <input
+              v-model="rushForm.reason"
+              type="text"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+            />
+          </label>
+
+          <p v-if="rushError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">
+            {{ rushError }}
+          </p>
+          <p v-if="rushSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">
+            {{ rushSuccess }}
+          </p>
+
+          <div class="flex gap-2">
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              type="button"
+              :disabled="rushSubmitting || !rushForm.new_deadline"
+              @click="submitRushRequest"
+            >
+              <Loader2 v-if="rushSubmitting" class="h-4 w-4 animate-spin" />
+              <Zap v-else class="h-4 w-4" />
+              {{ rushSubmitting ? "Submitting…" : "Submit rush request" }}
+            </button>
+            <button
+              class="focus-ring rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-ink"
+              type="button"
+              @click="showRushForm = false; rushError = ''"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <!-- ── Create form (writer / staff) ─────────────────────── -->

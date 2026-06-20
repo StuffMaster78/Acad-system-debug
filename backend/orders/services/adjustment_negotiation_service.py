@@ -667,6 +667,87 @@ class AdjustmentNegotiationService:
         proposal.save(update_fields=["is_active"])
 
     @classmethod
+    @transaction.atomic
+    def create_deadline_decrease_request(
+        cls,
+        *,
+        order,
+        requested_by,
+        new_deadline,
+        reason: str,
+        surcharge: Decimal,
+        writer_comp_delta: Decimal = Decimal("0.00"),
+        new_multiplier: Decimal = Decimal("1.0000"),
+        pricing_meta: dict | None = None,
+    ) -> OrderAdjustmentRequest:
+        """
+        Client requests a sooner deadline (rush order).
+
+        Creates an already-accepted request at ACCEPTED status so the
+        client can proceed directly to funding without a separate review step.
+        The surcharge is computed by DeadlineDecreasePricingService before
+        calling this method.
+        """
+        from orders.models.orders.constants import (
+            ORDER_ADJUSTMENT_KIND_DEADLINE_DECREASE,
+            ORDER_ADJUSTMENT_STATUS_ACCEPTED,
+        )
+        from orders.models.orders.enums import OrderAdjustmentType, OrderScopeUnitType
+
+        adjustment_request = OrderAdjustmentRequest.objects.create(
+            website=order.website,
+            order=order,
+            requested_by=requested_by,
+            adjustment_type=OrderAdjustmentType.DEADLINE_DECREASE,
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_DEADLINE_DECREASE,
+            unit_type=OrderScopeUnitType.DEADLINE,
+            title="Rush delivery request",
+            description=reason,
+            client_visible_note=reason,
+            current_quantity=0,
+            requested_quantity=0,
+            quantity_delta=0,
+            request_total_amount=surcharge,
+            request_writer_compensation_amount=writer_comp_delta,
+            request_pricing_payload=pricing_meta or {},
+            status=ORDER_ADJUSTMENT_STATUS_ACCEPTED,
+            accepted_at=timezone.now(),
+            reviewed_by=requested_by,
+            metadata={
+                "deadline_decrease": {
+                    "new_deadline": new_deadline.isoformat(),
+                    "original_deadline": (
+                        order.client_deadline.isoformat()
+                        if order.client_deadline else None
+                    ),
+                    "new_multiplier": str(new_multiplier),
+                    "reason": reason,
+                },
+            },
+        )
+
+        proposal = cls._create_proposal(
+            adjustment_request=adjustment_request,
+            proposed_by=requested_by,
+            proposal_role=ORDER_ADJUSTMENT_PROPOSAL_ROLE_CLIENT,
+            proposal_type=ORDER_ADJUSTMENT_PROPOSAL_TYPE_FINAL_AGREEMENT,
+            amount=surcharge,
+            unit_type=OrderScopeUnitType.DEADLINE,
+            adjustment_kind=ORDER_ADJUSTMENT_KIND_DEADLINE_DECREASE,
+            reason=reason,
+            scope_payload={"new_deadline": new_deadline.isoformat()},
+            pricing_snapshot_payload=pricing_meta or {},
+        )
+
+        from typing import cast as _cast
+        typed = _cast(Any, adjustment_request)
+        typed.current_proposal = proposal
+        typed.accepted_proposal = proposal
+        typed.save(update_fields=["current_proposal", "accepted_proposal", "updated_at"])
+
+        return adjustment_request
+
+    @classmethod
     def _lock_request(
         cls,
         adjustment_request: OrderAdjustmentRequest,

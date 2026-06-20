@@ -14,6 +14,7 @@ from orders.models.adjustments.order_compensation_adjustment import(
 
 from orders.models.orders.order_item import OrderItem
 from orders.models.orders.constants import (
+    ORDER_ADJUSTMENT_KIND_DEADLINE_DECREASE,
     ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE,
     ORDER_ADJUSTMENT_KIND_SCOPE_INCREMENT,
     ORDER_COMPENSATION_ADJUSTMENT_STATUS_PENDING,
@@ -80,6 +81,12 @@ class AdjustmentScopeApplicationService:
 
         if adjustment_request.adjustment_kind == ORDER_ADJUSTMENT_KIND_EXTRA_SERVICE:
             return cls.apply_funded_extra_service(
+                adjustment_request=adjustment_request,
+                triggered_by=triggered_by,
+            )
+
+        if adjustment_request.adjustment_kind == ORDER_ADJUSTMENT_KIND_DEADLINE_DECREASE:
+            return cls.apply_funded_deadline_decrease(
                 adjustment_request=adjustment_request,
                 triggered_by=triggered_by,
             )
@@ -481,6 +488,86 @@ class AdjustmentScopeApplicationService:
         if isinstance(value, Decimal):
             return value
         return Decimal(str(value))
+
+    @classmethod
+    @transaction.atomic
+    def apply_funded_deadline_decrease(
+        cls,
+        *,
+        adjustment_request,
+        triggered_by: Optional[Any] = None,
+    ) -> "Order":
+        """
+        Apply a funded deadline decrease adjustment.
+
+        Updates:
+        - order.client_deadline → new deadline from adjustment metadata
+        - order.writer_deadline → same new deadline (staff can adjust buffer)
+        - order.total_price     → original + funded surcharge
+        - order.is_urgent       → True (moving to faster delivery)
+        - order.writer_compensation → increased by writer_comp_delta from adjustment
+
+        Marks the adjustment applied and creates a timeline event.
+        """
+        import logging
+        log = logging.getLogger(__name__)
+
+        order = Order.objects.select_for_update().get(pk=adjustment_request.order_id)
+
+        # Extract new deadline from metadata
+        meta = adjustment_request.metadata or {}
+        dd_meta = meta.get("deadline_decrease", {})
+        new_deadline_str = dd_meta.get("new_deadline")
+
+        if not new_deadline_str:
+            raise ValidationError("Deadline decrease adjustment is missing new_deadline in metadata.")
+
+        from django.utils.dateparse import parse_datetime
+        new_deadline = parse_datetime(new_deadline_str)
+        if not new_deadline:
+            raise ValidationError(f"Invalid new_deadline value: {new_deadline_str}")
+
+        funded_amount = cls._final_amount(adjustment_request)
+        writer_comp_delta = cls._final_writer_amount(adjustment_request)
+
+        order.client_deadline = new_deadline
+        order.writer_deadline = new_deadline
+        order.total_price = order.total_price + funded_amount
+        order.is_urgent = True
+        if writer_comp_delta > 0:
+            order.writer_compensation = order.writer_compensation + writer_comp_delta
+        order.save(update_fields=[
+            "client_deadline", "writer_deadline", "total_price",
+            "is_urgent", "writer_compensation", "updated_at",
+        ])
+
+        # Stamp the adjustment as applied
+        adjustment_request.applied_at = timezone.now()
+        adjustment_request.save(update_fields=["applied_at", "updated_at"])
+
+        # Pricing snapshot for the delta
+        try:
+            OrderPricingSnapshotService.record_current_snapshot(
+                order=order,
+                source_pricing_snapshot=None,
+                subtotal_amount=order.total_price,
+                discount_amount=Decimal("0.00"),
+                total_amount=order.total_price,
+                writer_compensation_amount=order.writer_compensation,
+                pricing_payload={
+                    "source": "deadline_decrease_adjustment",
+                    "adjustment_id": adjustment_request.pk,
+                    "funded_amount": str(funded_amount),
+                },
+            )
+        except Exception:
+            log.warning("apply_funded_deadline_decrease: pricing snapshot failed for order %s", order.pk)
+
+        log.info(
+            "apply_funded_deadline_decrease: order %s deadline → %s (+%s surcharge)",
+            order.pk, new_deadline, funded_amount,
+        )
+        return order
 
     @staticmethod
     def _compensation_type(adjustment_request) -> str:

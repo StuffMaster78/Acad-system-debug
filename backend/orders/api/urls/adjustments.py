@@ -15,6 +15,9 @@ from orders.api.views.adjustments.scope_increment_adjustment_views import (
 from orders.api.views.adjustments.deadline_extension_views import (
     CreateDeadlineExtensionView,
 )
+from orders.api.views.adjustments.deadline_decrease_views import (
+    CreateDeadlineDecreaseView,
+)
 from orders.api.views.adjustments.adjustment_negotiation_views import (
     AdjustmentAcceptView,
     AdjustmentCancelView,
@@ -60,6 +63,11 @@ urlpatterns = [
         "orders/<int:order_id>/adjustments/deadline-extension/",
         CreateDeadlineExtensionView.as_view(),
         name="order-adjustment-deadline-extension-create",
+    ),
+    path(
+        "orders/<int:order_id>/adjustments/deadline-decrease/",
+        CreateDeadlineDecreaseView.as_view(),
+        name="order-adjustment-deadline-decrease-create",
     ),
 
     # --- Client actions ---
