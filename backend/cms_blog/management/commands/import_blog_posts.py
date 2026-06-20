@@ -321,14 +321,14 @@ class Command(BaseCommand):
     @staticmethod
     def _html_to_body(html: str) -> list:
         """
-        Wrap the full HTML body in a single richtext StreamField block.
-        Wagtail's RichTextBlock accepts HTML directly.
+        Wrap the full HTML body in a single paragraph StreamField block.
+        ParagraphBlock extends RichTextBlock and accepts HTML directly.
         If the HTML is empty, return an empty list.
         """
         html = html.strip() if html else ""
         if not html:
             return []
-        return [{"type": "richtext", "value": html}]
+        return [{"type": "paragraph", "value": html}]
 
     @staticmethod
     def _parse_date(date_str: str | None):
