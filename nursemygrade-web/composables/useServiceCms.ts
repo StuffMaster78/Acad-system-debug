@@ -21,26 +21,27 @@ export interface CmsBlock {
 
 export function useServiceCms(serviceSlug: string) {
   const config = useRuntimeConfig()
-  // Map frontend service slugs → Wagtail page slugs
-  // Convention: Wagtail page slug = frontend slug (e.g. research-papers → research-papers)
-  // Override here if they differ.
-  const wagtailSlug = serviceSlug
+  // /wagtail/[...path] is a Nitro server route that proxies to Django with the
+  // correct Host header. Pass the full path so useFetch doesn't strip the
+  // /wagtail prefix (ofetch drops the baseURL path when the path starts with /).
+  const wagtailBase = `${config.public.apiBase || ''}/wagtail`
 
-  const { data, status, error } = useFetch<{ items: CmsServicePage[] }>('/api/v2/pages/', {
-    baseURL: String(config.public.apiBase || ''),
-    query: {
-      type: 'cms_service_pages.ServicePage',
-      slug: wagtailSlug,
-      fields: [
-        'title', 'slug', 'pricing_from', 'pricing_to',
-        'turnaround_hours_fastest', 'turnaround_hours_standard',
-        'primary_cta_text', 'primary_cta_url',
-        'reviewer', 'last_substantive_update', 'body',
-      ].join(','),
+  const { data, status, error } = useFetch<{ items: CmsServicePage[] }>(
+    `${wagtailBase}/api/v2/pages/`,
+    {
+      query: {
+        type: 'cms_service_pages.ServicePage',
+        slug: serviceSlug,
+        fields: [
+          'title', 'slug', 'pricing_from', 'pricing_to',
+          'turnaround_hours_fastest', 'turnaround_hours_standard',
+          'primary_cta_text', 'primary_cta_url',
+          'reviewer', 'last_substantive_update', 'body', 'schema',
+        ].join(','),
+      },
+      onResponseError() {},
     },
-    // Don't throw on 404 — service page may not have CMS content yet
-    onResponseError() {},
-  })
+  )
 
   const page = computed<CmsServicePage | null>(() => data.value?.items?.[0] ?? null)
   const hasContent = computed(() => !!page.value?.body?.length)

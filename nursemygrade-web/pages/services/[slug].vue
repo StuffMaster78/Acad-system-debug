@@ -1,12 +1,14 @@
 <script setup lang="ts">
 const route = useRoute()
+const slug = route.params.slug as string
 const { getBySlug, getRelated } = useServices()
 
-const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(route.params.slug as string)
-const service = getBySlug(route.params.slug as string)
+// useServiceCms now fetches via /wagtail/ proxy (correctly awaited by Nuxt SSR)
+const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
+const service = getBySlug(slug)
 
 if (!service && !cmsPage.value) {
-  throw createError({ statusCode: 404, message: 'Service not found' })
+  throw createError({ statusCode: 404, statusMessage: 'Service not found' })
 }
 
 const displayTitle = computed(() => service?.title ?? cmsPage.value?.title ?? '')
@@ -18,11 +20,13 @@ const displayIncludes = computed(() => service?.includes ?? [])
 
 const related = service ? getRelated(service.relatedSlugs) : []
 
-const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
+const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
+const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
+const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
 
 const config  = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
-const canonicalUrl = `${siteUrl}/services/${route.params.slug}`
+const canonicalUrl = `${siteUrl}/services/${slug}`
 
 useSeoMeta({
   title:         displayMeta.value.title || displayTitle.value,
@@ -189,11 +193,6 @@ if (cmsPage.value?.schema) {
               </div>
             </section>
 
-            <!-- CMS body -->
-            <div v-if="bodyBlocks.length && hasCmsContent" class="service-body">
-              <ServicePageBody :blocks="bodyBlocks" />
-            </div>
-
             <!-- Guarantees -->
             <section aria-labelledby="guarantees-heading">
               <h2 id="guarantees-heading" class="font-serif text-xl font-bold text-brand-900 mb-5">Our guarantees</h2>
@@ -313,6 +312,20 @@ if (cmsPage.value?.schema) {
         </div>
       </div>
     </main>
+
+    <!-- ── Two-column SEO content (essaypro-style) ──────────────────────── -->
+    <section v-if="bodyBlocks.length" class="border-t border-slate-100 bg-slate-50 py-14">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid gap-10 md:grid-cols-2">
+          <div class="service-body min-w-0">
+            <ServicePageBody :blocks="bodyLeft" />
+          </div>
+          <div class="service-body min-w-0">
+            <ServicePageBody :blocks="bodyRight" />
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
     <section class="bg-brand-700 py-14 text-center" aria-label="Get started">
