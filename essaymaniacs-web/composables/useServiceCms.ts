@@ -25,28 +25,28 @@ export interface CmsBlock {
 }
 
 export function useServiceCms(serviceSlug: string) {
-  // Map frontend service slugs → Wagtail page slugs
-  // Convention: Wagtail page slug = frontend slug (e.g. research-papers → research-papers)
-  // Override here if they differ.
-  const wagtailSlug = serviceSlug
+  const config = useRuntimeConfig()
+  const wagtailBase = `${config.public.apiBase || ''}/wagtail`
 
-  const { data, status, error } = useFetch<{ items: CmsServicePage[] }>('/api/v2/pages/', {
-    query: {
-      type: 'cms_service_pages.ServicePage',
-      slug: wagtailSlug,
-      fields: [
-        'title', 'slug',
-        'hero_headline', 'hero_sub',
-        'pricing_from', 'pricing_to',
-        'turnaround_hours_fastest', 'turnaround_hours_standard',
-        'includes_items', 'delivers_items', 'who_for',
-        'primary_cta_text', 'primary_cta_url',
-        'reviewer', 'last_substantive_update', 'body',
-      ].join(','),
+  const { data, status, error } = useFetch<{ items: CmsServicePage[] }>(
+    `${wagtailBase}/api/v2/pages/`,
+    {
+      query: {
+        type: 'cms_service_pages.ServicePage',
+        slug: serviceSlug,
+        fields: [
+          'title', 'slug',
+          'hero_headline', 'hero_sub',
+          'pricing_from', 'pricing_to',
+          'turnaround_hours_fastest', 'turnaround_hours_standard',
+          'includes_items', 'delivers_items', 'who_for',
+          'primary_cta_text', 'primary_cta_url',
+          'reviewer', 'last_substantive_update', 'body', 'schema',
+        ].join(','),
+      },
+      onResponseError() {},
     },
-    // Don't throw on 404 — service page may not have CMS content yet
-    onResponseError() {},
-  })
+  )
 
   const page = computed<CmsServicePage | null>(() => data.value?.items?.[0] ?? null)
   const hasContent = computed(() => !!page.value?.body?.length)

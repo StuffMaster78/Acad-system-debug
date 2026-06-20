@@ -25,7 +25,9 @@ const displayIncludes = computed(() =>
 const displayWhoFor = computed(() => cmsPage.value?.who_for || service?.whoFor || '')
 
 const related   = service ? getRelated(service.relatedSlugs) : []
-const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
+const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
+const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
+const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
 
 // Sticky bottom bar visibility
 const showBar = ref(false)
@@ -167,11 +169,6 @@ if (cmsPage.value?.schema) {
           </div>
         </section>
 
-        <!-- CMS body — full prose, single wide column -->
-        <div v-if="bodyBlocks.length && hasCmsContent" class="service-body">
-          <ServicePageBody :blocks="bodyBlocks" />
-        </div>
-
         <!-- Pricing calculator — id="calculator" for anchor link from hero -->
         <section id="calculator" aria-labelledby="calc-heading" class="scroll-mt-20">
           <h2 id="calc-heading" class="font-serif text-2xl font-bold text-slate-900 mb-5">Get an instant price</h2>
@@ -220,6 +217,36 @@ if (cmsPage.value?.schema) {
 
       </div>
     </main>
+
+    <!-- ── Two-column SEO content — academic, ink-and-paper ──────────────── -->
+    <section v-if="bodyBlocks.length" class="border-t border-brand-100 bg-white py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <!-- Section intro -->
+        <div class="mb-10 flex items-center gap-4">
+          <span class="h-px flex-1 bg-brand-200" />
+          <h2 class="whitespace-nowrap font-serif text-lg font-bold text-brand-900">
+            About this service
+          </h2>
+          <span class="h-px flex-1 bg-brand-200" />
+        </div>
+        <!-- Two-column article text -->
+        <div class="grid gap-x-12 gap-y-8 md:grid-cols-2">
+          <div class="service-body border-l-2 border-brand-200 pl-6 min-w-0">
+            <ServicePageBody :blocks="bodyLeft" />
+          </div>
+          <div class="service-body border-l-2 border-brand-200 pl-6 min-w-0">
+            <ServicePageBody :blocks="bodyRight" />
+          </div>
+        </div>
+        <!-- Inline CTA -->
+        <div class="mt-10 text-center">
+          <NuxtLink to="/order"
+            class="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-8 py-3.5 text-sm font-bold text-white hover:bg-brand-800 transition-colors shadow-sm">
+            Start your order →
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
 
     <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
     <section class="bg-brand-800 py-14 text-center" aria-label="Get started">

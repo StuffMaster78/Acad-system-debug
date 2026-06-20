@@ -689,23 +689,6 @@ useHead({
               </ol>
             </section>
 
-            <!-- SEO body — scraped long-form HTML, fully in DOM for indexing.
-                 Sticky sidebar achieves the "scrollable alongside" effect without
-                 hiding any content from crawlers. -->
-            <div
-              v-if="bodyHtml"
-              class="service-body prose prose-slate max-w-none
-                     prose-headings:text-ink prose-headings:font-bold
-                     prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
-                     prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
-                     prose-p:text-graphite prose-p:leading-relaxed
-                     prose-a:text-gc-700 prose-a:no-underline hover:prose-a:underline
-                     prose-strong:text-ink
-                     prose-li:text-graphite
-                     prose-th:bg-slate-50 prose-th:text-ink prose-th:font-semibold
-                     prose-td:text-graphite prose-td:align-top"
-              v-html="bodyHtml"
-            />
 
             <!-- FAQ — native <details> renders without JS; works with FAQPage schema -->
             <section v-if="svc.faqs.length" aria-labelledby="faq-heading">
@@ -822,6 +805,40 @@ useHead({
             {{ rel.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }}
           </NuxtLink>
         </div>
+      </div>
+    </section>
+
+    <!-- ── Two-column SEO content — forest academic ───────────────────────── -->
+    <section v-if="bodyHtml" class="border-t border-gc-100 bg-gc-50/40 py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <!-- Header row -->
+        <div class="mb-10 grid gap-6 md:grid-cols-[1fr_auto]">
+          <div>
+            <p class="mb-1 text-xs font-bold uppercase tracking-widest text-gc-600">Deep dive</p>
+            <h2 class="font-serif text-2xl font-bold text-ink">
+              Everything you need to know about {{ svc.title.toLowerCase() }}
+            </h2>
+          </div>
+          <div class="flex items-end">
+            <NuxtLink :to="ctaOrderUrl"
+              class="inline-flex items-center gap-2 rounded-xl bg-gc-600 px-6 py-3 text-sm font-bold text-white hover:bg-gc-700 transition-colors shadow-sm whitespace-nowrap">
+              Start your order →
+            </NuxtLink>
+          </div>
+        </div>
+        <!-- Two-column HTML body — CSS columns for natural text flow -->
+        <div
+          class="service-body columns-1 gap-12 md:columns-2
+                 prose prose-slate max-w-none
+                 prose-headings:font-bold prose-headings:text-ink
+                 prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3
+                 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2
+                 prose-p:text-graphite prose-p:leading-relaxed prose-p:text-[0.9375rem]
+                 prose-a:text-gc-700 prose-a:no-underline hover:prose-a:underline
+                 prose-strong:text-ink
+                 prose-li:text-graphite prose-li:text-[0.9375rem]"
+          v-html="bodyHtml"
+        />
       </div>
     </section>
 

@@ -17,7 +17,9 @@ const displayMeta  = computed(() => service?.meta ?? { title: displayTitle.value
 const displayIncludes = computed(() => service?.includes ?? [])
 
 const related    = service ? getRelated(service.relatedSlugs) : []
-const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
+const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
+const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
+const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
 
 // ── Methodology selector ──────────────────────────────────────────────────
 type Methodology = { label: string; paper: string; price: string; desc: string }
@@ -196,11 +198,6 @@ if (cmsPage.value?.schema) {
               </ul>
             </section>
 
-            <!-- CMS body -->
-            <div v-if="bodyBlocks.length && hasCmsContent" class="service-body">
-              <ServicePageBody :blocks="bodyBlocks" />
-            </div>
-
             <!-- FAQ -->
             <section aria-labelledby="faq-heading">
               <h2 id="faq-heading" class="font-serif text-xl font-bold text-claret-900 mb-5">
@@ -300,6 +297,39 @@ if (cmsPage.value?.schema) {
         </div>
       </div>
     </main>
+
+    <!-- ── Two-column SEO content — scholarly claret ─────────────────────── -->
+    <section v-if="bodyBlocks.length" class="border-t border-parchment-200 bg-parchment-50 py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-8 flex items-start gap-5">
+          <div class="mt-1 h-10 w-1 shrink-0 rounded-full bg-claret-600" />
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-claret-500 mb-1">Service overview</p>
+            <h2 class="font-serif text-xl font-bold text-claret-900">
+              About {{ displayTitle }}
+            </h2>
+          </div>
+        </div>
+        <div class="grid gap-x-14 gap-y-8 md:grid-cols-2">
+          <div class="service-body min-w-0">
+            <ServicePageBody :blocks="bodyLeft" />
+          </div>
+          <div class="service-body min-w-0">
+            <ServicePageBody :blocks="bodyRight" />
+          </div>
+        </div>
+        <div class="mt-10 flex items-center justify-between gap-6 rounded-2xl border border-claret-200 bg-white px-6 py-4 shadow-sm">
+          <p class="text-sm font-semibold text-claret-900">
+            Trusted by 10,000+ graduate students worldwide
+          </p>
+          <button type="button"
+            class="shrink-0 rounded-xl bg-claret-700 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-claret-800"
+            @click="openDrawer">
+            Get a quote →
+          </button>
+        </div>
+      </div>
+    </section>
 
     <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
     <section class="bg-claret-950 py-14 text-center" aria-label="Get started">
