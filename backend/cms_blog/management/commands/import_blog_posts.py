@@ -149,6 +149,7 @@ class Command(BaseCommand):
                 result = self._import_article(
                     article=article,
                     blog_index=blog_index,
+                    wagtail_site=wagtail_site,
                     do_update=do_update,
                     do_publish=do_publish,
                     default_author=default_author,
@@ -177,6 +178,7 @@ class Command(BaseCommand):
         *,
         article: dict,
         blog_index,
+        wagtail_site,
         do_update: bool,
         do_publish: bool,
         default_author,
@@ -199,10 +201,10 @@ class Command(BaseCommand):
             return "skipped"
 
         # ── Resolve author ───────────────────────────────────────────────────────
-        author = self._get_or_create_author(article, default_author)
+        author = self._get_or_create_author(article, default_author, wagtail_site)
 
         # ── Resolve category ─────────────────────────────────────────────────────
-        category = self._get_or_create_category(article.get("category"), blog_index)
+        category = self._get_or_create_category(article.get("category"), blog_index, wagtail_site)
 
         # ── Build StreamField body ───────────────────────────────────────────────
         body_html = article.get("body_html", "") or article.get("body", "")
@@ -265,16 +267,17 @@ class Command(BaseCommand):
 
     # ── helpers ──────────────────────────────────────────────────────────────────
 
-    def _get_or_create_author(self, article: dict, default_author) -> "Author":
+    def _get_or_create_author(self, article: dict, default_author, wagtail_site) -> "Author":
         from cms_authors.models import Author
 
         author_name = article.get("author_name")
         author_slug = article.get("author_slug") or (slugify(author_name) if author_name else None)
 
         if author_slug:
-            author = Author.objects.filter(slug=author_slug).first()
+            author = Author.objects.filter(slug=author_slug, site=wagtail_site).first()
             if not author:
                 author = Author.objects.create(
+                    site=wagtail_site,
                     name=author_name or author_slug,
                     slug=author_slug,
                     credentials=article.get("author_credentials", ""),
@@ -289,6 +292,7 @@ class Command(BaseCommand):
         fallback_slug = "platform-editorial-team"
         author, _ = Author.objects.get_or_create(
             slug=fallback_slug,
+            site=wagtail_site,
             defaults={
                 "name": "Editorial Team",
                 "credentials": "",
@@ -297,15 +301,15 @@ class Command(BaseCommand):
         )
         return author
 
-    def _get_or_create_category(self, category_name: str | None, blog_index):
+    def _get_or_create_category(self, category_name: str | None, blog_index, wagtail_site):
         if not category_name:
             return None
         from cms_core.models import BlogCategory
 
         slug = slugify(category_name)
-        cat = BlogCategory.objects.filter(slug=slug).first()
+        cat = BlogCategory.objects.filter(slug=slug, site=wagtail_site).first()
         if not cat:
-            cat = BlogCategory.objects.create(slug=slug, name=category_name)
+            cat = BlogCategory.objects.create(slug=slug, name=category_name, site=wagtail_site)
         return cat
 
     @staticmethod
