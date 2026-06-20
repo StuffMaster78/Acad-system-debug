@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { notificationsApi, type MasterPreferences, type NotificationItem } from "@/api/notifications";
+import { useAuthStore } from "@/stores/auth";
 
 export type { NotificationItem };
 
@@ -126,8 +127,13 @@ export const useNotificationStore = defineStore("notifications", () => {
   }
 
   async function fetchPreferences() {
+    const auth = useAuthStore();
     prefsLoading.value = true;
     prefsError.value = "";
+    if (auth.isPreviewSession) {
+      prefsLoading.value = false;
+      return;
+    }
     try {
       const { data } = await notificationsApi.getPreferences();
       emailEnabled.value = data.email_enabled ?? true;
@@ -135,8 +141,9 @@ export const useNotificationStore = defineStore("notifications", () => {
       dndEnabled.value = data.dnd_enabled ?? false;
       dndStart.value = hourToTime(data.dnd_start_hour ?? 22);
       dndEnd.value = hourToTime(data.dnd_end_hour ?? 7);
-    } catch {
-      prefsError.value = "Could not load preferences from server — using defaults.";
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status !== 401) prefsError.value = "Could not load preferences from server — using defaults.";
     } finally {
       prefsLoading.value = false;
     }

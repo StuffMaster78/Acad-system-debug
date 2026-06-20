@@ -4,8 +4,10 @@ import { LifeBuoy, Loader2, Plus, X } from "@lucide/vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { supportApi } from "@/api/support";
+import { useAuthStore } from "@/stores/auth";
 import type { SupportTicketRecord } from "@/types/support";
 
+const auth = useAuthStore();
 const tickets = ref<SupportTicketRecord[]>([]);
 const isLoading = ref(true);
 const loadError = ref("");
@@ -35,11 +37,17 @@ function formatDate(value?: string | null) {
 async function fetchTickets() {
   isLoading.value = true;
   loadError.value = "";
+  if (auth.isPreviewSession) {
+    tickets.value = [];
+    isLoading.value = false;
+    return;
+  }
   try {
     const { data } = await supportApi.tickets();
     tickets.value = Array.isArray(data) ? data : (data as { results?: SupportTicketRecord[] }).results ?? [];
-  } catch {
-    loadError.value = "Could not load your support tickets.";
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status !== 401) loadError.value = "Could not load your support tickets.";
   } finally {
     isLoading.value = false;
   }

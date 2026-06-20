@@ -13,10 +13,12 @@ import {
 import StatusPill from "@/components/ui/StatusPill.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import { announcementsApi, type AnnouncementRecord } from "@/api/announcements";
+import { useAuthStore } from "@/stores/auth";
 import type { UserRole } from "@/types/roles";
 
 defineProps<{ role: UserRole }>();
 
+const auth = useAuthStore();
 const items = ref<AnnouncementRecord[]>([]);
 const loading = ref(false);
 const error = ref("");
@@ -25,11 +27,18 @@ const acknowledging = ref<Set<number>>(new Set());
 async function fetchAnnouncements() {
   loading.value = true;
   error.value = "";
+  if (auth.isPreviewSession) {
+    items.value = [];
+    loading.value = false;
+    return;
+  }
   try {
     const { data } = await announcementsApi.list({ ordering: "-broadcast__pinned,-created_at" });
     const list = Array.isArray(data) ? data : (data as { results: AnnouncementRecord[] }).results ?? [];
     items.value = list;
   } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 401) { items.value = []; return; }
     const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
     error.value = detail ?? "Could not load announcements.";
   } finally {

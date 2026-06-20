@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { writerApi } from "@/api/writer";
 import { walletsApi } from "@/api/wallets";
 import { useUiStore } from "@/stores/ui";
+import { useAuthStore } from "@/stores/auth";
 import type { PayoutRequest, PayoutRequestPayload } from "@/types/wallet";
 import type {
   WriterAvailability,
@@ -13,6 +14,98 @@ import type {
   WriterProfile,
 } from "@/types/writer";
 import type { OrderSummary } from "@/types/orders";
+
+function previewProfile(): WriterProfile {
+  return {
+    id: 108,
+    registration_id: "WR-0108",
+    display_name: "Alex Writer",
+    email: "writer@preview.local",
+    writer_level: "Premium",
+    rating: "4.8",
+    status: "active",
+    is_accepting_orders: true,
+    onboarding_status: "completed",
+  };
+}
+
+function previewAvailability(): WriterAvailability {
+  return { active_window: null, upcoming_windows: [] };
+}
+
+function previewCurrentWindow(): WriterCurrentWindow {
+  return { window: null, net: "320.00", count: 5, is_processing: false };
+}
+
+function previewBalance(): WriterBalance {
+  return { pending: "85.00", lifetime: "4280.00" };
+}
+
+function previewSummary(): WriterCompensationSummary {
+  return {
+    total_earned: "4280.00",
+    total_paid: "4195.00",
+    total_pending: "85.00",
+    completed_orders: 31,
+  };
+}
+
+function previewEvents(): WriterEvent[] {
+  return [
+    {
+      id: 1, event_type: "order_payment", status: "posted",
+      amount: "120.00", is_positive: true, title: "Order #1042 payment",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    },
+    {
+      id: 2, event_type: "order_payment", status: "posted",
+      amount: "200.00", is_positive: true, title: "Order #1039 payment",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    },
+  ];
+}
+
+function previewAssignmentsList(): OrderSummary[] {
+  return [
+    {
+      id: 1042, topic: "Healthcare policy brief",
+      status: "in_progress", payment_status: "paid",
+      total_price: "186.00", amount_paid: "186.00", remaining_balance: "0.00",
+      currency: "USD", service_code: "paper", service_family: "academic_writing",
+      client_deadline: new Date(Date.now() + 1000 * 60 * 60 * 18).toISOString(),
+      writer_deadline: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
+    },
+    {
+      id: 1039, topic: "Machine learning report",
+      status: "revision_requested", payment_status: "paid",
+      total_price: "240.00", amount_paid: "240.00", remaining_balance: "0.00",
+      currency: "USD", service_code: "paper", service_family: "academic_writing",
+      client_deadline: new Date(Date.now() + 1000 * 60 * 60 * 36).toISOString(),
+      writer_deadline: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+    },
+  ];
+}
+
+function previewPoolOrdersList(): OrderSummary[] {
+  return [
+    {
+      id: 1055, topic: "Environmental law case study",
+      status: "ready_for_staffing", payment_status: "paid",
+      total_price: "160.00", amount_paid: "160.00", remaining_balance: "0.00",
+      currency: "USD", service_code: "paper", service_family: "academic_writing",
+      client_deadline: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString(),
+      writer_deadline: new Date(Date.now() + 1000 * 60 * 60 * 40).toISOString(),
+    },
+    {
+      id: 1056, topic: "Business finance presentation",
+      status: "ready_for_staffing", payment_status: "paid",
+      total_price: "98.00", amount_paid: "98.00", remaining_balance: "0.00",
+      currency: "USD", service_code: "paper", service_family: "academic_writing",
+      client_deadline: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString(),
+      writer_deadline: new Date(Date.now() + 1000 * 60 * 60 * 60).toISOString(),
+    },
+  ];
+}
 
 export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   const profile = ref<WriterProfile | null>(null);
@@ -44,9 +137,19 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   });
 
   async function hydrate() {
+    const auth = useAuthStore();
     isLoading.value = true;
     error.value = "";
     try {
+      if (auth.isPreviewSession) {
+        profile.value = previewProfile();
+        availability.value = previewAvailability();
+        currentWindow.value = previewCurrentWindow();
+        balance.value = previewBalance();
+        summary.value = previewSummary();
+        events.value = previewEvents();
+        return;
+      }
       const [profileRes, availabilityRes, windowRes, balanceRes, summaryRes, eventsRes] =
         await Promise.allSettled([
           writerApi.profile(),
@@ -164,9 +267,15 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   }
 
   async function fetchPoolOrders(page = 1, params?: Record<string, unknown>) {
+    const auth = useAuthStore();
     isPoolLoading.value = true;
     poolError.value = "";
     try {
+      if (auth.isPreviewSession) {
+        poolOrders.value = previewPoolOrdersList();
+        poolPagination.value = { ...poolPagination.value, page: 1, count: previewPoolOrdersList().length };
+        return;
+      }
       const { data } = await writerApi.poolOrders({
         page,
         page_size: poolPagination.value.pageSize,
@@ -190,9 +299,15 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   }
 
   async function fetchAssignments(page = 1, status?: string) {
+    const auth = useAuthStore();
     isAssignmentsLoading.value = true;
     assignmentsError.value = "";
     try {
+      if (auth.isPreviewSession) {
+        assignments.value = previewAssignmentsList();
+        assignmentsPagination.value = { ...assignmentsPagination.value, page: 1, count: previewAssignmentsList().length };
+        return;
+      }
       const params: Record<string, unknown> = {
         page,
         page_size: assignmentsPagination.value.pageSize,
