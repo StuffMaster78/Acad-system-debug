@@ -228,22 +228,20 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     </div>
 
     <!-- ── List (bulleted / numbered) ───────────────────────────────────── -->
-    <div v-else-if="block.type === 'list'" class="my-4">
-      <ol v-if="asStr(asObj(block.value).style) === 'numbered'" class="list-decimal pl-5 space-y-1.5">
-        <li
-          v-for="(item, j) in asArr(asObj(block.value).items)"
-          :key="j"
-          class="text-ink text-sm leading-relaxed"
-          v-html="asStr(item)"
-        />
+    <div v-else-if="block.type === 'list'" class="my-5 not-prose">
+      <ol v-if="asStr(asObj(block.value).style) === 'numbered'" class="space-y-2">
+        <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 text-base leading-relaxed text-ink">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white mt-0.5">{{ j + 1 }}</span>
+          <span v-html="asStr(item)" />
+        </li>
       </ol>
-      <ul v-else class="list-disc pl-5 space-y-1.5">
-        <li
-          v-for="(item, j) in asArr(asObj(block.value).items)"
-          :key="j"
-          class="text-ink text-sm leading-relaxed"
-          v-html="asStr(item)"
-        />
+      <ul v-else class="space-y-2">
+        <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
+          class="flex items-start gap-3 text-base leading-relaxed text-ink">
+          <span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-brand-500"></span>
+          <span v-html="asStr(item)" />
+        </li>
       </ul>
     </div>
 
