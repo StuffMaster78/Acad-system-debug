@@ -75,6 +75,11 @@ class CreateOrderSerializer(serializers.Serializer):
         allow_blank=True,
         max_length=100,
     )
+    entered_code = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=100,
+    )
     is_follow_up = serializers.BooleanField(
         required=False,
         default=False,

@@ -1396,10 +1396,38 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             )
 
         client = order.client
-        order_total = order.total_price
 
         try:
             with transaction.atomic():
+                # Apply discount before computing the amount to debit.
+                entered_code = (request.data.get("entered_code") or "").strip() or None
+                if entered_code:
+                    from orders.services.order_discount_integration_service import (
+                        OrderDiscountIntegrationService,
+                    )
+                    from orders.models.orders.enums import OrderPaymentStatus as _OPS
+                    has_prior = Order.objects.filter(
+                        client=client,
+                        website=order.website,
+                        payment_status=_OPS.FULLY_PAID,
+                    ).exclude(pk=order.pk).exists()
+                    try:
+                        OrderDiscountIntegrationService.apply_order_discount(
+                            order=order,
+                            entered_code=entered_code,
+                            has_prior_paid_purchase=has_prior,
+                        )
+                        order.refresh_from_db()
+                    except Exception:
+                        import logging
+                        logging.getLogger(__name__).warning(
+                            "Discount application failed for wallet payment order=%s; proceeding without discount.",
+                            order.pk,
+                            exc_info=True,
+                        )
+
+                order_total = order.total_price
+
                 wallet = ClientWalletService.get_wallet(website=order.website, client=client)
 
                 if wallet.available_balance < order_total:

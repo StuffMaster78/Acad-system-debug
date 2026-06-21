@@ -26,6 +26,8 @@ from orders.services.order_payment_application_service import (
 from orders.api.permissions import ClientOrderCreatePermission
 from core.utils.request_context import get_request_website
 from accounts.services.permission_service import AccountPermissionService
+from orders.models.orders.order import Order
+from orders.models.orders.enums import OrderPaymentStatus
 
 class CreateOrderView(GenericAPIView):
     """
@@ -112,6 +114,12 @@ class CreateOrderView(GenericAPIView):
         checkout_started = False
         payment_intent_payload: dict[str, Any] | None = None
 
+        entered_code = (validated_data.get("entered_code") or "").strip() or None
+        has_prior_paid_purchase = self._has_prior_paid_purchase(
+            client=client,
+            website=website,
+        )
+
         provider = self._get_checkout_provider(request=request)
         if provider and not order.is_fully_paid:
             payment_intent = (
@@ -122,6 +130,8 @@ class CreateOrderView(GenericAPIView):
                         request=request
                     ),
                     triggered_by=user,
+                    entered_code=entered_code,
+                    has_prior_paid_purchase=has_prior_paid_purchase,
                     metadata={
                         "source": "order_creation_api",
                     },
@@ -201,6 +211,17 @@ class CreateOrderView(GenericAPIView):
                 )
 
         return client
+
+    @staticmethod
+    def _has_prior_paid_purchase(*, client: Any, website: Any) -> bool:
+        """
+        Return True if the client has at least one fully paid order on this site.
+        """
+        return Order.objects.filter(
+            client=client,
+            website=website,
+            payment_status=OrderPaymentStatus.FULLY_PAID,
+        ).exists()
 
     @staticmethod
     def _get_checkout_provider(*, request: Request) -> str:
