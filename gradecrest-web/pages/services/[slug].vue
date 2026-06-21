@@ -708,7 +708,7 @@ useHead({
                       aria-hidden="true"
                     >+</span>
                   </summary>
-                  <p class="px-6 pb-5 pt-1 text-sm text-graphite leading-relaxed">{{ faq.a }}</p>
+                  <div class="px-6 pb-5 pt-1 text-sm text-graphite leading-relaxed prose prose-sm max-w-none" v-html="faq.a" />
                 </details>
               </div>
             </section>

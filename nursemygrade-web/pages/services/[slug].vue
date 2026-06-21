@@ -4,17 +4,20 @@ const slug   = route.params.slug as string
 const config = useRuntimeConfig()
 const { getBySlug, getRelated } = useServices()
 
-// Use the /wagtail server route — it uses node:http which correctly passes the
-// Host header (undici/$fetch ignores Host overrides, so direct backend calls
-// return 0 items because Wagtail doesn't match the site). Await here so the
-// 404 guard below has real data before it runs.
-const wagtailBase = `${config.public.apiBase || ''}/wagtail`
+// On SSR call Django directly so the Host header is sent correctly.
+// On the client, route through the /api/v2 dev-proxy (or apiBase in prod).
+const apiBase = import.meta.server
+  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+  : (config.public.apiBase || '')
 const svcFields = 'title,slug,pricing_from,pricing_to,turnaround_hours_fastest,turnaround_hours_standard,primary_cta_text,primary_cta_url,reviewer,last_substantive_update,body'
 
 const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(
   `svc-${slug}`,
-  () => $fetch<{ items: unknown[] }>(`${wagtailBase}/api/v2/pages/`, {
+  () => $fetch<{ items: unknown[] }>(`${apiBase}/api/v2/pages/`, {
     params: { type: 'cms_service_pages.ServicePage', slug, fields: svcFields },
+    headers: import.meta.server
+      ? { Host: (config as Record<string, unknown>).siteHostname as string || 'nursemygrade.com' }
+      : undefined,
   }).catch(() => null),
 )
 
@@ -40,9 +43,7 @@ const displayIncludes = computed(() => service?.includes ?? [])
 
 const related = service ? getRelated(service.relatedSlugs) : []
 
-const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
-const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
-const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
+const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
 
 const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
 const canonicalUrl = `${siteUrl}/services/${slug}`
@@ -332,16 +333,11 @@ if (cmsPage.value?.schema) {
       </div>
     </main>
 
-    <!-- ── Two-column SEO content (essaypro-style) ──────────────────────── -->
+    <!-- ── Two-column SEO content ───────────────────────────────────────── -->
     <section v-if="bodyBlocks.length" class="border-t border-slate-100 bg-slate-50 py-14">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid gap-10 md:grid-cols-2">
-          <div class="service-body min-w-0">
-            <ServicePageBody :blocks="bodyLeft" />
-          </div>
-          <div class="service-body min-w-0">
-            <ServicePageBody :blocks="bodyRight" />
-          </div>
+        <div class="service-body columns-1 md:columns-2 md:gap-x-12 [column-fill:balance]">
+          <ServicePageBody :blocks="bodyBlocks" />
         </div>
       </div>
     </section>

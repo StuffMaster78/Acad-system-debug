@@ -50,6 +50,15 @@ function toggleFaq(i: number) {
   else openFaqs.value.add(i)
 }
 
+function cleanHtml(html: string): string {
+  return html
+    .replace(/<img[^>]*src="(?!https?:\/\/)[^"]*"[^>]*>/gi, '')
+    .replace(/(<br\s*\/?>\s*)+(<\/?(p|h[1-6]|ul|ol|li|div|blockquote)[^>]*>)/gi, '$2')
+    .replace(/(<\/?(p|h[1-6]|ul|ol|li|div|blockquote)[^>]*>)\s*(<br\s*\/?>)+/gi, '$1')
+    .replace(/\r\n|\r/g, '\n')
+    .replace(/\t/g, '')
+}
+
 const CALLOUT_STYLES: Record<string, string> = {
   info:      'border-blue-200 bg-blue-50 text-blue-800',
   tip:       'border-green-200 bg-green-50 text-green-800',
@@ -59,11 +68,12 @@ const CALLOUT_STYLES: Record<string, string> = {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div>
     <template v-for="block in blocks" :key="block.id">
 
-      <!-- heading -->
+      <!-- heading — inline, flows with column -->
       <template v-if="block.type === 'heading'">
+        <div class="mb-6 break-inside-avoid">
         <component
           :is="(block.value as HeadingVal).level || 'h2'"
           class="font-serif font-bold text-slate-900"
@@ -75,48 +85,55 @@ const CALLOUT_STYLES: Record<string, string> = {
         >
           {{ (block.value as HeadingVal).text }}
         </component>
+        </div>
       </template>
 
-      <!-- paragraph / richtext -->
+      <!-- paragraph / richtext — no break-inside-avoid so CSS columns can flow naturally -->
       <template v-else-if="block.type === 'paragraph'">
         <div
-          class="prose prose-slate prose-lg max-w-none
-                 prose-headings:font-serif prose-a:text-amber-700 prose-a:no-underline
-                 hover:prose-a:underline prose-strong:text-slate-900"
-          v-html="block.value as ParagraphVal"
+          class="prose prose-slate max-w-none
+                 prose-headings:font-serif prose-headings:break-after-avoid
+                 prose-a:text-amber-700 prose-a:no-underline hover:prose-a:underline
+                 prose-strong:text-slate-900 prose-p:mb-4 prose-p:leading-relaxed"
+          v-html="cleanHtml(block.value as ParagraphVal)"
         />
       </template>
 
       <!-- list -->
       <template v-else-if="block.type === 'list'">
-        <component
-          :is="(block.value as ListVal).style === 'numbered' ? 'ol' : 'ul'"
-          class="space-y-2 pl-5 text-slate-700"
-          :class="(block.value as ListVal).style === 'numbered' ? 'list-decimal' : 'list-disc'"
-        >
-          <li v-for="item in (block.value as ListVal).items" :key="item"
-            class="leading-relaxed" v-html="item" />
-        </component>
+        <div class="mb-8 break-inside-avoid">
+          <component
+            :is="(block.value as ListVal).style === 'numbered' ? 'ol' : 'ul'"
+            class="space-y-2 pl-5 text-slate-700"
+            :class="(block.value as ListVal).style === 'numbered' ? 'list-decimal' : 'list-disc'"
+          >
+            <li v-for="item in (block.value as ListVal).items" :key="item"
+              class="leading-relaxed" v-html="item" />
+          </component>
+        </div>
       </template>
 
       <!-- checklist -->
       <template v-else-if="block.type === 'checklist'">
-        <div class="rounded-2xl border border-claret-200 bg-claret-900/50 p-6">
-          <h3 v-if="(block.value as ChecklistVal).title" class="mb-4 font-serif text-xl font-bold text-slate-900">
-            {{ (block.value as ChecklistVal).title }}
-          </h3>
-          <ul class="space-y-3">
-            <li v-for="item in (block.value as ChecklistVal).items" :key="item.text"
-              class="flex items-start gap-3">
-              <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
-              <span class="text-slate-700 leading-relaxed">{{ item.text }}</span>
-            </li>
-          </ul>
+        <div class="mb-8 break-inside-avoid">
+          <div class="rounded-2xl border border-claret-200 bg-claret-900/50 p-6">
+            <h3 v-if="(block.value as ChecklistVal).title" class="mb-4 font-serif text-xl font-bold text-slate-900">
+              {{ (block.value as ChecklistVal).title }}
+            </h3>
+            <ul class="space-y-3">
+              <li v-for="item in (block.value as ChecklistVal).items" :key="item.text"
+                class="flex items-start gap-3">
+                <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                <span class="text-slate-700 leading-relaxed">{{ item.text }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </template>
 
       <!-- icon_list -->
       <template v-else-if="block.type === 'icon_list'">
+        <div class="mb-8 break-inside-avoid">
         <div v-if="(block.value as any).style === 'grid'" class="grid gap-3 sm:grid-cols-2">
           <div v-for="(item, i) in (block.value as any).items || []" :key="i"
             class="flex items-start gap-3 rounded-xl border border-parchment-200 bg-parchment-50 p-4">
@@ -140,10 +157,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             <div class="leading-relaxed" v-html="item" />
           </li>
         </ul>
+        </div>
       </template>
 
       <!-- numbered_list -->
       <template v-else-if="block.type === 'numbered_list'">
+        <div class="mb-8 break-inside-avoid">
         <div class="space-y-4">
           <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-claret-900">{{ (block.value as any).heading }}</h3>
           <ol v-if="(block.value as any).style === 'steps'" class="space-y-0">
@@ -177,10 +196,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             </li>
           </ol>
         </div>
+        </div>
       </template>
 
-      <!-- pro_con -->
+      <!-- pro_con — wide: spans both columns -->
       <template v-else-if="block.type === 'pro_con'">
+        <div class="mb-8 [column-span:all]">
         <div class="space-y-4">
           <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-claret-900">{{ (block.value as any).heading }}</h3>
           <div class="grid gap-4 sm:grid-cols-2">
@@ -202,10 +223,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             </div>
           </div>
         </div>
+        </div>
       </template>
 
       <!-- chips -->
       <template v-else-if="block.type === 'chips'">
+        <div class="mb-8 break-inside-avoid">
         <div class="space-y-3">
           <p v-if="(block.value as any).heading" class="font-semibold text-claret-900">{{ (block.value as any).heading }}</p>
           <div class="flex flex-wrap gap-2">
@@ -221,10 +244,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             >{{ chip }}</span>
           </div>
         </div>
+        </div>
       </template>
 
       <!-- quote -->
       <template v-else-if="block.type === 'quote'">
+        <div class="mb-8 break-inside-avoid">
         <blockquote class="border-l-4 border-claret-200 pl-6 py-1">
           <p class="text-lg italic text-slate-700 leading-relaxed">
             "{{ (block.value as QuoteVal).quote }}"
@@ -233,18 +258,22 @@ const CALLOUT_STYLES: Record<string, string> = {
             — {{ (block.value as QuoteVal).author }}
           </footer>
         </blockquote>
+        </div>
       </template>
 
       <!-- callout -->
       <template v-else-if="block.type === 'callout'">
+        <div class="mb-8 break-inside-avoid">
         <div class="rounded-xl border p-5 text-sm leading-relaxed"
           :class="CALLOUT_STYLES[(block.value as CalloutVal).type] ?? CALLOUT_STYLES.info">
           <span v-html="(block.value as CalloutVal).text" />
+        </div>
         </div>
       </template>
 
       <!-- faq — accordion -->
       <template v-else-if="block.type === 'faq'">
+        <div class="mb-4 break-inside-avoid">
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <button
             class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-50 transition-colors"
@@ -261,10 +290,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             class="border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-sm text-slate-600 leading-relaxed"
             v-html="(block.value as FaqVal).answer" />
         </div>
+        </div>
       </template>
 
-      <!-- stats_highlight -->
+      <!-- stats_highlight — wide: spans both columns -->
       <template v-else-if="block.type === 'stats_highlight'">
+        <div class="mb-8 [column-span:all]">
         <div class="grid gap-4" :class="`sm:grid-cols-${Math.min((block.value as StatsVal).stats.length, 4)}`">
           <div v-for="stat in (block.value as StatsVal).stats" :key="stat.label"
             class="rounded-2xl border border-claret-200 bg-claret-900 p-5 text-center">
@@ -273,10 +304,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             <div v-if="stat.description" class="mt-1 text-xs text-slate-500">{{ stat.description }}</div>
           </div>
         </div>
+        </div>
       </template>
 
-      <!-- feature_grid -->
+      <!-- feature_grid — wide: spans both columns -->
       <template v-else-if="block.type === 'feature_grid'">
+        <div class="mb-8 [column-span:all]">
         <div>
           <h3 v-if="(block.value as FeatureVal).title" class="mb-6 font-serif text-2xl font-bold text-slate-900">
             {{ (block.value as FeatureVal).title }}
@@ -292,10 +325,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             </div>
           </div>
         </div>
+        </div>
       </template>
 
-      <!-- how_it_works -->
+      <!-- how_it_works — wide: spans both columns -->
       <template v-else-if="block.type === 'how_it_works'">
+        <div class="mb-8 [column-span:all]">
         <div>
           <h3 v-if="(block.value as StepsVal).title" class="mb-6 font-serif text-2xl font-bold text-slate-900">
             {{ (block.value as StepsVal).title }}
@@ -313,32 +348,38 @@ const CALLOUT_STYLES: Record<string, string> = {
             </li>
           </ol>
         </div>
+        </div>
       </template>
 
-      <!-- cta -->
+      <!-- cta — wide: spans both columns -->
       <template v-else-if="block.type === 'cta'">
-        <div class="rounded-2xl bg-claret-900 px-8 py-8 text-center">
-          <h3 class="font-serif text-2xl font-bold text-white">{{ (block.value as CtaVal).heading }}</h3>
-          <p v-if="(block.value as CtaVal).subheading" class="mt-3 text-amber-700">
-            {{ (block.value as CtaVal).subheading }}
-          </p>
-          <a :href="(block.value as CtaVal).button_url"
-            class="mt-5 inline-block rounded-xl bg-white px-8 py-3 font-bold text-amber-700 hover:bg-claret-900 transition-colors">
-            {{ (block.value as CtaVal).button_text }}
-          </a>
+        <div class="mb-8 [column-span:all]">
+          <div class="rounded-2xl bg-claret-900 px-8 py-8 text-center">
+            <h3 class="font-serif text-2xl font-bold text-white">{{ (block.value as CtaVal).heading }}</h3>
+            <p v-if="(block.value as CtaVal).subheading" class="mt-3 text-amber-700">
+              {{ (block.value as CtaVal).subheading }}
+            </p>
+            <a :href="(block.value as CtaVal).button_url"
+              class="mt-5 inline-block rounded-xl bg-white px-8 py-3 font-bold text-amber-700 hover:bg-claret-900 transition-colors">
+              {{ (block.value as CtaVal).button_text }}
+            </a>
+          </div>
         </div>
       </template>
 
       <!-- definition -->
       <template v-else-if="block.type === 'definition'">
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
-          <dt class="font-bold text-slate-900">{{ (block.value as DefinitionVal).term }}</dt>
-          <dd class="mt-1.5 text-slate-600 leading-relaxed" v-html="(block.value as DefinitionVal).definition" />
+        <div class="mb-8 break-inside-avoid">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <dt class="font-bold text-slate-900">{{ (block.value as DefinitionVal).term }}</dt>
+            <dd class="mt-1.5 text-slate-600 leading-relaxed" v-html="(block.value as DefinitionVal).definition" />
+          </div>
         </div>
       </template>
 
-      <!-- timeline -->
+      <!-- timeline — wide: spans both columns -->
       <template v-else-if="block.type === 'timeline'">
+        <div class="mb-8 [column-span:all]">
         <div>
           <h3 v-if="(block.value as TimelineVal).title" class="mb-5 font-serif text-2xl font-bold text-slate-900">
             {{ (block.value as TimelineVal).title }}
@@ -360,10 +401,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             </div>
           </div>
         </div>
+        </div>
       </template>
 
-      <!-- sample_excerpt -->
+      <!-- sample_excerpt — wide: spans both columns -->
       <template v-else-if="block.type === 'sample_excerpt'">
+        <div class="mb-8 [column-span:all]">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div v-if="(block.value as SampleVal).title" class="mb-3 flex items-center justify-between gap-4">
             <h4 class="font-semibold text-slate-900">{{ (block.value as SampleVal).title }}</h4>
@@ -382,15 +425,18 @@ const CALLOUT_STYLES: Record<string, string> = {
             v-html="(block.value as SampleVal).excerpt" />
           <p class="mt-3 text-xs text-slate-400">Sample excerpt only — all work is written fresh to your brief.</p>
         </div>
+        </div>
       </template>
 
       <!-- image / infographic -->
       <template v-else-if="block.type === 'image'">
-        <figure
+        <div
+          class="mb-8"
           :class="(block.value as ImageVal).display === 'wide' || (block.value as ImageVal).display === 'infographic'
-            ? '-mx-6 sm:-mx-10'
-            : ''"
+            ? '[column-span:all]'
+            : 'break-inside-avoid'"
         >
+        <figure>
           <img
             :src="(block.value as ImageVal).url ?? (block.value as ImageVal).meta?.download_url ?? ''"
             :alt="(block.value as ImageVal).alt_text ?? ''"
@@ -407,10 +453,12 @@ const CALLOUT_STYLES: Record<string, string> = {
             {{ (block.value as ImageVal).caption }}
           </figcaption>
         </figure>
+        </div>
       </template>
 
-      <!-- attachment / downloadable sample -->
+      <!-- attachment — wide: spans both columns -->
       <template v-else-if="block.type === 'attachment'">
+        <div class="mb-8 [column-span:all]">
         <ClientOnly>
           <SampleDownload
             :attachment="block.value as AttachmentVal"
@@ -419,15 +467,19 @@ const CALLOUT_STYLES: Record<string, string> = {
               : 'card'"
           />
         </ClientOnly>
+        </div>
       </template>
 
       <!-- divider -->
       <template v-else-if="block.type === 'divider'">
-        <hr class="border-slate-200" />
+        <div class="mb-8 break-inside-avoid">
+          <hr class="border-parchment-300" />
+        </div>
       </template>
 
-      <!-- table -->
+      <!-- table — wide: spans both columns -->
       <template v-else-if="block.type === 'table'">
+        <div class="mb-8 [column-span:all]">
         <div class="overflow-hidden rounded-2xl border border-parchment-200 bg-white shadow-sm">
           <p v-if="(block.value as any).table_caption" class="border-b border-parchment-100 bg-parchment-50 px-4 py-2.5 text-xs font-semibold text-claret-700">
             {{ (block.value as any).table_caption }}
@@ -455,6 +507,7 @@ const CALLOUT_STYLES: Record<string, string> = {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </template>
 

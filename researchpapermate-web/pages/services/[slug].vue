@@ -1,9 +1,40 @@
 <script setup lang="ts">
 const route = useRoute()
+const config = useRuntimeConfig()
 const { getBySlug, getRelated } = useServices()
 
-const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(route.params.slug as string)
-const service = getBySlug(route.params.slug as string)
+const slug = route.params.slug as string
+
+// Await CMS data before the 404 guard so the guard sees real data.
+// SSR: call Django directly with the correct Host header.
+// Client: route through the /api/v2 dev-proxy (or apiBase in prod).
+const apiBase = import.meta.server
+  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+  : (config.public.apiBase || '')
+const svcFields = [
+  'title', 'slug', 'pricing_from', 'pricing_to',
+  'turnaround_hours_fastest', 'turnaround_hours_standard',
+  'primary_cta_text', 'primary_cta_url',
+  'reviewer', 'last_substantive_update', 'body',
+].join(',')
+
+const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(
+  `svc-rpm-${slug}`,
+  () => $fetch<{ items: unknown[] }>(`${apiBase}/api/v2/pages/`, {
+    params: { type: 'cms_service_pages.ServicePage', slug, fields: svcFields },
+    headers: import.meta.server
+      ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
+      : undefined,
+  }).catch(() => null),
+)
+
+import type { CmsServicePage } from '~/composables/useServiceCms'
+const cmsPage = computed<CmsServicePage | null>(
+  () => ((_cmsRaw.value as { items?: CmsServicePage[] } | null)?.items?.[0]) ?? null,
+)
+// Keep useServiceCms active for client-side navigation refreshes
+const { hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
+const service = getBySlug(slug)
 
 if (!service && !cmsPage.value) {
   throw createError({ statusCode: 404, message: 'Service not found' })
@@ -18,8 +49,6 @@ const displayIncludes = computed(() => service?.includes ?? [])
 
 const related    = service ? getRelated(service.relatedSlugs) : []
 const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
-const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
-const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
 
 // ── Methodology selector ──────────────────────────────────────────────────
 type Methodology = { label: string; paper: string; price: string; desc: string }
@@ -41,9 +70,8 @@ function openDrawer() { drawerOpen.value = true; document.body.style.overflow = 
 function closeDrawer() { drawerOpen.value = false; document.body.style.overflow = '' }
 onUnmounted(() => { document.body.style.overflow = '' })
 
-const config  = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://researchpapermate.com'
-const canonicalUrl = `${siteUrl}/services/${route.params.slug}`
+const canonicalUrl = `${siteUrl}/services/${slug}`
 
 useSeoMeta({
   title:         displayMeta.value.title || displayTitle.value,
@@ -301,22 +329,14 @@ if (cmsPage.value?.schema) {
     <!-- ── Two-column SEO content — scholarly claret ─────────────────────── -->
     <section v-if="bodyBlocks.length" class="border-t border-parchment-200 bg-parchment-50 py-16">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="mb-8 flex items-start gap-5">
-          <div class="mt-1 h-10 w-1 shrink-0 rounded-full bg-claret-600" />
-          <div>
-            <p class="text-xs font-bold uppercase tracking-widest text-claret-500 mb-1">Service overview</p>
-            <h2 class="font-serif text-xl font-bold text-claret-900">
-              About {{ displayTitle }}
-            </h2>
-          </div>
+        <div class="mb-10 pb-8 border-b border-parchment-300">
+          <p class="text-xs font-bold uppercase tracking-widest text-claret-500 mb-2">Service overview</p>
+          <h2 class="font-serif text-2xl font-bold text-claret-900 sm:text-3xl">
+            About {{ displayTitle }}
+          </h2>
         </div>
-        <div class="grid gap-x-14 gap-y-8 md:grid-cols-2">
-          <div class="service-body min-w-0">
-            <ServicePageBody :blocks="bodyLeft" />
-          </div>
-          <div class="service-body min-w-0">
-            <ServicePageBody :blocks="bodyRight" />
-          </div>
+        <div class="service-body columns-1 md:columns-2 md:gap-x-12 [column-fill:balance]">
+          <ServicePageBody :blocks="bodyBlocks" />
         </div>
         <div class="mt-10 flex items-center justify-between gap-6 rounded-2xl border border-claret-200 bg-white px-6 py-4 shadow-sm">
           <p class="text-sm font-semibold text-claret-900">

@@ -22,10 +22,10 @@ export interface CmsBlock {
 
 export function useServiceCms(serviceSlug: string) {
   const config = useRuntimeConfig()
-  const wagtailBase = `${config.public.apiBase || ''}/wagtail`
+  const apiBase = config.public.apiBase || ''
 
   const { data, status, error } = useFetch<{ items: CmsServicePage[] }>(
-    `${wagtailBase}/api/v2/pages/`,
+    `${apiBase}/api/v2/pages/`,
     {
       query: {
         type: 'cms_service_pages.ServicePage',

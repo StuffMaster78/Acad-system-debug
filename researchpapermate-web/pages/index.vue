@@ -23,6 +23,20 @@ useHead({
   }],
 })
 
+// ── Hero sentinel for sticky bar ──────────────────────────────────────────────
+const heroCta = ref<HTMLElement | null>(null)
+const showStickyBar = ref(false)
+let stickyObs: IntersectionObserver | null = null
+
+onMounted(() => {
+  if (!heroCta.value) return
+  stickyObs = new IntersectionObserver(([entry]) => {
+    showStickyBar.value = !entry.isIntersecting
+  }, { threshold: 0 })
+  stickyObs.observe(heroCta.value)
+})
+onUnmounted(() => stickyObs?.disconnect())
+
 // ── Grade ticker ─────────────────────────────────────────────────────────────
 const recentGrades = [
   { grade: 'A+', subject: 'Sociology · LSE' },
@@ -113,6 +127,27 @@ const testimonials = [
     name: 'Daniel O.',
     university: 'Northumbria University',
   },
+  {
+    grade: 'A',
+    subject: 'Clinical Psychology Essay',
+    quote: "I was genuinely worried about the turnaround — 48 hours for a 3,000-word essay. It was delivered in 36 and the references were impeccable.",
+    name: 'Aisha M.',
+    university: 'University of Glasgow',
+  },
+  {
+    grade: 'A+',
+    subject: 'Law Dissertation (LLM)',
+    quote: "My supervisor commented on the depth of the legal analysis. The writer clearly had postgraduate law training. I'll use ResearchPaperMate again for sure.",
+    name: 'James K.',
+    university: 'Queen Mary University of London',
+  },
+  {
+    grade: 'A',
+    subject: 'Environmental Science Lab Report',
+    quote: "Perfect methodology, correct citation format, delivered early. No back-and-forth needed — the brief was followed exactly.",
+    name: 'Sophie R.',
+    university: 'University of Leeds',
+  },
 ]
 
 // ── Methodology ───────────────────────────────────────────────────────────────
@@ -179,9 +214,15 @@ const pricingTiers = [
         <!-- Left: headline + CTAs -->
         <div>
           <!-- Trust badge -->
-          <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-claret-700 bg-claret-900/60 px-4 py-1.5 text-xs font-semibold text-claret-200 backdrop-blur-sm">
-            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"/>
-            PhD &amp; Master's verified — live researchers available now
+          <div class="mb-6 flex flex-wrap items-center gap-3">
+            <div class="inline-flex items-center gap-2 rounded-full border border-claret-700 bg-claret-900/60 px-4 py-1.5 text-xs font-semibold text-claret-200 backdrop-blur-sm">
+              <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"/>
+              PhD &amp; Master's verified — live researchers available now
+            </div>
+            <div class="inline-flex items-center gap-1.5 rounded-full border border-green-800 bg-green-950/60 px-3 py-1.5 text-xs font-semibold text-green-300 backdrop-blur-sm">
+              <span class="h-1.5 w-1.5 rounded-full bg-green-400"/>
+              42 orders placed today
+            </div>
           </div>
 
           <!-- Headline — serif display font -->
@@ -218,11 +259,16 @@ const pricingTiers = [
           </div>
 
           <!-- Micro-trust row -->
-          <div class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-claret-300">
+          <div ref="heroCta" class="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-claret-300">
             <span>✓ Grade or money back</span>
             <span>✓ Zero AI content</span>
             <span>✓ Free plagiarism report</span>
             <span>✓ No payment until you approve</span>
+          </div>
+
+          <!-- Trust badges row -->
+          <div class="mt-5">
+            <TrustBadges />
           </div>
         </div>
 
@@ -387,9 +433,14 @@ const pricingTiers = [
           </a>
         </div>
       </div>
-      <p class="mt-8 text-center text-xs text-ink-muted">
-        Prices are per page (275 words). Rush deadlines (under 6h) have a surcharge. <a href="/pricing" class="text-amber-700 hover:underline">Full pricing →</a>
-      </p>
+      <div class="mt-8 flex flex-col items-center gap-2">
+        <div class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-800">
+          ⚡ Rush delivery available — as fast as 2 hours
+        </div>
+        <p class="text-center text-xs text-ink-muted">
+          Prices are per page (275 words). Rush deadlines (under 6h) have a surcharge. <a href="/pricing" class="text-amber-700 hover:underline">Full pricing →</a>
+        </p>
+      </div>
     </div>
   </section>
 
@@ -498,7 +549,7 @@ const pricingTiers = [
         <div
           v-for="t in testimonials"
           :key="t.name"
-          class="relative overflow-hidden rounded-2xl border border-parchment-300 bg-white p-7 shadow-sm"
+          class="relative overflow-hidden rounded-2xl border border-parchment-300 bg-white p-7 shadow-sm transition-shadow hover:shadow-md"
         >
           <!-- Grade badge — top right, dominant -->
           <div class="absolute right-6 top-6 flex size-16 flex-col items-center justify-center rounded-2xl bg-claret-900 text-white shadow-lg">
@@ -551,6 +602,46 @@ const pricingTiers = [
 
   <!-- ─── FAQ ───────────────────────────────────────────────────────────── -->
   <HomeFaq />
+
+  <!-- ─── STICKY ORDER BAR — slides in when hero CTA leaves view ────────── -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-transform duration-300 ease-out"
+      enter-from-class="translate-y-full"
+      enter-to-class="translate-y-0"
+      leave-active-class="transition-transform duration-200 ease-in"
+      leave-from-class="translate-y-0"
+      leave-to-class="translate-y-full"
+    >
+      <div
+        v-if="showStickyBar"
+        class="fixed bottom-20 sm:bottom-0 inset-x-0 z-[48] border-t border-claret-800 bg-claret-950/95 backdrop-blur-md shadow-2xl"
+      >
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <div class="hidden items-center gap-3 sm:flex">
+            <span class="h-2 w-2 rounded-full bg-amber-400 animate-pulse"/>
+            <p class="text-sm font-semibold text-white">ResearchPaperMate</p>
+            <span class="text-claret-600">·</span>
+            <p class="text-sm text-claret-300">From $15/page · Grade guaranteed · 200+ PhD researchers</p>
+          </div>
+          <p class="text-sm text-claret-300 sm:hidden">From $15/page · Grade guaranteed</p>
+          <div class="flex shrink-0 items-center gap-3">
+            <div class="hidden items-center gap-1 sm:flex">
+              <svg v-for="i in 5" :key="i" class="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <span class="ml-1 text-xs text-claret-300">4.8</span>
+            </div>
+            <a
+              href="/order"
+              class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-colors hover:bg-amber-400"
+            >
+              Start my paper
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 
   <!-- ─── FINAL CTA — amber on deep claret ─────────────────────────────── -->
   <section class="bg-claret-900 py-24">

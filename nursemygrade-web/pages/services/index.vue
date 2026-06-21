@@ -4,7 +4,7 @@ const { getBySlug } = useServices()
 
 const simulations = [
   {
-    slug: 'shadow-health',
+    href: '/services/shadow-health-help-online',
     icon: 'monitor-play',
     name: 'Shadow Health DCEs',
     tagline: 'Tina Jones, Brian Foster, Danny Rivera & all patients',
@@ -13,7 +13,7 @@ const simulations = [
     price: 35,
   },
   {
-    slug: 'ihuman-patients',
+    href: '/order?type=simulation&platform=ihuman',
     icon: 'activity',
     name: 'iHuman Virtual Patients',
     tagline: 'Clinical reasoning & differential diagnosis',
@@ -188,8 +188,8 @@ useHead({
         <div class="grid gap-8 md:grid-cols-2">
           <NuxtLink
             v-for="sim in simulations"
-            :key="sim.slug"
-            :href="`/services/${sim.slug}`"
+            :key="sim.name"
+            :href="sim.href"
             class="group relative overflow-hidden rounded-2xl border border-brand-200 bg-white p-7 shadow-sm transition-shadow hover:shadow-lg hover:border-brand-400"
           >
             <!-- Accent bar -->

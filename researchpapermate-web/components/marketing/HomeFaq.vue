@@ -41,16 +41,16 @@ function toggle(i: number) {
         <p class="section-sub">Everything you want to know before placing your first order.</p>
       </div>
 
-      <dl class="mx-auto mt-10 max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div v-for="(faq, i) in faqs" :key="faq.q" class="border-b border-slate-100 last:border-b-0">
+      <dl class="mx-auto mt-10 max-w-3xl overflow-hidden rounded-2xl border border-parchment-300 bg-white shadow-sm">
+        <div v-for="(faq, i) in faqs" :key="faq.q" class="border-b border-parchment-200 last:border-b-0">
           <dt>
             <button
-              class="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-slate-50"
+              class="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-parchment-50"
               @click="toggle(i)"
             >
-              <span class="font-semibold text-slate-900">{{ faq.q }}</span>
+              <span class="font-semibold text-ink-DEFAULT">{{ faq.q }}</span>
               <svg
-                class="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200"
+                class="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-200"
                 :class="open === i ? 'rotate-180' : ''"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -60,13 +60,13 @@ function toggle(i: number) {
               </svg>
             </button>
           </dt>
-          <dd v-show="open === i" class="border-t border-slate-100 bg-slate-50/60 px-6 pb-5 pt-4 text-sm text-slate-600 leading-relaxed">
+          <dd v-show="open === i" class="border-t border-parchment-200 bg-parchment-50/60 px-6 pb-5 pt-4 text-sm text-ink-secondary leading-relaxed">
             {{ faq.a }}
           </dd>
         </div>
       </dl>
 
-      <p class="mt-8 text-center text-sm text-slate-500">
+      <p class="mt-8 text-center text-sm text-ink-muted">
         Still have questions?
         <NuxtLink href="/contact" class="font-medium text-amber-700 hover:underline">Talk to our team →</NuxtLink>
       </p>

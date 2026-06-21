@@ -14,7 +14,7 @@ export interface ServiceData {
 
 const services: ServiceData[] = [
   {
-    slug: 'nursing-essays',
+    slug: 'online-nursing-essays-help',
     navLabel: 'Nursing Essays',
     icon: 'pen-line',
     title: 'Nursing Essay Writing Service',
@@ -44,7 +44,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'care-plans',
+    slug: 'nursing-care-plan-writing-services',
     navLabel: 'Care Plans',
     icon: 'clipboard-list',
     title: 'Nursing Care Plan Writing Service',
@@ -74,7 +74,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'soap-notes',
+    slug: 'nursing-soap-note-writing-help',
     navLabel: 'SOAP Notes',
     icon: 'stethoscope',
     title: 'SOAP Note Writing Service',
@@ -104,7 +104,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'capstone-projects',
+    slug: 'nursing-capstone-project-writing-service',
     navLabel: 'Capstone Projects',
     icon: 'graduation-cap',
     title: 'Nursing Capstone Project Writing Service',
@@ -134,7 +134,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-research-papers',
+    slug: 'best-online-nursing-research-paper-service',
     navLabel: 'Research Papers',
     icon: 'microscope',
     title: 'Nursing Research Paper Writing Service',
@@ -164,7 +164,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-case-studies',
+    slug: 'nursing-case-study-help',
     navLabel: 'Case Studies',
     icon: 'search',
     title: 'Nursing Case Study Writing Service',
@@ -194,7 +194,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-dissertations',
+    slug: 'nursing-dissertation-writing-service',
     navLabel: 'Dissertations',
     icon: 'book-open',
     title: 'Nursing Dissertation & Thesis Writing Service',
@@ -224,7 +224,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'concept-maps',
+    slug: 'concept-map-writing-services',
     navLabel: 'Concept Maps',
     icon: 'network',
     title: 'Nursing Concept Map Writing Service',
@@ -254,7 +254,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-coursework',
+    slug: 'nursing-coursework-help-online',
     navLabel: 'Coursework & Assignments',
     icon: 'briefcase',
     title: 'Nursing Coursework & Assignment Help',
@@ -284,7 +284,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'online-nursing-classes',
+    slug: 'nursing-class-help-online',
     navLabel: 'Online Class Help',
     icon: 'laptop',
     title: 'Online Nursing Class Help',
@@ -314,7 +314,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'shadow-health',
+    slug: 'shadow-health-help-online',
     navLabel: 'Shadow Health DCEs',
     icon: 'monitor-play',
     title: 'Shadow Health Digital Clinical Experience Help',
@@ -344,7 +344,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'ihuman-patients',
+    slug: 'ihuman-help',
     navLabel: 'iHuman Virtual Patients',
     icon: 'activity',
     title: 'iHuman Virtual Patient Case Help',
@@ -374,7 +374,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'buy-nursing-papers',
+    slug: 'nursing-research-for-sale-online',
     navLabel: 'Buy Nursing Papers',
     icon: 'file-text',
     title: 'Buy Nursing Papers Online — Written by Real Nurses',
@@ -404,7 +404,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-report',
+    slug: 'nursing-report-writing-service',
     navLabel: 'Nursing Reports',
     icon: 'file-text',
     title: 'Nursing Report Writing Service',
@@ -434,7 +434,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-presentation',
+    slug: 'nursing-presentation-writing-service',
     navLabel: 'Nursing Presentations',
     icon: 'monitor-play',
     title: 'Nursing Presentation (PPT) Writing Service',
@@ -464,7 +464,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'bsn-writing',
+    slug: 'reliable-and-cheap-bsn-writing-service',
     navLabel: 'BSN Writing Services',
     icon: 'graduation-cap',
     title: 'BSN Nursing Writing Services',
@@ -494,7 +494,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'msn-help',
+    slug: 'reliable-msn-writing-services',
     navLabel: 'MSN Writing Help',
     icon: 'book-open',
     title: 'MSN Nursing Writing Help',
@@ -524,7 +524,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'apa-nursing-papers',
+    slug: 'apa-format-nursing-paper-writing-service',
     navLabel: 'APA Nursing Papers',
     icon: 'clipboard-list',
     title: 'APA Nursing Paper Writing Service',
@@ -554,7 +554,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'medical-paper-writing',
+    slug: 'health-and-medicine-paper-writing-service',
     navLabel: 'Medical Paper Writing',
     icon: 'microscope',
     title: 'Medical & Health Sciences Paper Writing Service',
@@ -584,7 +584,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'nursing-homework',
+    slug: 'online-nursing-homework-help',
     navLabel: 'Nursing Homework Help',
     icon: 'briefcase',
     title: 'Nursing Homework Help Online',
@@ -614,7 +614,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'postgrad-nursing',
+    slug: 'postgraduate-nursing-papers-assignments-help',
     navLabel: 'Postgrad Nursing Help',
     icon: 'graduation-cap',
     title: 'Postgraduate Nursing Writing Help',
@@ -644,7 +644,7 @@ const services: ServiceData[] = [
     },
   },
   {
-    slug: 'health-medical-writers',
+    slug: 'hire-a-health-and-medical-writer',
     navLabel: 'Health & Medical Writers',
     icon: 'stethoscope',
     title: 'Health & Medical Writers for Hire',
@@ -694,7 +694,7 @@ export function useServices() {
 export interface CmsServiceSummary {
   id: number
   title: string
-  slug: string
+  meta: { slug: string; type: string; html_url?: string }
   service_category?: { name: string; slug: string } | null
   pricing_from?: string | null
   turnaround_hours_fastest?: number | null
@@ -731,9 +731,10 @@ export function useCmsServiceList() {
       }))
     }
     return cmsItems.map(page => {
-      const local = staticServices.find(s => s.slug === page.slug)
+      const slug = page.meta.slug
+      const local = staticServices.find(s => s.slug === slug)
       return {
-        slug: page.slug,
+        slug,
         title: page.title,
         navLabel: local?.navLabel ?? page.title,
         icon: local?.icon ?? 'file-text',

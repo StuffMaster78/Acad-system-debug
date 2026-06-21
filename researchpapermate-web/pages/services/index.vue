@@ -3,6 +3,41 @@
 const services = useCmsServiceList()
 const { getBySlug } = useServices()
 
+const popularSlugs = new Set(['research-papers', 'essays', 'dissertations', 'literature-reviews'])
+const popularLabel: Record<string, string> = {
+  'research-papers':   'Most popular',
+  'dissertations':     'Full support',
+  'essays':            'Popular',
+  'literature-reviews':'Popular',
+}
+
+// ── Category tabs ─────────────────────────────────────────────────────────────
+const serviceCategories = [
+  { key: 'all',        label: 'All' },
+  { key: 'papers',     label: 'Papers & Essays' },
+  { key: 'research',   label: 'Research' },
+  { key: 'analysis',   label: 'Data & Analysis' },
+  { key: 'specialist', label: 'Specialist' },
+] as const
+
+type TabKey = typeof serviceCategories[number]['key']
+const activeTab = ref<TabKey>('all')
+
+const slugsByTab: Record<TabKey, string[]> = {
+  all:        [],
+  papers:     ['essays', 'coursework', 'presentations', 'case-studies'],
+  research:   ['research-papers', 'literature-reviews', 'dissertations'],
+  analysis:   ['data-analysis', 'lab-reports'],
+  specialist: ['research-papers', 'dissertations', 'literature-reviews', 'data-analysis'],
+}
+
+const visibleServices = computed(() => {
+  if (activeTab.value === 'all') return services.value
+  const slugs = slugsByTab[activeTab.value]
+  const bySlug = services.value.filter(s => slugs.includes(s.slug))
+  return bySlug.length ? bySlug : services.value
+})
+
 const subjectAreas = [
   {
     area: 'STEM',
@@ -87,78 +122,90 @@ useHead({
 
     <!-- Paper types grid -->
     <section class="bg-white py-16" id="paper-types">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <h2 class="section-heading">Paper types we handle</h2>
-            <p class="mt-2 text-slate-500">Each service type has a dedicated team of specialists.</p>
-          </div>
-          <NuxtLink href="/order" class="hidden shrink-0 text-sm font-semibold text-amber-700 hover:underline sm:block">
-            Place order →
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-8 text-center">
+          <h2 class="font-serif text-3xl font-bold text-ink-DEFAULT sm:text-4xl">Paper types we handle</h2>
+          <p class="mt-3 text-ink-secondary">Every service has a dedicated team of subject specialists.</p>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="mb-8 flex flex-wrap justify-center gap-2">
+          <button
+            v-for="tab in serviceCategories"
+            :key="tab.key"
+            class="rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors"
+            :class="activeTab === tab.key
+              ? 'border-claret-700 bg-claret-900 text-white'
+              : 'border-parchment-300 bg-white text-ink-secondary hover:border-claret-400 hover:text-ink-DEFAULT'"
+            @click="activeTab = tab.key"
+          >{{ tab.label }}</button>
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <NuxtLink
+            v-for="s in visibleServices"
+            :key="s.slug"
+            :href="`/services/${s.slug}`"
+            class="group relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-md"
+            :class="popularSlugs.has(s.slug)
+              ? 'border-amber-300 ring-1 ring-amber-200'
+              : 'border-parchment-300 hover:border-amber-200'"
+          >
+            <!-- Popular badge -->
+            <div
+              v-if="popularSlugs.has(s.slug)"
+              class="absolute -top-3 left-5 rounded-full bg-amber-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow"
+            >
+              {{ popularLabel[s.slug] ?? 'Popular' }}
+            </div>
+
+            <!-- Header row: icon + title + price -->
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-parchment-200 transition-colors group-hover:bg-claret-900">
+                  <Icon :name="s.icon" class="h-5 w-5 text-claret-800 transition-colors group-hover:text-amber-400" />
+                </div>
+                <h3 class="font-bold leading-tight text-ink-DEFAULT transition-colors group-hover:text-claret-800">
+                  {{ s.navLabel }}
+                </h3>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-lg font-bold text-claret-800">${{ s.priceFrom }}</p>
+                <p class="text-[10px] text-ink-muted">/page</p>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <p v-if="s.heroSub" class="mt-3 text-sm leading-relaxed text-ink-secondary line-clamp-2">{{ s.heroSub }}</p>
+
+            <!-- Includes bullets -->
+            <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5">
+              <li
+                v-for="b in getBySlug(s.slug)!.includes.slice(0, 3)"
+                :key="b"
+                class="flex items-start gap-2 text-xs text-ink-secondary"
+              >
+                <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                {{ b }}
+              </li>
+            </ul>
+
+            <!-- CTA -->
+            <div class="mt-5 pt-4 border-t border-parchment-200">
+              <span class="inline-flex items-center gap-1.5 rounded-lg bg-claret-900 px-4 py-2 text-xs font-bold text-white transition-colors group-hover:bg-claret-800">
+                Order {{ s.navLabel.toLowerCase() }}
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </span>
+            </div>
           </NuxtLink>
         </div>
 
-        <!-- Mobile + tablet: horizontal scroll with snap -->
-        <div class="-mx-4 sm:-mx-6 lg:mx-0">
-          <div
-            class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory px-4 pb-4 sm:px-6 lg:hidden"
-            style="scrollbar-width: none;"
-          >
-            <NuxtLink
-              v-for="s in services"
-              :key="s.slug"
-              :href="`/services/${s.slug}`"
-              class="group flex w-72 shrink-0 snap-start flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:border-amber-200 hover:shadow-md"
-            >
-              <div class="mb-4 flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 transition-colors group-hover:bg-brand-600">
-                  <Icon :name="s.icon" class="h-5 w-5 text-amber-700 transition-colors group-hover:text-white" />
-                </div>
-                <h3 class="font-semibold leading-tight text-slate-900 transition-colors group-hover:text-claret-700">
-                  {{ s.navLabel }}
-                </h3>
-              </div>
-              <p v-if="s.heroSub" class="flex-1 text-sm leading-relaxed text-slate-500 line-clamp-3">{{ s.heroSub }}</p>
-              <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                <span class="text-sm font-bold text-claret-700">From ${{ s.priceFrom }}/page</span>
-                <span class="text-xs font-medium text-amber-700 group-hover:underline">Details →</span>
-              </div>
-            </NuxtLink>
-          </div>
-
-          <!-- Desktop: 3-col grid -->
-          <div class="hidden lg:grid grid-cols-3 gap-6">
-            <NuxtLink
-              v-for="s in services"
-              :key="s.slug"
-              :href="`/services/${s.slug}`"
-              class="group flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:border-amber-200 hover:shadow-md"
-            >
-              <div class="mb-4 flex items-center gap-3">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 transition-colors group-hover:bg-brand-600">
-                  <Icon :name="s.icon" class="h-5 w-5 text-amber-700 transition-colors group-hover:text-white" />
-                </div>
-                <h3 class="text-lg font-semibold text-slate-900 transition-colors group-hover:text-claret-700">
-                  {{ s.navLabel }}
-                </h3>
-              </div>
-              <p v-if="s.heroSub" class="flex-1 text-sm leading-relaxed text-slate-600">{{ s.heroSub }}</p>
-              <ul v-if="getBySlug(s.slug)?.includes?.length" class="mt-4 space-y-1.5">
-                <li v-for="b in getBySlug(s.slug)!.includes.slice(0, 3)" :key="b"
-                    class="flex items-start gap-2 text-sm text-slate-500">
-                  <Icon name="check" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                  {{ b }}
-                </li>
-              </ul>
-              <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                <span class="text-sm font-bold text-claret-700">From ${{ s.priceFrom }}/page</span>
-                <span class="text-xs font-medium text-amber-700 group-hover:underline">Learn more →</span>
-              </div>
-            </NuxtLink>
-          </div>
-        </div>
-
-        <p class="mt-4 text-center text-xs text-slate-400 lg:hidden">← Scroll to see all paper types →</p>
+        <p class="mt-10 text-center text-sm text-ink-muted">
+          Don't see your paper type?
+          <NuxtLink href="/contact" class="font-semibold text-amber-700 hover:underline">Tell us what you need →</NuxtLink>
+        </p>
       </div>
     </section>
 

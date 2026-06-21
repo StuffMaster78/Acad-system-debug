@@ -23,10 +23,10 @@ export interface CmsBlock {
 export function useServiceCms(serviceSlug: string) {
   const config = useRuntimeConfig()
   // In SSR, call Django directly with the site hostname so the API filters
-  // by site correctly. On the client, route through the /wagtail proxy.
+  // by site correctly. On the client, route through the /api/v2 proxy.
   const apiBase = import.meta.server
     ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
-    : `${config.public.apiBase || ''}/wagtail`
+    : (config.public.apiBase || '')
   const extraHeaders = import.meta.server
     ? { Host: config.siteHostname as string || 'nursemygrade.com' }
     : undefined
