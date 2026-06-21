@@ -468,14 +468,55 @@ const onBehalfForm = reactive({
     const d = new Date(Date.now() + 7 * 24 * 3600 * 1000);
     return d.toISOString().slice(0, 16);
   })(),
+  writer_deadline: "" as string,
   number_of_pages: 1,
+  number_of_slides: 0,
   academic_level_id: null as number | null,
   paper_type_id: null as number | null,
   subject_id: null as number | null,
+  formatting_style_id: null as number | null,
+  english_type_id: null as number | null,
+  writer_level_id: null as number | null,
+  preferred_writer_id: null as number | null,
+  discount_code: "" as string,
+  is_urgent: false,
+  // External / phone order contact
+  external_contact_name: "" as string,
+  external_contact_email: "" as string,
+  external_contact_phone: "" as string,
 });
 const onBehalfCreating = ref(false);
 const onBehalfError = ref("");
 const onBehalfSuccess = ref("");
+
+// Writer search for preferred_writer
+const writerQuery = ref("");
+const writerResults = ref<{ id: number; username: string; email: string; full_name: string }[]>([]);
+const writerLookupLoading = ref(false);
+let writerLookupTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function lookupWriter() {
+  const q = writerQuery.value.trim();
+  if (!q) { writerResults.value = []; return; }
+  writerLookupLoading.value = true;
+  try {
+    const { data } = await ordersApi.lookupClient(q);
+    writerResults.value = (Array.isArray(data) ? data : []) as typeof writerResults.value;
+  } catch { writerResults.value = []; }
+  finally { writerLookupLoading.value = false; }
+}
+
+function onWriterQueryInput() {
+  onBehalfForm.preferred_writer_id = null;
+  if (writerLookupTimer) clearTimeout(writerLookupTimer);
+  writerLookupTimer = setTimeout(lookupWriter, 350);
+}
+
+function selectWriter(w: typeof writerResults.value[0]) {
+  onBehalfForm.preferred_writer_id = w.id;
+  writerQuery.value = `${w.full_name || w.username} (${w.email})`;
+  writerResults.value = [];
+}
 
 let clientLookupTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -519,34 +560,61 @@ function resetCreateForClient() {
   onBehalfForm.topic = "";
   onBehalfForm.order_instructions = "";
   onBehalfForm.number_of_pages = 1;
+  onBehalfForm.number_of_slides = 0;
   onBehalfForm.academic_level_id = null;
   onBehalfForm.paper_type_id = null;
   onBehalfForm.subject_id = null;
+  onBehalfForm.formatting_style_id = null;
+  onBehalfForm.english_type_id = null;
+  onBehalfForm.writer_level_id = null;
+  onBehalfForm.preferred_writer_id = null;
+  onBehalfForm.discount_code = "";
+  onBehalfForm.is_urgent = false;
+  onBehalfForm.writer_deadline = "";
+  onBehalfForm.external_contact_name = "";
+  onBehalfForm.external_contact_email = "";
+  onBehalfForm.external_contact_phone = "";
+  writerQuery.value = "";
+  writerResults.value = [];
 }
 
 async function submitCreateForClient() {
   if (!selectedClient.value) { onBehalfError.value = "Select a client first."; return; }
   if (!onBehalfForm.topic.trim()) { onBehalfError.value = "Topic is required."; return; }
   if (!onBehalfForm.order_instructions.trim()) { onBehalfError.value = "Instructions are required."; return; }
+  if (!onBehalfForm.paper_type_id) { onBehalfError.value = "Paper type is required."; return; }
 
   onBehalfCreating.value = true;
   onBehalfError.value = "";
   onBehalfSuccess.value = "";
   try {
-    const { data } = await ordersApi.create({
+    const payload: Record<string, unknown> = {
       client_id: selectedClient.value.id,
       topic: onBehalfForm.topic,
       order_instructions: onBehalfForm.order_instructions,
       client_deadline: new Date(onBehalfForm.client_deadline).toISOString(),
       number_of_pages: onBehalfForm.number_of_pages,
-      ...(onBehalfForm.academic_level_id ? { academic_level_id: onBehalfForm.academic_level_id } : {}),
-      ...(onBehalfForm.paper_type_id ? { paper_type_id: onBehalfForm.paper_type_id } : {}),
-      ...(onBehalfForm.subject_id ? { subject_id: onBehalfForm.subject_id } : {}),
       service_family: "paper_order",
       service_code: "academic_writing",
       payment_provider: "wallet",
       payment_method_code: "wallet",
-    } as any);
+      is_urgent: onBehalfForm.is_urgent,
+    };
+    if (onBehalfForm.paper_type_id)        payload.paper_type_id        = onBehalfForm.paper_type_id;
+    if (onBehalfForm.academic_level_id)    payload.academic_level_id    = onBehalfForm.academic_level_id;
+    if (onBehalfForm.subject_id)           payload.subject_id            = onBehalfForm.subject_id;
+    if (onBehalfForm.formatting_style_id)  payload.formatting_style_id  = onBehalfForm.formatting_style_id;
+    if (onBehalfForm.english_type_id)      payload.english_type_id      = onBehalfForm.english_type_id;
+    if (onBehalfForm.writer_level_id)      payload.writer_level_id      = onBehalfForm.writer_level_id;
+    if (onBehalfForm.preferred_writer_id)  payload.preferred_writer_id  = onBehalfForm.preferred_writer_id;
+    if (onBehalfForm.discount_code.trim()) payload.discount_code_used   = onBehalfForm.discount_code.trim();
+    if (onBehalfForm.writer_deadline)      payload.writer_deadline       = new Date(onBehalfForm.writer_deadline).toISOString();
+    if (onBehalfForm.number_of_slides > 0) payload.number_of_slides     = onBehalfForm.number_of_slides;
+    if (onBehalfForm.external_contact_name.trim())  payload.external_contact_name  = onBehalfForm.external_contact_name.trim();
+    if (onBehalfForm.external_contact_email.trim()) payload.external_contact_email = onBehalfForm.external_contact_email.trim();
+    if (onBehalfForm.external_contact_phone.trim()) payload.external_contact_phone = onBehalfForm.external_contact_phone.trim();
+
+    const { data } = await ordersApi.create(payload as any);
     const orderId = (data as any).order?.id ?? (data as any).id;
     onBehalfSuccess.value = `Order #${orderId} created for ${selectedClient.value.email}.`;
     await refreshAll();
@@ -611,14 +679,12 @@ onMounted(() => {
         </button>
       </div>
 
-      <div class="grid gap-6 p-6 lg:grid-cols-2">
+      <div class="p-6 space-y-6">
 
-        <!-- Client search -->
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">
-              Client — email or ID
-            </label>
+        <!-- Row 1: Client -->
+        <div class="grid gap-6 lg:grid-cols-3">
+          <div class="lg:col-span-2">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Client — email or ID <span class="text-berry">*</span></label>
             <div class="relative">
               <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
               <input
@@ -630,18 +696,13 @@ onMounted(() => {
               />
               <Loader2 v-if="clientLookupLoading" class="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-graphite" />
             </div>
-            <!-- Dropdown results -->
-            <div v-if="clientResults.length" class="mt-1 rounded-lg border border-slate-200 bg-white shadow-lg divide-y divide-slate-100">
+            <div v-if="clientResults.length" class="mt-1 rounded-lg border border-slate-200 bg-white shadow-lg divide-y divide-slate-100 z-10 relative">
               <button
-                v-for="c in clientResults"
-                :key="c.id"
-                type="button"
+                v-for="c in clientResults" :key="c.id" type="button"
                 class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50 transition-colors"
                 @click="selectClient(c)"
               >
-                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-graphite">
-                  {{ (c.full_name || c.email).charAt(0).toUpperCase() }}
-                </div>
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-graphite">{{ (c.full_name || c.email).charAt(0).toUpperCase() }}</div>
                 <div class="min-w-0">
                   <p class="text-sm font-semibold text-ink truncate">{{ c.full_name || c.username }}</p>
                   <p class="text-xs text-graphite truncate">{{ c.email }}</p>
@@ -650,7 +711,6 @@ onMounted(() => {
               </button>
             </div>
             <p v-if="clientLookupError && !clientResults.length" class="mt-1.5 text-xs text-berry">{{ clientLookupError }}</p>
-            <!-- Selected client badge -->
             <div v-if="selectedClient" class="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
               <CheckCircle2 class="h-4 w-4 text-emerald-600 shrink-0" />
               <span class="text-sm font-semibold text-emerald-800">{{ selectedClient.full_name || selectedClient.username }}</span>
@@ -658,70 +718,176 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Core order fields -->
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Topic / title</label>
-            <input v-model="onBehalfForm.topic" type="text" placeholder="e.g. Healthcare policy literature review" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+          <!-- Rush flag -->
+          <div class="flex flex-col justify-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input v-model="onBehalfForm.is_urgent" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-berry focus:ring-berry" />
+              <div>
+                <p class="text-sm font-semibold text-ink">Rush / urgent order</p>
+                <p class="text-xs text-graphite">Applies urgency surcharge to pricing.</p>
+              </div>
+            </label>
           </div>
+        </div>
 
-          <div class="grid grid-cols-2 gap-3">
+        <!-- Row 2: Topic + Instructions (full width) -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Topic / title <span class="text-berry">*</span></label>
+          <input v-model="onBehalfForm.topic" type="text" placeholder="e.g. Healthcare policy literature review — NURS 502" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+        </div>
+
+        <!-- Row 3: Core dimensions -->
+        <div>
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-graphite">Paper details</p>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Pages</label>
-              <input v-model.number="onBehalfForm.number_of_pages" type="number" min="1" max="200" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+              <label class="block text-xs font-semibold text-graphite mb-1">Paper type <span class="text-berry">*</span></label>
+              <select v-model="onBehalfForm.paper_type_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white">
+                <option :value="null">— select —</option>
+                <option v-for="p in config.collections.paperTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+              </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Client deadline</label>
-              <input v-model="onBehalfForm.client_deadline" type="datetime-local" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Academic level</label>
-              <select v-model="onBehalfForm.academic_level_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white">
-                <option :value="null">— any level —</option>
+              <label class="block text-xs font-semibold text-graphite mb-1">Academic level</label>
+              <select v-model="onBehalfForm.academic_level_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white">
+                <option :value="null">— any —</option>
                 <option v-for="l in config.collections.academicLevels" :key="l.id" :value="l.id">{{ l.name }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Paper type</label>
-              <select v-model="onBehalfForm.paper_type_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white">
-                <option :value="null">— any type —</option>
-                <option v-for="p in config.collections.paperTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+              <label class="block text-xs font-semibold text-graphite mb-1">Subject</label>
+              <select v-model="onBehalfForm.subject_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white">
+                <option :value="null">— any —</option>
+                <option v-for="s in config.collections.subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Citation style</label>
+              <select v-model="onBehalfForm.formatting_style_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white">
+                <option :value="null">— any —</option>
+                <option v-for="f in config.collections.formattingStyles" :key="f.id" :value="f.id">{{ f.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">English type</label>
+              <select v-model="onBehalfForm.english_type_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white">
+                <option :value="null">— any —</option>
+                <option v-for="e in config.collections.englishTypes" :key="e.id" :value="e.id">{{ e.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Writer level</label>
+              <select v-model="onBehalfForm.writer_level_id" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white">
+                <option :value="null">— standard —</option>
+                <option v-for="w in config.collections.writerLevels" :key="w.id" :value="w.id">{{ w.name }}</option>
               </select>
             </div>
           </div>
         </div>
 
-        <!-- Instructions + submit -->
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Instructions</label>
-            <textarea
-              v-model="onBehalfForm.order_instructions"
-              rows="8"
-              placeholder="Full order brief — paste from client email, ticket, or type here…"
-              class="focus-ring w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
-            />
-          </div>
-
-          <p v-if="onBehalfError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ onBehalfError }}</p>
-          <p v-if="onBehalfSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">{{ onBehalfSuccess }}</p>
-
-          <div class="flex items-center gap-3">
-            <button
-              type="button"
-              class="focus-ring inline-flex h-10 items-center gap-2 rounded-lg bg-ink px-5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-50"
-              :disabled="onBehalfCreating || !selectedClient || !onBehalfForm.topic.trim()"
-              @click="submitCreateForClient"
-            >
-              <Loader2 v-if="onBehalfCreating" class="h-4 w-4 animate-spin" />
-              <Send v-else class="h-4 w-4" />
-              {{ onBehalfCreating ? "Creating…" : "Create order" }}
-            </button>
-            <p class="text-xs text-graphite">Order will appear in the client's account immediately. Payment via wallet.</p>
+        <!-- Row 4: Quantity + Deadlines + Discount -->
+        <div>
+          <p class="mb-3 text-xs font-bold uppercase tracking-widest text-graphite">Quantity, deadlines &amp; pricing</p>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Pages <span class="text-berry">*</span></label>
+              <input v-model.number="onBehalfForm.number_of_pages" type="number" min="1" max="500" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Slides</label>
+              <input v-model.number="onBehalfForm.number_of_slides" type="number" min="0" max="200" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Client deadline <span class="text-berry">*</span></label>
+              <input v-model="onBehalfForm.client_deadline" type="datetime-local" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Writer deadline</label>
+              <input v-model="onBehalfForm.writer_deadline" type="datetime-local" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+              <p class="mt-0.5 text-[10px] text-graphite">Internal — earlier than client's</p>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">Discount code</label>
+              <input v-model="onBehalfForm.discount_code" type="text" placeholder="e.g. SAVE10" class="focus-ring h-10 w-full rounded-lg border border-slate-200 px-3 text-sm uppercase" />
+            </div>
           </div>
         </div>
+
+        <!-- Row 5: Preferred writer -->
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Preferred writer <span class="text-[10px] font-normal normal-case">(optional — search by name or email)</span></label>
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
+              <input
+                v-model="writerQuery"
+                type="text"
+                placeholder="Writer name or email…"
+                class="focus-ring h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm"
+                @input="onWriterQueryInput"
+              />
+              <Loader2 v-if="writerLookupLoading" class="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-graphite" />
+            </div>
+            <div v-if="writerResults.length" class="mt-1 rounded-lg border border-slate-200 bg-white shadow-lg divide-y divide-slate-100 z-10 relative">
+              <button
+                v-for="w in writerResults" :key="w.id" type="button"
+                class="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50 transition-colors"
+                @click="selectWriter(w)"
+              >
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-800">{{ (w.full_name || w.email).charAt(0).toUpperCase() }}</div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-ink truncate">{{ w.full_name || w.username }}</p>
+                  <p class="text-xs text-graphite truncate">{{ w.email }}</p>
+                </div>
+                <span class="ml-auto shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-graphite">#{{ w.id }}</span>
+              </button>
+            </div>
+            <div v-if="onBehalfForm.preferred_writer_id" class="mt-2 flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
+              <CheckCircle2 class="h-4 w-4 text-blue-600 shrink-0" />
+              <span class="text-xs text-blue-700">Writer #{{ onBehalfForm.preferred_writer_id }} selected</span>
+              <button type="button" class="ml-auto text-xs text-graphite hover:text-ink" @click="onBehalfForm.preferred_writer_id = null; writerQuery = ''">Clear</button>
+            </div>
+          </div>
+
+          <!-- External contact (phone/email orders) -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">External contact <span class="text-[10px] font-normal normal-case">(phone / email orders — optional)</span></label>
+            <div class="grid grid-cols-3 gap-2">
+              <input v-model="onBehalfForm.external_contact_name" type="text" placeholder="Contact name" class="focus-ring h-10 rounded-lg border border-slate-200 px-3 text-sm" />
+              <input v-model="onBehalfForm.external_contact_email" type="email" placeholder="Contact email" class="focus-ring h-10 rounded-lg border border-slate-200 px-3 text-sm" />
+              <input v-model="onBehalfForm.external_contact_phone" type="tel" placeholder="+1 555 000 0000" class="focus-ring h-10 rounded-lg border border-slate-200 px-3 text-sm" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 6: Instructions (full width) -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1.5">Order instructions <span class="text-berry">*</span></label>
+          <textarea
+            v-model="onBehalfForm.order_instructions"
+            rows="6"
+            placeholder="Full order brief — paste from client email, ticket, or type here. Include rubric, reading list, and any special requirements."
+            class="focus-ring w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+          />
+        </div>
+
+        <!-- Submit row -->
+        <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+          <p v-if="onBehalfError" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-berry">{{ onBehalfError }}</p>
+          <p v-else-if="onBehalfSuccess" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-signal">{{ onBehalfSuccess }}</p>
+          <p v-else class="text-xs text-graphite">Order appears in client's account immediately. Payment collected via wallet.</p>
+          <button
+            type="button"
+            class="focus-ring inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-ink px-6 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-50"
+            :disabled="onBehalfCreating || !selectedClient || !onBehalfForm.topic.trim() || !onBehalfForm.paper_type_id"
+            @click="submitCreateForClient"
+          >
+            <Loader2 v-if="onBehalfCreating" class="h-4 w-4 animate-spin" />
+            <Send v-else class="h-4 w-4" />
+            {{ onBehalfCreating ? "Creating…" : "Create order" }}
+          </button>
+        </div>
+
       </div>
     </section>
 
