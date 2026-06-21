@@ -44,7 +44,7 @@ graph TB
 
     subgraph External["External Services"]
         ST[Stripe\nPayments]
-        SG[SendGrid\nEmail]
+        EM[Email provider\nResend · SendGrid · SMTP]
         SN[Sentry\nError tracking]
     end
 
@@ -55,12 +55,12 @@ graph TB
     DJ <--> RD
     DJ --> S3
     DJ --> ST
-    DJ --> SG
+    DJ --> EM
     DJ --> SN
     CW <--> PG
     CW <--> RD
     CB --> RD
-    CW --> SG
+    CW --> EM
 ```
 
 ---

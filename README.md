@@ -32,6 +32,7 @@ Each surface runs on its **own domain** and is isolated by the portal context sy
 | Frontend | Vue 3 · Vite · Pinia · TypeScript · Tailwind CSS |
 | Auth | JWT (SimpleJWT) · MFA-ready · device fingerprinting · session limits |
 | Payments | Stripe (webhook-driven) · platform wallet · per-tenant billing |
+| Email | django-anymail — Resend (default) · SendGrid · any SMTP relay (see [Email Provider Guide](docs/EMAIL_PROVIDER_GUIDE.md)) |
 | Storage | S3 / DigitalOcean Spaces (production) · local (dev) |
 | Server | Daphne (ASGI — HTTP + WebSocket) |
 | Deployment | Docker Compose (dev) · nginx + Certbot + Daphne (prod) |

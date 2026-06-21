@@ -31,6 +31,25 @@ These secrets are optional - the pipeline will use default test values if not se
 - `PRODUCTION_DEPLOY_PATH` - Application directory path on production server
 - `PRODUCTION_HEALTH_URL` - Health check URL (e.g., `https://example.com`)
 
+### Email (set one block depending on your provider — see [Email Provider Guide](../docs/EMAIL_PROVIDER_GUIDE.md))
+
+**Resend (recommended):**
+- `RESEND_API_KEY` - Resend API key (`re_...`)
+- `RESEND_WEBHOOK_SECRET` - Resend signing secret for delivery webhooks (optional)
+
+**SendGrid:**
+- `SENDGRID_API_KEY` - SendGrid API key (`SG....`)
+
+**Any provider (required):**
+- `DEFAULT_FROM_EMAIL` - Verified sender address (e.g. `no-reply@yourdomain.com`)
+- `DEFAULT_EMAIL_PROVIDER` - `resend`, `sendgrid`, or omit for SMTP fallback
+
+**SMTP fallback (only if not using Resend or SendGrid):**
+- `EMAIL_HOST` - SMTP server hostname
+- `EMAIL_PORT` - SMTP port (usually `587`)
+- `EMAIL_HOST_USER` - SMTP username
+- `EMAIL_HOST_PASSWORD` - SMTP password
+
 ### Optional: Code Coverage
 
 - `CODECOV_TOKEN` - Codecov upload token (if using Codecov)
