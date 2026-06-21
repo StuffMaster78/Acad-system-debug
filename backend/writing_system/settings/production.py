@@ -238,6 +238,11 @@ LOGGING = {
 }
 
 SENTRY_DSN = env("SENTRY_DSN", "")
+if not SENTRY_DSN:
+    import logging as _logging
+    _logging.getLogger("django").warning(
+        "SENTRY_DSN is not set — errors will not be tracked in production."
+    )
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,

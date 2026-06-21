@@ -11,8 +11,8 @@ from orders.services.unpaid_order_message_service import (
 )
 
 
-@shared_task
-def schedule_unpaid_order_dispatches_for_order(order_id: int) -> int:
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
+def schedule_unpaid_order_dispatches_for_order(self, order_id: int) -> int:
     """
     Create reminder dispatches for a single order if eligible.
     """
@@ -22,8 +22,8 @@ def schedule_unpaid_order_dispatches_for_order(order_id: int) -> int:
     )
 
 
-@shared_task
-def process_due_unpaid_order_dispatches() -> int:
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
+def process_due_unpaid_order_dispatches(self) -> int:
     """
     Process all due unpaid order reminder dispatches.
     """

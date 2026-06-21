@@ -33,6 +33,7 @@ export default defineNuxtConfig({
 
   // SSG: pnpm build → .output/public/ → serve with nginx
   nitro: {
+    compressPublicAssets: { gzip: true, brotli: true },
     prerender: {
       crawlLinks: true,
       routes: [

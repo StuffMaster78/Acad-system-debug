@@ -33,9 +33,9 @@ from wallets.exceptions import InsufficientWalletBalanceError
 
 class LimitedPagination(PageNumberPagination):
     """Custom pagination class with safety limits to prevent performance issues."""
-    page_size = 100
+    page_size = 25
     page_size_query_param = 'page_size'
-    max_page_size = 500 # Safety limit to prevent excessive data transfer
+    max_page_size = 50  # Lowered: each order triggers multiple sub-queries; 500 could fire 2500+ queries
 
     def get_paginated_response(self, data):
         """Return paginated response with metadata."""
@@ -428,9 +428,20 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             len([k for k in params.keys() if k not in ['page', 'page_size', 'ordering']]) <= 2
         )
 
-        # Select-related for valid FK fields only (writer assignment is via OrderAssignment model)
+        from django.db.models import Prefetch
+        try:
+            from order_pricing_core.models.pricing_snapshots import PricingSnapshot
+            _snapshot_prefetch = Prefetch(
+                'pricing_snapshots',
+                queryset=PricingSnapshot.objects.filter(is_current=True),
+                to_attr='_current_pricing_snapshots',
+            )
+        except Exception:
+            _snapshot_prefetch = 'pricing_snapshots'
+
         qs = Order.objects.all().select_related(
             'client',
+            'client__client_profile',   # H5: client_registration_id crosses this FK
             'website',
             'preferred_writer',
             'paper_type',
@@ -441,6 +452,10 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             'subject',
             'previous_order',
             'discount',
+            'pricing_snapshot',         # H3: source snapshot accessed as FK on Order
+        ).prefetch_related(
+            'items',                    # H2: _collect_order_items calls obj.items.all()
+            _snapshot_prefetch,         # H3: _current_snapshot filters pricing_snapshots
         )
 
         # Role-based scoping

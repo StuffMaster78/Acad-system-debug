@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-09',
 
   nitro: {
+    compressPublicAssets: { gzip: true, brotli: true },
     prerender: {
       crawlLinks: true,
       routes: [

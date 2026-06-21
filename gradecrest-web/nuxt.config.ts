@@ -25,6 +25,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    compressPublicAssets: { gzip: true, brotli: true },
     // Dev proxy: browser API calls route through the Nuxt dev server so
     // Host: gradecrest.com is injected before reaching Django/Wagtail.
     // gradecrest.com must be in Django ALLOWED_HOSTS (backend/.env).

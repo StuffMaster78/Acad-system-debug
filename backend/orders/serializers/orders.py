@@ -99,6 +99,12 @@ class OrderBriefingFieldsMixin:
 
     def _current_snapshot(self, obj):
         try:
+            # Use the prefetched attribute set by the base queryset Prefetch.
+            # Fallback to a live filter when called outside a prefetched queryset
+            # (e.g. detail views or nested serializers).
+            prefetched = getattr(obj, '_current_pricing_snapshots', None)
+            if prefetched is not None:
+                return prefetched[0] if prefetched else None
             return obj.pricing_snapshots.filter(is_current=True).first()
         except Exception:
             return None
@@ -404,13 +410,15 @@ class OrderSerializer(OrderBriefingFieldsMixin, serializers.ModelSerializer):
             from datetime import timedelta
             from order_configs.models import RevisionPolicyConfig
 
-            policy = RevisionPolicyConfig.objects.filter(
-                website=obj.website,
-                active=True,
-            ).first()
-            deadline = timedelta(
-                days=policy.free_revision_days if policy else 14,
-            )
+            # Cache per-website to avoid a DB hit for every order in a list.
+            ctx = self.context if hasattr(self, 'context') else {}
+            cache_key = f'_revision_policy_{getattr(obj.website, "pk", None)}'
+            if cache_key not in ctx:
+                ctx[cache_key] = RevisionPolicyConfig.objects.filter(
+                    website=obj.website, active=True,
+                ).first()
+            policy = ctx.get(cache_key)
+            deadline = timedelta(days=policy.free_revision_days if policy else 14)
         except Exception:
             return {
                 "is_within_free_window": False,
