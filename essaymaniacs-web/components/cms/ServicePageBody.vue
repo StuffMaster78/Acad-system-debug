@@ -50,6 +50,15 @@ function toggleFaq(i: number) {
   else openFaqs.value.add(i)
 }
 
+function cleanHtml(html: string): string {
+  return html
+    .replace(/<img[^>]*src="(?!https?:\/\/)[^"]*"[^>]*>/gi, '')
+    .replace(/(<br\s*\/?>\s*)+(<\/?(p|h[1-6]|ul|ol|li|div|blockquote)[^>]*>)/gi, '$2')
+    .replace(/(<\/?(p|h[1-6]|ul|ol|li|div|blockquote)[^>]*>)\s*(<br\s*\/?>)+/gi, '$1')
+    .replace(/\r\n|\r/g, '\n')
+    .replace(/\t/g, '')
+}
+
 const CALLOUT_STYLES: Record<string, string> = {
   info:      'border-blue-200 bg-blue-50 text-blue-800',
   tip:       'border-green-200 bg-green-50 text-green-800',
@@ -59,146 +68,143 @@ const CALLOUT_STYLES: Record<string, string> = {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div>
     <template v-for="block in blocks" :key="block.id">
 
       <!-- heading -->
       <template v-if="block.type === 'heading'">
-        <component
-          :is="(block.value as HeadingVal).level || 'h2'"
-          class="font-serif font-bold text-slate-900"
-          :class="{
-            'text-3xl sm:text-4xl': (block.value as HeadingVal).level === 'h2',
-            'text-2xl sm:text-3xl': (block.value as HeadingVal).level === 'h3',
-            'text-xl':              (block.value as HeadingVal).level === 'h4',
-          }"
-        >
-          {{ (block.value as HeadingVal).text }}
-        </component>
+        <div class="mb-6 break-inside-avoid">
+          <component :is="(block.value as HeadingVal).level || 'h2'"
+            class="font-serif font-bold text-slate-900"
+            :class="{ 'text-3xl sm:text-4xl': (block.value as HeadingVal).level === 'h2', 'text-2xl sm:text-3xl': (block.value as HeadingVal).level === 'h3', 'text-xl': (block.value as HeadingVal).level === 'h4' }"
+          >{{ (block.value as HeadingVal).text }}</component>
+        </div>
       </template>
 
-      <!-- paragraph / richtext -->
+      <!-- paragraph — no break-inside-avoid so CSS columns flow through prose naturally -->
       <template v-else-if="block.type === 'paragraph'">
         <div
-          class="prose prose-slate prose-lg max-w-none
-                 prose-headings:font-serif prose-a:text-brand-600 prose-a:no-underline
-                 hover:prose-a:underline prose-strong:text-slate-900"
-          v-html="block.value as ParagraphVal"
+          class="prose prose-slate max-w-none
+                 prose-headings:font-serif prose-headings:break-after-avoid
+                 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+                 prose-strong:text-slate-900 prose-p:mb-4 prose-p:leading-relaxed"
+          v-html="cleanHtml(block.value as ParagraphVal)"
         />
       </template>
 
       <!-- list -->
       <template v-else-if="block.type === 'list'">
-        <component
-          :is="(block.value as ListVal).style === 'numbered' ? 'ol' : 'ul'"
-          class="space-y-2 pl-5 text-slate-700"
-          :class="(block.value as ListVal).style === 'numbered' ? 'list-decimal' : 'list-disc'"
-        >
-          <li v-for="item in (block.value as ListVal).items" :key="item"
-            class="leading-relaxed" v-html="item" />
-        </component>
+        <div class="mb-8 break-inside-avoid">
+          <component :is="(block.value as ListVal).style === 'numbered' ? 'ol' : 'ul'"
+            class="space-y-2 pl-5 text-slate-700"
+            :class="(block.value as ListVal).style === 'numbered' ? 'list-decimal' : 'list-disc'">
+            <li v-for="item in (block.value as ListVal).items" :key="item" class="leading-relaxed" v-html="item" />
+          </component>
+        </div>
       </template>
 
       <!-- checklist -->
       <template v-else-if="block.type === 'checklist'">
-        <div class="rounded-2xl border border-brand-100 bg-brand-50/50 p-6">
-          <h3 v-if="(block.value as ChecklistVal).title" class="mb-4 font-serif text-xl font-bold text-slate-900">
-            {{ (block.value as ChecklistVal).title }}
-          </h3>
-          <ul class="space-y-3">
-            <li v-for="item in (block.value as ChecklistVal).items" :key="item.text"
-              class="flex items-start gap-3">
-              <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-              <span class="text-slate-700 leading-relaxed">{{ item.text }}</span>
-            </li>
-          </ul>
+        <div class="mb-8 break-inside-avoid">
+          <div class="rounded-2xl border border-brand-100 bg-brand-50/50 p-6">
+            <h3 v-if="(block.value as ChecklistVal).title" class="mb-4 font-serif text-xl font-bold text-slate-900">{{ (block.value as ChecklistVal).title }}</h3>
+            <ul class="space-y-3">
+              <li v-for="item in (block.value as ChecklistVal).items" :key="item.text" class="flex items-start gap-3">
+                <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                <span class="text-slate-700 leading-relaxed">{{ item.text }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </template>
 
       <!-- icon_list -->
       <template v-else-if="block.type === 'icon_list'">
-        <div v-if="(block.value as any).style === 'grid'" class="grid gap-3 sm:grid-cols-2">
-          <div v-for="(item, i) in (block.value as any).items || []" :key="i"
-            class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
-            <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
-              class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
-            <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+        <div class="mb-8 break-inside-avoid">
+          <div v-if="(block.value as any).style === 'grid'" class="grid gap-3 sm:grid-cols-2">
+            <div v-for="(item, i) in (block.value as any).items || []" :key="i"
+              class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
+              <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string,string>)[(block.value as any).icon] || 'check-circle'" class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
+              <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+            </div>
           </div>
-        </div>
-        <div v-else-if="(block.value as any).style === 'cards'" class="space-y-2">
-          <div v-for="(item, i) in (block.value as any).items || []" :key="i"
-            class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
-            <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
-              class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
-            <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+          <div v-else-if="(block.value as any).style === 'cards'" class="space-y-2">
+            <div v-for="(item, i) in (block.value as any).items || []" :key="i"
+              class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
+              <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string,string>)[(block.value as any).icon] || 'check-circle'" class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
+              <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+            </div>
           </div>
+          <ul v-else class="space-y-3">
+            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex items-start gap-3 text-sm text-slate-700">
+              <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string,string>)[(block.value as any).icon] || 'check-circle'" class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
+              <div class="leading-relaxed" v-html="item" />
+            </li>
+          </ul>
         </div>
-        <ul v-else class="space-y-3">
-          <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex items-start gap-3 text-sm text-slate-700">
-            <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
-              class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
-            <div class="leading-relaxed" v-html="item" />
-          </li>
-        </ul>
       </template>
 
       <!-- numbered_list -->
       <template v-else-if="block.type === 'numbered_list'">
-        <div class="space-y-4">
-          <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-slate-900">{{ (block.value as any).heading }}</h3>
-          <ol v-if="(block.value as any).style === 'steps'" class="space-y-0">
-            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4">
-              <div class="flex flex-col items-center">
-                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white z-10">{{ i + 1 }}</span>
-                <div v-if="i < ((block.value as any).items || []).length - 1" class="w-0.5 flex-1 bg-brand-200 my-1" />
-              </div>
-              <div class="pb-6 min-w-0">
-                <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
-                <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
-              </div>
-            </li>
-          </ol>
-          <ol v-else-if="(block.value as any).style === 'counter'" class="space-y-6">
-            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4 items-start">
-              <span class="text-5xl font-black text-brand-100 leading-none w-14 shrink-0 text-right tabular-nums select-none">{{ String(i + 1).padStart(2, '0') }}</span>
-              <div class="pt-1 min-w-0">
-                <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
-                <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
-              </div>
-            </li>
-          </ol>
-          <ol v-else class="space-y-4">
-            <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4 items-start">
-              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-xs font-bold text-brand-600 mt-0.5">{{ i + 1 }}</span>
-              <div class="min-w-0">
-                <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
-                <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
-              </div>
-            </li>
-          </ol>
+        <div class="mb-8 break-inside-avoid">
+          <div class="space-y-4">
+            <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-slate-900">{{ (block.value as any).heading }}</h3>
+            <ol v-if="(block.value as any).style === 'steps'" class="space-y-0">
+              <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4">
+                <div class="flex flex-col items-center">
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white z-10">{{ i + 1 }}</span>
+                  <div v-if="i < ((block.value as any).items || []).length - 1" class="w-0.5 flex-1 bg-brand-200 my-1" />
+                </div>
+                <div class="pb-6 min-w-0">
+                  <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                  <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
+                </div>
+              </li>
+            </ol>
+            <ol v-else-if="(block.value as any).style === 'counter'" class="space-y-6">
+              <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4 items-start">
+                <span class="text-5xl font-black text-brand-100 leading-none w-14 shrink-0 text-right tabular-nums select-none">{{ String(i + 1).padStart(2, '0') }}</span>
+                <div class="pt-1 min-w-0">
+                  <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                  <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
+                </div>
+              </li>
+            </ol>
+            <ol v-else class="space-y-4">
+              <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex gap-4 items-start">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-xs font-bold text-brand-600 mt-0.5">{{ i + 1 }}</span>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                  <div v-if="item.description" class="mt-1 text-sm text-slate-600 leading-relaxed" v-html="item.description" />
+                </div>
+              </li>
+            </ol>
+          </div>
         </div>
       </template>
 
-      <!-- pro_con -->
+      <!-- pro_con — wide -->
       <template v-else-if="block.type === 'pro_con'">
-        <div class="space-y-4">
-          <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-slate-900">{{ (block.value as any).heading }}</h3>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-              <p class="mb-3 text-sm font-bold text-emerald-800">{{ (block.value as any).pro_heading || 'Pros' }}</p>
-              <ul class="space-y-2">
-                <li v-for="(pro, i) in (block.value as any).pros || []" :key="i" class="flex items-start gap-2 text-sm text-emerald-900">
-                  <Icon name="check-circle" class="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />{{ pro }}
-                </li>
-              </ul>
-            </div>
-            <div class="rounded-2xl border border-red-200 bg-red-50 p-5">
-              <p class="mb-3 text-sm font-bold text-red-800">{{ (block.value as any).con_heading || 'Cons' }}</p>
-              <ul class="space-y-2">
-                <li v-for="(con, i) in (block.value as any).cons || []" :key="i" class="flex items-start gap-2 text-sm text-red-900">
-                  <Icon name="x-circle" class="h-4 w-4 shrink-0 mt-0.5 text-red-400" />{{ con }}
-                </li>
-              </ul>
+        <div class="mb-8 [column-span:all]">
+          <div class="space-y-4">
+            <h3 v-if="(block.value as any).heading" class="font-serif text-xl font-bold text-slate-900">{{ (block.value as any).heading }}</h3>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                <p class="mb-3 text-sm font-bold text-emerald-800">{{ (block.value as any).pro_heading || 'Pros' }}</p>
+                <ul class="space-y-2">
+                  <li v-for="(pro, i) in (block.value as any).pros || []" :key="i" class="flex items-start gap-2 text-sm text-emerald-900">
+                    <Icon name="check-circle" class="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />{{ pro }}
+                  </li>
+                </ul>
+              </div>
+              <div class="rounded-2xl border border-red-200 bg-red-50 p-5">
+                <p class="mb-3 text-sm font-bold text-red-800">{{ (block.value as any).con_heading || 'Cons' }}</p>
+                <ul class="space-y-2">
+                  <li v-for="(con, i) in (block.value as any).cons || []" :key="i" class="flex items-start gap-2 text-sm text-red-900">
+                    <Icon name="x-circle" class="h-4 w-4 shrink-0 mt-0.5 text-red-400" />{{ con }}
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -206,18 +212,12 @@ const CALLOUT_STYLES: Record<string, string> = {
 
       <!-- chips -->
       <template v-else-if="block.type === 'chips'">
-        <div class="space-y-3">
-          <p v-if="(block.value as any).heading" class="font-semibold text-slate-900">{{ (block.value as any).heading }}</p>
+        <div class="mb-8 break-inside-avoid">
+          <p v-if="(block.value as any).heading" class="mb-2 font-semibold text-slate-900">{{ (block.value as any).heading }}</p>
           <div class="flex flex-wrap gap-2">
             <span v-for="(chip, i) in (block.value as any).items || []" :key="i"
               class="rounded-full border px-3 py-1.5 text-xs font-medium"
-              :class="{
-                'border-brand-200 bg-brand-50 text-brand-700': (block.value as any).color === 'brand' || !(block.value as any).color,
-                'border-emerald-200 bg-emerald-50 text-emerald-700': (block.value as any).color === 'green',
-                'border-amber-200 bg-amber-50 text-amber-700': (block.value as any).color === 'amber',
-                'border-violet-200 bg-violet-50 text-violet-700': (block.value as any).color === 'purple',
-                'border-slate-200 bg-slate-50 text-slate-600': (block.value as any).color === 'slate',
-              }"
+              :class="{ 'border-brand-200 bg-brand-50 text-brand-700': (block.value as any).color === 'brand' || !(block.value as any).color, 'border-emerald-200 bg-emerald-50 text-emerald-700': (block.value as any).color === 'green', 'border-amber-200 bg-amber-50 text-amber-700': (block.value as any).color === 'amber', 'border-violet-200 bg-violet-50 text-violet-700': (block.value as any).color === 'purple', 'border-slate-200 bg-slate-50 text-slate-600': (block.value as any).color === 'slate' }"
             >{{ chip }}</span>
           </div>
         </div>
@@ -225,65 +225,57 @@ const CALLOUT_STYLES: Record<string, string> = {
 
       <!-- quote -->
       <template v-else-if="block.type === 'quote'">
-        <blockquote class="border-l-4 border-brand-300 pl-6 py-1">
-          <p class="text-lg italic text-slate-700 leading-relaxed">
-            "{{ (block.value as QuoteVal).quote }}"
-          </p>
-          <footer v-if="(block.value as QuoteVal).author" class="mt-2 text-sm font-semibold text-slate-500">
-            — {{ (block.value as QuoteVal).author }}
-          </footer>
-        </blockquote>
+        <div class="mb-8 break-inside-avoid">
+          <blockquote class="border-l-4 border-brand-300 pl-6 py-1">
+            <p class="text-lg italic text-slate-700 leading-relaxed">"{{ (block.value as QuoteVal).quote }}"</p>
+            <footer v-if="(block.value as QuoteVal).author" class="mt-2 text-sm font-semibold text-slate-500">— {{ (block.value as QuoteVal).author }}</footer>
+          </blockquote>
+        </div>
       </template>
 
       <!-- callout -->
       <template v-else-if="block.type === 'callout'">
-        <div class="rounded-xl border p-5 text-sm leading-relaxed"
-          :class="CALLOUT_STYLES[(block.value as CalloutVal).type] ?? CALLOUT_STYLES.info">
-          <span v-html="(block.value as CalloutVal).text" />
-        </div>
-      </template>
-
-      <!-- faq — accordion -->
-      <template v-else-if="block.type === 'faq'">
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <button
-            class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-50 transition-colors"
-            @click="toggleFaq(blocks.indexOf(block))"
-          >
-            <span class="font-semibold text-slate-900">{{ (block.value as FaqVal).question }}</span>
-            <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform"
-              :class="openFaqs.has(blocks.indexOf(block)) ? 'rotate-180' : ''"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </button>
-          <div v-show="openFaqs.has(blocks.indexOf(block))"
-            class="border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-sm text-slate-600 leading-relaxed"
-            v-html="(block.value as FaqVal).answer" />
-        </div>
-      </template>
-
-      <!-- stats_highlight -->
-      <template v-else-if="block.type === 'stats_highlight'">
-        <div class="grid gap-4" :class="`sm:grid-cols-${Math.min((block.value as StatsVal).stats.length, 4)}`">
-          <div v-for="stat in (block.value as StatsVal).stats" :key="stat.label"
-            class="rounded-2xl border border-brand-100 bg-brand-50 p-5 text-center">
-            <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
-            <div class="mt-1 font-semibold text-slate-700">{{ stat.label }}</div>
-            <div v-if="stat.description" class="mt-1 text-xs text-slate-500">{{ stat.description }}</div>
+        <div class="mb-8 break-inside-avoid">
+          <div class="rounded-xl border p-5 text-sm leading-relaxed" :class="CALLOUT_STYLES[(block.value as CalloutVal).type] ?? CALLOUT_STYLES.info">
+            <span v-html="(block.value as CalloutVal).text" />
           </div>
         </div>
       </template>
 
-      <!-- feature_grid -->
+      <!-- faq -->
+      <template v-else-if="block.type === 'faq'">
+        <div class="mb-4 break-inside-avoid">
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <button class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-50 transition-colors" @click="toggleFaq(blocks.indexOf(block))">
+              <span class="font-semibold text-slate-900">{{ (block.value as FaqVal).question }}</span>
+              <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform" :class="openFaqs.has(blocks.indexOf(block)) ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <div v-show="openFaqs.has(blocks.indexOf(block))" class="border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-sm text-slate-600 leading-relaxed" v-html="(block.value as FaqVal).answer" />
+          </div>
+        </div>
+      </template>
+
+      <!-- stats_highlight — wide -->
+      <template v-else-if="block.type === 'stats_highlight'">
+        <div class="mb-8 [column-span:all]">
+          <div class="grid gap-4" :class="`sm:grid-cols-${Math.min((block.value as StatsVal).stats.length, 4)}`">
+            <div v-for="stat in (block.value as StatsVal).stats" :key="stat.label" class="rounded-2xl border border-brand-100 bg-brand-50 p-5 text-center">
+              <div class="text-3xl font-bold text-brand-700">{{ stat.value }}</div>
+              <div class="mt-1 font-semibold text-slate-700">{{ stat.label }}</div>
+              <div v-if="stat.description" class="mt-1 text-xs text-slate-500">{{ stat.description }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- feature_grid — wide -->
       <template v-else-if="block.type === 'feature_grid'">
-        <div>
-          <h3 v-if="(block.value as FeatureVal).title" class="mb-6 font-serif text-2xl font-bold text-slate-900">
-            {{ (block.value as FeatureVal).title }}
-          </h3>
+        <div class="mb-8 [column-span:all]">
+          <h3 v-if="(block.value as FeatureVal).title" class="mb-6 font-serif text-2xl font-bold text-slate-900">{{ (block.value as FeatureVal).title }}</h3>
           <div class="grid gap-5" :class="(block.value as FeatureVal).columns >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'">
-            <div v-for="feat in (block.value as FeatureVal).features" :key="feat.title"
-              class="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div v-for="feat in (block.value as FeatureVal).features" :key="feat.title" class="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
               <div v-if="feat.icon" class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
                 <Icon :name="feat.icon" class="h-5 w-5 text-brand-600" />
               </div>
@@ -294,18 +286,13 @@ const CALLOUT_STYLES: Record<string, string> = {
         </div>
       </template>
 
-      <!-- how_it_works -->
+      <!-- how_it_works — wide -->
       <template v-else-if="block.type === 'how_it_works'">
-        <div>
-          <h3 v-if="(block.value as StepsVal).title" class="mb-6 font-serif text-2xl font-bold text-slate-900">
-            {{ (block.value as StepsVal).title }}
-          </h3>
+        <div class="mb-8 [column-span:all]">
+          <h3 v-if="(block.value as StepsVal).title" class="mb-6 font-serif text-2xl font-bold text-slate-900">{{ (block.value as StepsVal).title }}</h3>
           <ol class="space-y-5">
-            <li v-for="(step, i) in (block.value as StepsVal).steps" :key="step.title"
-              class="flex gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">
-                {{ i + 1 }}
-              </div>
+            <li v-for="(step, i) in (block.value as StepsVal).steps" :key="step.title" class="flex gap-4">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">{{ i + 1 }}</div>
               <div>
                 <h4 class="font-semibold text-slate-900">{{ step.title }}</h4>
                 <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ step.description }}</p>
@@ -315,41 +302,35 @@ const CALLOUT_STYLES: Record<string, string> = {
         </div>
       </template>
 
-      <!-- cta -->
+      <!-- cta — wide -->
       <template v-else-if="block.type === 'cta'">
-        <div class="rounded-2xl bg-brand-900 px-8 py-8 text-center">
-          <h3 class="font-serif text-2xl font-bold text-white">{{ (block.value as CtaVal).heading }}</h3>
-          <p v-if="(block.value as CtaVal).subheading" class="mt-3 text-brand-200">
-            {{ (block.value as CtaVal).subheading }}
-          </p>
-          <a :href="(block.value as CtaVal).button_url"
-            class="mt-5 inline-block rounded-xl bg-white px-8 py-3 font-bold text-brand-700 hover:bg-brand-50 transition-colors">
-            {{ (block.value as CtaVal).button_text }}
-          </a>
+        <div class="mb-8 [column-span:all]">
+          <div class="rounded-2xl bg-brand-900 px-8 py-8 text-center">
+            <h3 class="font-serif text-2xl font-bold text-white">{{ (block.value as CtaVal).heading }}</h3>
+            <p v-if="(block.value as CtaVal).subheading" class="mt-3 text-brand-200">{{ (block.value as CtaVal).subheading }}</p>
+            <a :href="(block.value as CtaVal).button_url" class="mt-5 inline-block rounded-xl bg-white px-8 py-3 font-bold text-brand-700 hover:bg-brand-50 transition-colors">{{ (block.value as CtaVal).button_text }}</a>
+          </div>
         </div>
       </template>
 
       <!-- definition -->
       <template v-else-if="block.type === 'definition'">
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
-          <dt class="font-bold text-slate-900">{{ (block.value as DefinitionVal).term }}</dt>
-          <dd class="mt-1.5 text-slate-600 leading-relaxed" v-html="(block.value as DefinitionVal).definition" />
+        <div class="mb-8 break-inside-avoid">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <dt class="font-bold text-slate-900">{{ (block.value as DefinitionVal).term }}</dt>
+            <dd class="mt-1.5 text-slate-600 leading-relaxed" v-html="(block.value as DefinitionVal).definition" />
+          </div>
         </div>
       </template>
 
-      <!-- timeline -->
+      <!-- timeline — wide -->
       <template v-else-if="block.type === 'timeline'">
-        <div>
-          <h3 v-if="(block.value as TimelineVal).title" class="mb-5 font-serif text-2xl font-bold text-slate-900">
-            {{ (block.value as TimelineVal).title }}
-          </h3>
+        <div class="mb-8 [column-span:all]">
+          <h3 v-if="(block.value as TimelineVal).title" class="mb-5 font-serif text-2xl font-bold text-slate-900">{{ (block.value as TimelineVal).title }}</h3>
           <div class="space-y-0">
-            <div v-for="(entry, i) in (block.value as TimelineVal).entries" :key="entry.date"
-              class="flex gap-5 pb-6 last:pb-0">
+            <div v-for="(entry, i) in (block.value as TimelineVal).entries" :key="entry.date" class="flex gap-5 pb-6 last:pb-0">
               <div class="flex flex-col items-center">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">
-                  {{ i + 1 }}
-                </div>
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">{{ i + 1 }}</div>
                 <div v-if="i < (block.value as TimelineVal).entries.length - 1" class="mt-1 h-full w-0.5 bg-brand-100" />
               </div>
               <div class="pt-0.5 pb-2">
@@ -362,98 +343,72 @@ const CALLOUT_STYLES: Record<string, string> = {
         </div>
       </template>
 
-      <!-- sample_excerpt -->
+      <!-- sample_excerpt — wide -->
       <template v-else-if="block.type === 'sample_excerpt'">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div v-if="(block.value as SampleVal).title" class="mb-3 flex items-center justify-between gap-4">
-            <h4 class="font-semibold text-slate-900">{{ (block.value as SampleVal).title }}</h4>
-            <div class="flex gap-2">
-              <span v-if="(block.value as SampleVal).paper_type"
-                class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                {{ (block.value as SampleVal).paper_type }}
-              </span>
-              <span v-if="(block.value as SampleVal).academic_level"
-                class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                {{ (block.value as SampleVal).academic_level }}
-              </span>
+        <div class="mb-8 [column-span:all]">
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div v-if="(block.value as SampleVal).title" class="mb-3 flex items-center justify-between gap-4">
+              <h4 class="font-semibold text-slate-900">{{ (block.value as SampleVal).title }}</h4>
+              <div class="flex gap-2">
+                <span v-if="(block.value as SampleVal).paper_type" class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">{{ (block.value as SampleVal).paper_type }}</span>
+                <span v-if="(block.value as SampleVal).academic_level" class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">{{ (block.value as SampleVal).academic_level }}</span>
+              </div>
             </div>
+            <div class="prose prose-sm prose-slate max-w-none border-t border-slate-100 pt-4" v-html="(block.value as SampleVal).excerpt" />
+            <p class="mt-3 text-xs text-slate-400">Sample excerpt only — all work is written fresh to your brief.</p>
           </div>
-          <div class="prose prose-sm prose-slate max-w-none border-t border-slate-100 pt-4"
-            v-html="(block.value as SampleVal).excerpt" />
-          <p class="mt-3 text-xs text-slate-400">Sample excerpt only — all work is written fresh to your brief.</p>
         </div>
       </template>
 
-      <!-- image / infographic -->
+      <!-- image -->
       <template v-else-if="block.type === 'image'">
-        <figure
-          :class="(block.value as ImageVal).display === 'wide' || (block.value as ImageVal).display === 'infographic'
-            ? '-mx-6 sm:-mx-10'
-            : ''"
-        >
-          <img
-            :src="(block.value as ImageVal).url ?? (block.value as ImageVal).meta?.download_url ?? ''"
-            :alt="(block.value as ImageVal).alt_text ?? ''"
-            loading="lazy"
-            :class="[
-              'w-full rounded-xl object-cover shadow-sm',
-              (block.value as ImageVal).display === 'infographic' ? 'max-h-[600px] object-contain bg-slate-50' : '',
-            ]"
-          />
-          <figcaption
-            v-if="(block.value as ImageVal).caption"
-            class="mt-2 text-center text-xs italic text-slate-400"
-          >
-            {{ (block.value as ImageVal).caption }}
-          </figcaption>
-        </figure>
+        <div class="mb-8" :class="(block.value as ImageVal).display === 'wide' || (block.value as ImageVal).display === 'infographic' ? '[column-span:all]' : 'break-inside-avoid'">
+          <figure>
+            <img :src="(block.value as ImageVal).url ?? (block.value as ImageVal).meta?.download_url ?? ''" :alt="(block.value as ImageVal).alt_text ?? ''" loading="lazy"
+              :class="['w-full rounded-xl object-cover shadow-sm', (block.value as ImageVal).display === 'infographic' ? 'max-h-[600px] object-contain bg-slate-50' : '']" />
+            <figcaption v-if="(block.value as ImageVal).caption" class="mt-2 text-center text-xs italic text-slate-400">{{ (block.value as ImageVal).caption }}</figcaption>
+          </figure>
+        </div>
       </template>
 
-      <!-- attachment / downloadable sample -->
+      <!-- attachment — wide -->
       <template v-else-if="block.type === 'attachment'">
-        <ClientOnly>
-          <SampleDownload
-            :attachment="block.value as AttachmentVal"
-            :variant="(block.value as AttachmentVal).display_style === 'hero' ? 'hero'
-              : (block.value as AttachmentVal).display_style === 'list' ? 'compact'
-              : 'card'"
-          />
-        </ClientOnly>
+        <div class="mb-8 [column-span:all]">
+          <ClientOnly>
+            <SampleDownload :attachment="block.value as AttachmentVal"
+              :variant="(block.value as AttachmentVal).display_style === 'hero' ? 'hero' : (block.value as AttachmentVal).display_style === 'list' ? 'compact' : 'card'" />
+          </ClientOnly>
+        </div>
       </template>
 
       <!-- divider -->
       <template v-else-if="block.type === 'divider'">
-        <hr class="border-slate-200" />
+        <div class="mb-8 break-inside-avoid"><hr class="border-slate-200" /></div>
       </template>
 
-      <!-- table -->
+      <!-- table — wide -->
       <template v-else-if="block.type === 'table'">
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <p v-if="(block.value as any).table_caption" class="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-600">
-            {{ (block.value as any).table_caption }}
-          </p>
-          <div class="max-h-[28rem] overflow-x-auto overflow-y-auto">
-            <table class="min-w-full text-left text-sm">
-              <thead v-if="(block.value as any).first_row_is_table_header && (block.value as any).data?.length" class="sticky top-0 z-10">
-                <tr>
-                  <th v-for="(cell, ci) in (block.value as any).data[0]" :key="ci"
-                    class="whitespace-nowrap bg-brand-50 px-4 py-3 font-semibold text-brand-900 border-b border-brand-100"
-                    :class="ci === 0 && (block.value as any).first_col_is_header ? 'sticky left-0 z-20 bg-brand-100' : ''">
-                    {{ cell }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr v-for="(row, ri) in ((block.value as any).first_row_is_table_header ? ((block.value as any).data || []).slice(1) : ((block.value as any).data || []))"
-                  :key="ri" class="hover:bg-slate-50 transition-colors">
-                  <td v-for="(cell, ci) in row" :key="ci"
-                    class="px-4 py-3 text-slate-700 align-top"
-                    :class="ci === 0 && (block.value as any).first_col_is_header ? 'sticky left-0 z-10 bg-white font-semibold text-slate-900 border-r border-slate-100' : ''">
-                    {{ cell }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="mb-8 [column-span:all]">
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <p v-if="(block.value as any).table_caption" class="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-600">{{ (block.value as any).table_caption }}</p>
+            <div class="max-h-[28rem] overflow-x-auto overflow-y-auto">
+              <table class="min-w-full text-left text-sm">
+                <thead v-if="(block.value as any).first_row_is_table_header && (block.value as any).data?.length" class="sticky top-0 z-10">
+                  <tr>
+                    <th v-for="(cell, ci) in (block.value as any).data[0]" :key="ci"
+                      class="whitespace-nowrap bg-brand-50 px-4 py-3 font-semibold text-brand-900 border-b border-brand-100"
+                      :class="ci === 0 && (block.value as any).first_col_is_header ? 'sticky left-0 z-20 bg-brand-100' : ''">{{ cell }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr v-for="(row, ri) in (block.value as any).first_row_is_table_header ? ((block.value as any).data || []).slice(1) : ((block.value as any).data || [])"
+                    :key="ri" class="hover:bg-slate-50 transition-colors">
+                    <td v-for="(cell, ci) in row" :key="ci" class="px-4 py-3 text-slate-700 align-top"
+                      :class="ci === 0 && (block.value as any).first_col_is_header ? 'sticky left-0 z-10 bg-white font-semibold text-slate-900 border-r border-slate-100' : ''">{{ cell }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </template>

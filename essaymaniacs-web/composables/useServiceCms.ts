@@ -27,11 +27,17 @@ export interface CmsBlock {
 
 export function useServiceCms(serviceSlug: string) {
   const config = useRuntimeConfig()
-  const wagtailBase = `${config.public.apiBase || ''}/wagtail`
+  const apiBase = import.meta.server
+    ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+    : (config.public.apiBase || '')
+  const extraHeaders = import.meta.server
+    ? { Host: (config as Record<string, unknown>).siteHostname as string || 'essaymaniacs.com' }
+    : undefined
 
   const { data, status, error } = useFetch<{ items: CmsServicePage[] }>(
-    `${wagtailBase}/api/v2/pages/`,
+    `${apiBase}/api/v2/pages/`,
     {
+      headers: extraHeaders,
       query: {
         type: 'cms_service_pages.ServicePage',
         slug: serviceSlug,

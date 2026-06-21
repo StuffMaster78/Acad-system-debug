@@ -587,7 +587,7 @@ export function useServices() {
 export interface CmsServiceSummary {
   id: number
   title: string
-  slug: string
+  meta: { slug: string; type: string; html_url?: string }
   service_category?: { name: string; slug: string } | null
   pricing_from?: string | null
   turnaround_hours_fastest?: number | null
@@ -622,9 +622,10 @@ export function useCmsServiceList() {
       }))
     }
     return cmsItems.map(page => {
-      const local = staticServices.find(s => s.slug === page.slug)
+      const slug = page.meta.slug
+      const local = staticServices.find(s => s.slug === slug)
       return {
-        slug: page.slug,
+        slug,
         title: page.title,
         navLabel: local?.navLabel ?? page.title,
         icon: local?.icon ?? 'pen-line',

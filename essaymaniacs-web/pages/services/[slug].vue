@@ -1,9 +1,36 @@
 <script setup lang="ts">
 const route = useRoute()
+const config = useRuntimeConfig()
 const { getBySlug, getRelated } = useServices()
 
-const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(route.params.slug as string)
-const service = getBySlug(route.params.slug as string)
+const slug = route.params.slug as string
+
+const apiBase = import.meta.server
+  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+  : (config.public.apiBase || '')
+const svcFields = [
+  'title', 'slug', 'hero_headline', 'hero_sub',
+  'pricing_from', 'pricing_to', 'turnaround_hours_fastest', 'turnaround_hours_standard',
+  'includes_items', 'delivers_items', 'who_for',
+  'primary_cta_text', 'primary_cta_url', 'reviewer', 'last_substantive_update', 'body',
+].join(',')
+
+const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(
+  `svc-em-${slug}`,
+  () => $fetch<{ items: unknown[] }>(`${apiBase}/api/v2/pages/`, {
+    params: { type: 'cms_service_pages.ServicePage', slug, fields: svcFields },
+    headers: import.meta.server
+      ? { Host: (config as Record<string, unknown>).siteHostname as string || 'essaymaniacs.com' }
+      : undefined,
+  }).catch(() => null),
+)
+
+import type { CmsServicePage } from '~/composables/useServiceCms'
+const cmsPage = computed<CmsServicePage | null>(
+  () => ((_cmsRaw.value as { items?: CmsServicePage[] } | null)?.items?.[0]) ?? null,
+)
+const { hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
+const service = getBySlug(slug)
 
 if (!service && !cmsPage.value) {
   throw createError({ statusCode: 404, message: 'Service not found' })
@@ -24,10 +51,8 @@ const displayIncludes = computed(() =>
 )
 const displayWhoFor = computed(() => cmsPage.value?.who_for || service?.whoFor || '')
 
-const related   = service ? getRelated(service.relatedSlugs) : []
-const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
-const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
-const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
+const related    = service ? getRelated(service.relatedSlugs) : []
+const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
 
 // Sticky bottom bar visibility
 const showBar = ref(false)
@@ -37,9 +62,8 @@ onMounted(() => {
   onUnmounted(() => window.removeEventListener('scroll', onScroll))
 })
 
-const config  = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://essaymaniacs.com'
-const canonicalUrl = `${siteUrl}/services/${route.params.slug}`
+const canonicalUrl = `${siteUrl}/services/${slug}`
 
 useSeoMeta({
   title:         displayMeta.value.title || displayTitle.value,
@@ -229,14 +253,9 @@ if (cmsPage.value?.schema) {
           </h2>
           <span class="h-px flex-1 bg-brand-200" />
         </div>
-        <!-- Two-column article text -->
-        <div class="grid gap-x-12 gap-y-8 md:grid-cols-2">
-          <div class="service-body border-l-2 border-brand-200 pl-6 min-w-0">
-            <ServicePageBody :blocks="bodyLeft" />
-          </div>
-          <div class="service-body border-l-2 border-brand-200 pl-6 min-w-0">
-            <ServicePageBody :blocks="bodyRight" />
-          </div>
+        <!-- Two-column article text — CSS columns auto-balance content -->
+        <div class="service-body columns-1 md:columns-2 md:gap-x-12 [column-fill:balance]">
+          <ServicePageBody :blocks="bodyBlocks" />
         </div>
         <!-- Inline CTA -->
         <div class="mt-10 text-center">
