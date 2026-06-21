@@ -9,6 +9,7 @@ from discounts.models.first_order_discount_config import (
     FirstOrderDiscountConfig,
 )
 from discounts.models.promotional_campaign import PromotionalCampaign
+from discounts.models.site_promo_display import SitePromoDisplay
 
 __all__ = [
     "Discount",
@@ -18,4 +19,5 @@ __all__ = [
     "DiscountUsage",
     "FirstOrderDiscountConfig",
     "PromotionalCampaign",
+    "SitePromoDisplay",
 ]

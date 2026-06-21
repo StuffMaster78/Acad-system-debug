@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import CookieConsentBanner from '~/components/privacy/CookieConsentBanner.vue'
 import ExitIntentPopup from '~/components/marketing/ExitIntentPopup.vue'
+import PromoStrip from '~/components/marketing/PromoStrip.vue'
 
 const portal = usePortalStore()
 const consent = useCookieConsent()
+const promo   = usePromoDisplay()
 
 useSeoMeta({
   titleTemplate: (title) => title ? `${title} — ${portal.brandName}` : portal.brandName,
@@ -14,6 +16,7 @@ useSeoMeta({
 onMounted(async () => {
   await consent.init()
   injectConsentAwareGa4(portal.ga4Id, consent.analyticsAllowed.value)
+  void promo.init()
 })
 
 watch([() => portal.ga4Id, consent.analyticsAllowed], ([id, allowed]) => {
@@ -23,6 +26,7 @@ watch([() => portal.ga4Id, consent.analyticsAllowed], ([id, allowed]) => {
 
 <template>
   <NuxtLayout>
+    <PromoStrip />
     <NuxtPage />
     <CookieConsentBanner />
     <ExitIntentPopup />

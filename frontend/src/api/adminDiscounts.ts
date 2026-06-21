@@ -4,6 +4,25 @@ const base = (path: string) => apiPath(`/discounts${path}`);
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 
+export interface PromoDisplay {
+  id?: number;
+  display_type: "banner_strip" | "countdown_banner" | "popup";
+  color_scheme: "brand" | "dark" | "warm";
+  badge_text: string;
+  headline: string;
+  subtext: string;
+  cta_label: string;
+  cta_url: string;
+  discount_code: string;
+  starts_at: string;
+  ends_at: string;
+  is_active: boolean;
+  is_live?: boolean;
+  campaign_id?: number | null;
+  campaign_name?: string | null;
+  created_at?: string;
+}
+
 export interface DiscountCampaign {
   id: number;
   name: string;
@@ -190,4 +209,14 @@ export const adminDiscountsApi = {
     api.get<FirstOrderConfig>(base("/admin/first-order-config/")),
   updateFirstOrderConfig: (payload: Partial<FirstOrderConfig>) =>
     api.patch<FirstOrderConfig>(base("/admin/first-order-config/"), payload),
+
+  // ── Promo displays ──────────────────────────────────────────────────────────
+  promoDisplays: (params?: Record<string, unknown>) =>
+    api.get<PromoDisplay[]>(base("/admin/promos/"), { params }),
+  createPromoDisplay: (payload: Partial<PromoDisplay>) =>
+    api.post<PromoDisplay>(base("/admin/promos/"), payload),
+  updatePromoDisplay: (id: number, payload: Partial<PromoDisplay>) =>
+    api.patch<PromoDisplay>(base(`/admin/promos/${id}/`), payload),
+  deletePromoDisplay: (id: number) =>
+    api.delete(base(`/admin/promos/${id}/`)),
 };

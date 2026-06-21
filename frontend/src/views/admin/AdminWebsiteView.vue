@@ -532,6 +532,129 @@
       </div>
     </div>
 
+    <!-- ── Promotions tab ─────────────────────────────────────────────────── -->
+    <div v-if="activeTab === 'promotions'" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Promo Strips & Countdown Banners</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Schedule sitewide promotional banners that count down to a deadline. Only the currently active record is shown to visitors.</p>
+        </div>
+        <button class="btn-primary text-sm" @click="openNewPromo">+ New Promotion</button>
+      </div>
+
+      <!-- Create / Edit form -->
+      <div v-if="showPromoForm" class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-5 space-y-4">
+        <h3 class="font-semibold text-gray-900">{{ editingPromoId ? 'Edit Promotion' : 'New Promotion' }}</h3>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Display type</label>
+            <select v-model="promoDraft.display_type" class="input">
+              <option value="banner_strip">Banner strip (no countdown)</option>
+              <option value="countdown_banner">Countdown banner</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Colour scheme</label>
+            <select v-model="promoDraft.color_scheme" class="input">
+              <option value="brand">Brand (default)</option>
+              <option value="dark">Dark</option>
+              <option value="warm">Warm / amber</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Badge text <span class="font-normal text-gray-400">(optional, e.g. "Flash sale")</span></label>
+            <input v-model="promoDraft.badge_text" class="input" placeholder="Limited time" maxlength="40" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Discount code <span class="font-normal text-gray-400">(optional)</span></label>
+            <input v-model="promoDraft.discount_code" class="input" placeholder="SAVE20" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Headline *</label>
+            <input v-model="promoDraft.headline" class="input" placeholder="20% off all orders this week" maxlength="120" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Subtext <span class="font-normal text-gray-400">(optional)</span></label>
+            <input v-model="promoDraft.subtext" class="input" placeholder="Use code SAVE20 at checkout" maxlength="200" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">CTA label</label>
+            <input v-model="promoDraft.cta_label" class="input" placeholder="Order now" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">CTA URL</label>
+            <input v-model="promoDraft.cta_url" class="input" placeholder="/order" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Starts at *</label>
+            <input v-model="promoDraft.starts_at" class="input" type="datetime-local" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Ends at * <span class="font-normal text-gray-400">(countdown target)</span></label>
+            <input v-model="promoDraft.ends_at" class="input" type="datetime-local" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Linked campaign <span class="font-normal text-gray-400">(optional)</span></label>
+            <select v-model="promoDraft.campaign_id" class="input">
+              <option :value="null">— None —</option>
+              <option v-for="c in campaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 pt-6">
+            <input v-model="promoDraft.is_active" id="promo-active" type="checkbox" class="rounded" />
+            <label for="promo-active" class="text-sm font-medium text-gray-700">Active (visible to visitors when scheduled)</label>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button class="btn-primary text-sm" :disabled="savingPromo" @click="savePromo">
+            {{ savingPromo ? 'Saving…' : editingPromoId ? 'Save changes' : 'Create promotion' }}
+          </button>
+          <button class="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50" @click="showPromoForm = false">Cancel</button>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div v-if="loadingPromos" class="py-8 text-center text-sm text-gray-400">Loading…</div>
+      <div v-else-if="!promoDisplays.length" class="rounded-xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
+        No promotions yet. Click <strong>+ New Promotion</strong> to create one.
+      </div>
+      <div v-else class="space-y-2">
+        <div
+          v-for="p in promoDisplays"
+          :key="p.id"
+          class="flex items-start gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3"
+        >
+          <!-- Status dot -->
+          <span
+            class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+            :class="p.is_live ? 'bg-green-500' : p.is_active ? 'bg-amber-400' : 'bg-gray-300'"
+            :title="p.is_live ? 'Live now' : p.is_active ? 'Scheduled' : 'Paused'"
+          />
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-baseline gap-2">
+              <p class="font-medium text-gray-900 leading-snug">{{ p.headline }}</p>
+              <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{{ p.display_type.replace('_', ' ') }}</span>
+              <span v-if="p.is_live" class="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">LIVE</span>
+            </div>
+            <p class="mt-0.5 text-xs text-gray-400">
+              {{ fmtPromoDate(p.starts_at) }} → {{ fmtPromoDate(p.ends_at) }}
+              <span v-if="p.campaign_name" class="ml-2 text-gray-400">· {{ p.campaign_name }}</span>
+              <span v-if="p.discount_code" class="ml-2 font-mono text-gray-400">{{ p.discount_code }}</span>
+            </p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <button class="text-xs text-indigo-600 hover:underline" @click="openEditPromo(p)">Edit</button>
+            <button
+              class="text-xs"
+              :class="p.is_active ? 'text-amber-600 hover:underline' : 'text-green-600 hover:underline'"
+              @click="togglePromo(p)"
+            >{{ p.is_active ? 'Pause' : 'Activate' }}</button>
+            <button class="text-xs text-red-400 hover:underline" @click="deletePromo(p.id!)">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast -->
     <div
       v-if="toast"
@@ -545,13 +668,16 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { websitesApi } from "@/api/websites";
 import type { Website, TenantBranding, TenantFeatureToggle, WebsiteIntegrationConfig, WebsiteActionLog, ExitPopupConfig } from "@/api/websites";
+import { adminDiscountsApi } from "@/api/adminDiscounts";
+import type { PromoDisplay, AdminCampaign } from "@/api/adminDiscounts";
 
 const tabs = [
-  { key: "settings", label: "Site Settings" },
-  { key: "branding", label: "Branding" },
-  { key: "features", label: "Features" },
-  { key: "integrations", label: "Integrations" },
-  { key: "popups", label: "Popups" },
+  { key: "settings",    label: "Site Settings" },
+  { key: "branding",    label: "Branding" },
+  { key: "features",    label: "Features" },
+  { key: "integrations",label: "Integrations" },
+  { key: "popups",      label: "Popups" },
+  { key: "promotions",  label: "Promotions" },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
@@ -563,14 +689,34 @@ const branding = ref<TenantBranding | null>(null);
 const featureToggle = ref<TenantFeatureToggle | null>(null);
 const integrations = ref<WebsiteIntegrationConfig[]>([]);
 const actionLogs = ref<WebsiteActionLog[]>([]);
-const popupConfig = ref<ExitPopupConfig | null>(null);
+const popupConfig   = ref<ExitPopupConfig | null>(null);
+const promoDisplays = ref<PromoDisplay[]>([]);
+const campaigns     = ref<AdminCampaign[]>([]);
+const showPromoForm = ref(false);
+const editingPromoId = ref<number | null>(null);
+const promoDraft = reactive<Partial<PromoDisplay>>({
+  display_type: "countdown_banner",
+  color_scheme: "brand",
+  badge_text: "",
+  headline: "",
+  subtext: "",
+  cta_label: "Order now",
+  cta_url: "/order",
+  discount_code: "",
+  starts_at: "",
+  ends_at: "",
+  is_active: true,
+  campaign_id: null,
+});
 
 const loadingWebsite = ref(false);
 const loadingBranding = ref(false);
 const loadingFeatures = ref(false);
 const loadingIntegrations = ref(false);
 const loadingLogs = ref(false);
-const loadingPopup = ref(false);
+const loadingPopup   = ref(false);
+const loadingPromos  = ref(false);
+const savingPromo    = ref(false);
 
 const savingSettings = ref(false);
 const savingSeo = ref(false);
@@ -972,6 +1118,93 @@ async function doRestore() {
   }
 }
 
+// ── Promo displays ─────────────────────────────────────────────────────────
+async function loadPromos() {
+  loadingPromos.value = true;
+  try {
+    const params = website.value ? { website_id: website.value.id } : undefined;
+    const [promosResp, campaignsResp] = await Promise.all([
+      adminDiscountsApi.promoDisplays(params),
+      adminDiscountsApi.campaigns(),
+    ]);
+    promoDisplays.value = promosResp.data as PromoDisplay[];
+    const cData = campaignsResp.data;
+    campaigns.value = Array.isArray(cData) ? cData : (cData as { campaigns: AdminCampaign[] }).campaigns ?? [];
+  } catch {
+    showToast("Failed to load promotions", "error");
+  } finally {
+    loadingPromos.value = false;
+  }
+}
+
+function openNewPromo() {
+  editingPromoId.value = null;
+  Object.assign(promoDraft, {
+    display_type: "countdown_banner", color_scheme: "brand", badge_text: "",
+    headline: "", subtext: "", cta_label: "Order now", cta_url: "/order",
+    discount_code: "", starts_at: "", ends_at: "", is_active: true, campaign_id: null,
+  });
+  showPromoForm.value = true;
+}
+
+function openEditPromo(p: PromoDisplay) {
+  editingPromoId.value = p.id ?? null;
+  Object.assign(promoDraft, {
+    display_type: p.display_type, color_scheme: p.color_scheme,
+    badge_text: p.badge_text, headline: p.headline, subtext: p.subtext,
+    cta_label: p.cta_label, cta_url: p.cta_url, discount_code: p.discount_code,
+    starts_at: p.starts_at.slice(0, 16), ends_at: p.ends_at.slice(0, 16),
+    is_active: p.is_active, campaign_id: p.campaign_id ?? null,
+  });
+  showPromoForm.value = true;
+}
+
+async function savePromo() {
+  if (savingPromo.value) return;
+  savingPromo.value = true;
+  try {
+    const payload: Partial<PromoDisplay> & { website_id?: number } = { ...promoDraft };
+    if (website.value) payload.website_id = website.value.id;
+    if (editingPromoId.value) {
+      await adminDiscountsApi.updatePromoDisplay(editingPromoId.value, payload);
+    } else {
+      await adminDiscountsApi.createPromoDisplay(payload);
+    }
+    showPromoForm.value = false;
+    await loadPromos();
+    showToast(editingPromoId.value ? "Promotion updated" : "Promotion created");
+  } catch {
+    showToast("Failed to save promotion", "error");
+  } finally {
+    savingPromo.value = false;
+  }
+}
+
+async function togglePromo(p: PromoDisplay) {
+  try {
+    await adminDiscountsApi.updatePromoDisplay(p.id!, { is_active: !p.is_active });
+    await loadPromos();
+    showToast(`Promotion ${p.is_active ? "paused" : "activated"}`);
+  } catch {
+    showToast("Failed to update promotion", "error");
+  }
+}
+
+async function deletePromo(id: number) {
+  if (!confirm("Delete this promotion? This cannot be undone.")) return;
+  try {
+    await adminDiscountsApi.deletePromoDisplay(id);
+    await loadPromos();
+    showToast("Promotion deleted");
+  } catch {
+    showToast("Failed to delete promotion", "error");
+  }
+}
+
+function fmtPromoDate(iso: string) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 onMounted(() => {
   loadWebsite();
@@ -979,6 +1212,7 @@ onMounted(() => {
   loadFeatures();
   loadIntegrations();
   loadPopup();
+  loadPromos();
 });
 </script>
 

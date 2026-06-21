@@ -23,6 +23,11 @@ from discounts.api.client_discount_views import (
     DiscountApplyAPIView,
     DiscountPreviewAPIView,
 )
+from discounts.api.promo_display_views import (
+    AdminPromoDisplayDetailView as PromoDisplayAdminDetailView,
+    AdminPromoDisplayListCreateView as PromoDisplayAdminListCreateView,
+    PublicPromoDisplayView as PromoDisplayPublicView,
+)
 from discounts.api.campaign_views import (
     AdminCampaignActivateAPIView,
     AdminCampaignArchiveAPIView,
@@ -173,5 +178,21 @@ urlpatterns = [
         "admin/campaigns/<int:pk>/restore/",
         AdminCampaignRestoreAPIView.as_view(),
         name="admin-campaign-restore",
+    ),
+    # ── Promo displays ────────────────────────────────────────────────────────
+    path(
+        "active/",
+        PromoDisplayPublicView.as_view(),
+        name="promo-active",
+    ),
+    path(
+        "admin/promos/",
+        PromoDisplayAdminListCreateView.as_view(),
+        name="admin-promo-list-create",
+    ),
+    path(
+        "admin/promos/<int:pk>/",
+        PromoDisplayAdminDetailView.as_view(),
+        name="admin-promo-detail",
     ),
 ]
