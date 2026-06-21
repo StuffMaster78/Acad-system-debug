@@ -471,11 +471,21 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             from orders.selectors.order_visibility_selector import (
                 OrderVisibilitySelector,
             )
+            from writer_management.utils import get_writer_profile
 
-            visible_ids = OrderVisibilitySelector.visible_to_writer(
-                writer=user,
-            ).values_list("id", flat=True)
-            base_qs = qs.filter(id__in=visible_ids)
+            website = getattr(user, 'website', None)
+            writer_profile = get_writer_profile(user)
+            if website is None or writer_profile is None:
+                base_qs = qs.none()
+            else:
+                # Apply visibility conditions directly to the outer queryset
+                # instead of a subquery to keep all prefetches/select_related
+                # intact and avoid the join overhead of an inner query.
+                visibility_q = OrderVisibilitySelector._writer_visibility_q(
+                    writer=user,
+                    writer_profile=writer_profile,
+                )
+                base_qs = qs.filter(website=website).filter(visibility_q).distinct()
         elif user_role in ['admin', 'support', 'editor']:
             # Admins, support, and editors see all orders (no website filtering)
             base_qs = qs

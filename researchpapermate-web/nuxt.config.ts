@@ -16,10 +16,15 @@ export default defineNuxtConfig({
     // generated scope after `predev`; repair its Nuxt private import map
     // before Nitro reloads the compiled server.
     'build:done': () => {
-      execFileSync(process.execPath, [patchNuxtSiteConfig], {
-        cwd: rootDir,
-        stdio: 'inherit',
-      })
+      try {
+        execFileSync(process.execPath, [patchNuxtSiteConfig], {
+          cwd: rootDir,
+          stdio: 'inherit',
+        })
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[build:done] patch-nuxt-site-config failed: ${msg}`)
+      }
     },
   },
 

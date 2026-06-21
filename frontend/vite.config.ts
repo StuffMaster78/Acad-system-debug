@@ -11,6 +11,33 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          // echarts + zrender are ~1 MB minified; only loaded in admin dashboards
+          if (id.includes('echarts') || id.includes('vue-echarts') || id.includes('zrender')) {
+            return 'vendor-charts';
+          }
+          // Tiptap + ProseMirror — only in admin/writer compose views
+          if (id.includes('@tiptap') || id.includes('prosemirror')) {
+            return 'vendor-editor';
+          }
+          // Lucide icon pack — referenced everywhere but large enough to isolate
+          if (id.includes('@lucide')) {
+            return 'vendor-icons';
+          }
+          // Vue core runtime — tiny, cached permanently after first visit
+          if (id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/') || id.includes('@vue/')) {
+            return 'vendor-vue';
+          }
+          // axios, dompurify, and any other small utilities
+          return 'vendor';
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {
