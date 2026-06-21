@@ -15,7 +15,7 @@ export interface PricingSpacingMultipliers {
 
 // ── Display-only option shapes (from order_configs) ───────────────────────────
 
-export interface CfgDisplayOption { name: string; description?: string }
+export interface CfgDisplayOption { name: string; description?: string | null }
 export interface CfgSubject       { name: string; category: string }
 export interface CfgEnglishType   { name: string; code: string }
 export interface CfgAddon         { id: number; addon_code: string; name: string; description: string; flat_amount: number }
@@ -207,7 +207,7 @@ function _deadline(r: Record<string, unknown>): PricingDeadline {
   return { label: String(r.label ?? ''), max_hours: Number(r.max_hours ?? 336), multiplier: Number(r.multiplier ?? 1) }
 }
 function _display(r: Record<string, unknown>): CfgDisplayOption {
-  return { name: String(r.name ?? ''), description: r.description ? String(r.description) : undefined }
+  return { name: String(r.name ?? ''), description: r.description ? String(r.description) : null }
 }
 function _subject(r: Record<string, unknown>): CfgSubject {
   return { name: String(r.name ?? ''), category: String(r.category ?? 'General') }

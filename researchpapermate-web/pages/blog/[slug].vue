@@ -228,7 +228,7 @@ useSeoMeta({
   articleModifiedTime:  postModified,
   articleAuthor:        computed(() => {
     const author = cmsArticle.value?.author_name || staticPost?.author?.name
-    return author ? [author] : undefined
+    return author ? [author] : null
   }),
 })
 

@@ -3006,9 +3006,9 @@ export function useBlog() {
     return posts.map(withAuthor)
   }
 
-  function getBySlug(slug: string): BlogPost | undefined {
+  function getBySlug(slug: string): BlogPost | null {
     const p = posts.find(p => p.slug === slug)
-    return p ? withAuthor(p) : undefined
+    return p ? withAuthor(p) : null
   }
 
   function getRecent(n = 3): BlogPost[] {
