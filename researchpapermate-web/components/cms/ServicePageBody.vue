@@ -120,7 +120,7 @@ const CALLOUT_STYLES: Record<string, string> = {
         <div v-if="(block.value as any).style === 'grid'" class="grid gap-3 sm:grid-cols-2">
           <div v-for="(item, i) in (block.value as any).items || []" :key="i"
             class="flex items-start gap-3 rounded-xl border border-parchment-200 bg-parchment-50 p-4">
-            <Icon :name="{ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' }[(block.value as any).icon] || 'check-circle'"
+            <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
               class="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
             <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
           </div>
@@ -128,14 +128,14 @@ const CALLOUT_STYLES: Record<string, string> = {
         <div v-else-if="(block.value as any).style === 'cards'" class="space-y-2">
           <div v-for="(item, i) in (block.value as any).items || []" :key="i"
             class="flex items-start gap-3 rounded-xl border border-parchment-200 bg-parchment-50 px-5 py-4">
-            <Icon :name="{ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' }[(block.value as any).icon] || 'check-circle'"
+            <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
               class="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
             <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
           </div>
         </div>
         <ul v-else class="space-y-3">
           <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex items-start gap-3 text-sm text-slate-700">
-            <Icon :name="{ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' }[(block.value as any).icon] || 'check-circle'"
+            <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
               class="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
             <div class="leading-relaxed" v-html="item" />
           </li>

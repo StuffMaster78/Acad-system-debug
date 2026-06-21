@@ -140,6 +140,10 @@ export const Tag = createIcon('Tag', [
   ['path', { d: 'M7.5 7.5h.01' }],
 ])
 
+export const Circle = createIcon('Circle', [
+  ['circle', { cx: '12', cy: '12', r: '10' }],
+])
+
 export const X = createIcon('X', [
   ['path', { d: 'M18 6 6 18' }],
   ['path', { d: 'm6 6 12 12' }],

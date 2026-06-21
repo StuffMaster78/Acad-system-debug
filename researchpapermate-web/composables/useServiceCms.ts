@@ -11,6 +11,7 @@ export interface CmsServicePage {
   reviewer: { name: string; role: string } | null
   last_substantive_update: string | null
   body: CmsBlock[]
+  schema?: Record<string, unknown>
 }
 
 export interface CmsBlock {

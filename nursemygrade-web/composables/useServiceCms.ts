@@ -11,6 +11,7 @@ export interface CmsServicePage {
   reviewer: { name: string; role: string } | null
   last_substantive_update: string | null
   body: CmsBlock[]
+  schema?: Record<string, unknown>
 }
 
 export interface CmsBlock {
@@ -28,7 +29,7 @@ export function useServiceCms(serviceSlug: string) {
     : `${config.public.apiBase || ''}/wagtail`
   const extraHeaders = import.meta.server
     ? { Host: config.siteHostname as string || 'nursemygrade.com' }
-    : {}
+    : undefined
   const fields = [
     'title', 'slug', 'pricing_from', 'pricing_to',
     'turnaround_hours_fastest', 'turnaround_hours_standard',

@@ -27,6 +27,7 @@ const slug   = route.params.slug as string
 const config = useRuntimeConfig()
 const apiBase     = config.public.apiBase || ''
 const wagtailBase = `${apiBase}/wagtail`
+const ssrHeaders  = import.meta.server ? { Host: config.siteHostname as string || 'gradecrest.com' } : undefined
 
 interface Block { type: string; value: unknown }
 

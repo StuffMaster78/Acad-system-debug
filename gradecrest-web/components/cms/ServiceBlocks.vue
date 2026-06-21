@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { CheckCircle2, ArrowRight, Star, Zap, Shield, Circle, X, Plus, Minus } from '@lucide/vue'
+import { CheckCircle2, ArrowRight, Star, Zap, Shield, X, Plus, Minus } from '@lucide/vue'
+import { Circle } from '~/utils/lucide-icons'
 import PricingCalculator from '~/components/ui/PricingCalculator.vue'
 import type { CmsBlock } from '~/types/cms'
 

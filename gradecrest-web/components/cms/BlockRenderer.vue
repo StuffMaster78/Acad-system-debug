@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Circle, Plus, Minus, X } from '@lucide/vue'
+import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Plus, Minus, X } from '@lucide/vue'
+import { Circle } from '~/utils/lucide-icons'
 
 const app = useAppUrl()
 
