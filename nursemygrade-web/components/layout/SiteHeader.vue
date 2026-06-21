@@ -54,8 +54,10 @@ const ORDER_SVG: Record<string, string> = {
 </script>
 
 <template>
-  <header class="relative border-b border-slate-100 bg-white/95 backdrop-blur-sm">
-    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 2xl:max-w-screen-xl 2xl:px-12">
+  <header class="relative border-b border-slate-100">
+    <!-- Backdrop rendered as a sibling, not the containing block, so the dropdown is never clipped by backdrop-filter -->
+    <div class="pointer-events-none absolute inset-0 bg-white/95 backdrop-blur-sm" aria-hidden="true" />
+    <div class="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 2xl:max-w-screen-xl 2xl:px-12">
 
       <!-- Logo + rating badge -->
       <div class="flex items-center gap-3">
