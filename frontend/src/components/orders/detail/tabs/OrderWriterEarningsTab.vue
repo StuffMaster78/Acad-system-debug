@@ -1,8 +1,13 @@
 <template>
   <div class="space-y-5 py-2">
 
+    <!-- Preview-mode notice — writer compensation endpoints require a real session -->
+    <div v-if="auth.isPreviewSession" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      Earnings data is not available in preview mode. Log in with a real writer account to see rate card and compensation events.
+    </div>
+
     <!-- Rate card snapshot -->
-    <div class="rounded-lg border border-slate-200 bg-white p-5">
+    <div v-if="!auth.isPreviewSession" class="rounded-lg border border-slate-200 bg-white p-5">
       <h2 class="mb-4 text-base font-semibold text-ink">Rate card at assignment</h2>
 
       <div v-if="rateCardLoading" class="text-sm text-graphite">Loading…</div>
@@ -62,7 +67,7 @@
     </div>
 
     <!-- Compensation events for this order -->
-    <div class="rounded-lg border border-slate-200 bg-white p-5">
+    <div v-if="!auth.isPreviewSession" class="rounded-lg border border-slate-200 bg-white p-5">
       <h2 class="mb-4 text-base font-semibold text-ink">Compensation events</h2>
 
       <div v-if="eventsLoading" class="text-sm text-graphite">Loading…</div>
@@ -131,6 +136,9 @@ import { ref, computed, onMounted } from "vue";
 import { writerApi } from "@/api/writer";
 import type { WriterEvent } from "@/types/writer";
 import { dateLabel } from "../types";
+import { useAuthStore } from "@/stores/auth";
+
+const auth = useAuthStore();
 
 const props = defineProps<{ orderId: string | number }>();
 
@@ -190,6 +198,11 @@ const totals = computed(() => {
 });
 
 onMounted(() => {
+  if (auth.isPreviewSession) {
+    rateCardLoading.value = false;
+    eventsLoading.value = false;
+    return;
+  }
   loadRateCard();
   loadEvents();
 });
