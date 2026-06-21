@@ -395,6 +395,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     const ui = useUiStore();
     const user = selectedUser.value;
     if (!user) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -433,6 +434,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
   async function createUser() {
     const auth = useAuthStore();
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -489,6 +491,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
   async function addBlacklistedEmail() {
     const auth = useAuthStore();
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -525,6 +528,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
   async function removeBlacklistedEmail(email: string) {
     const auth = useAuthStore();
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -555,6 +559,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     const ui = useUiStore();
     const user = selectedUser.value;
     if (!user) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -585,6 +590,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
     const ui = useUiStore();
     const user = selectedUser.value;
     if (!user || !generatedToken.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -620,6 +626,7 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
   async function endImpersonation(endReason = "Admin ended session") {
     const auth = useAuthStore();
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     try {
       if (auth.isPreviewSession) {

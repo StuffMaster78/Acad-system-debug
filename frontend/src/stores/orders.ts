@@ -164,6 +164,7 @@ export const useOrderStore = defineStore("orders", () => {
 
   async function approveOrder(id: number | string) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -198,6 +199,7 @@ export const useOrderStore = defineStore("orders", () => {
 
   async function requestRevision(id: number | string, payload: RevisionRequestPayload) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -237,6 +239,7 @@ export const useOrderStore = defineStore("orders", () => {
 
   async function cancelOrder(id: number | string, payload: CancelOrderPayload) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -265,6 +268,7 @@ export const useOrderStore = defineStore("orders", () => {
 
   async function raiseDispute(id: number | string, reason: string) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -309,6 +313,7 @@ export const useOrderStore = defineStore("orders", () => {
   }
 
   async function createPaperOrder(payload: PaperQuotePayload, order: Omit<CreateOrderPayload, "pricing_snapshot_id">) {
+    if (isCreating.value) return;
     isCreating.value = true;
     error.value = "";
     try {

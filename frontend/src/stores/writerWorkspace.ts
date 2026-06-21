@@ -189,6 +189,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function saveProfile(payload: Partial<Pick<WriterProfile, "display_name"> & { bio?: string }>) {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     try {
@@ -206,6 +207,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function toggleAcceptingOrders() {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -230,6 +232,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function expressInterest(orderId: number | string, message: string) {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -249,6 +252,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function takeOrder(orderId: number | string) {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -362,6 +366,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function requestPayout(payload: PayoutRequestPayload) {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -380,6 +385,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function scheduleUnavailability(payload: { start_at: string; end_at?: string | null; reason?: string }) {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -404,6 +410,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
 
   async function cancelAvailabilityWindow(windowId: number | string) {
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -430,6 +437,7 @@ export const useWriterWorkspaceStore = defineStore("writerWorkspace", () => {
   }
 
   async function withdrawInterest(interestId: number | string) {
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";

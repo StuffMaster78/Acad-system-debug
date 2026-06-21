@@ -239,6 +239,7 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
       is_critical: broadcastComposer.value.priority === "critical",
     };
 
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -271,6 +272,7 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
 
   async function sendCampaignNow(campaignId: number) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     try {
@@ -291,6 +293,7 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
 
   async function scheduleCampaign(campaignId: number, scheduledTime: string) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     try {
@@ -311,6 +314,7 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
 
   async function sendCampaignTest(campaignId: number) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     try {
@@ -337,6 +341,7 @@ export const useAdminCommsStore = defineStore("admin-comms", () => {
       scheduled_time: campaignComposer.value.scheduled_time ?? undefined,
     };
 
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";

@@ -19,6 +19,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
   const messages = ref<CommunicationMessage[]>([]);
   const isLoading = ref(false);
   const isSending = ref(false);
+  const isSaving = ref(false);
   const error = ref("");
   const notice = ref("");
 
@@ -318,7 +319,8 @@ export const useCommunicationsStore = defineStore("communications", () => {
     subject?: string;
   }) {
     const auth = useAuthStore();
-    isLoading.value = true;
+    if (isSaving.value) return null;
+    isSaving.value = true;
     error.value = "";
     notice.value = "";
 
@@ -363,7 +365,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
       error.value = "Unable to create an order message thread.";
       throw caught;
     } finally {
-      isLoading.value = false;
+      isSaving.value = false;
     }
   }
 
@@ -377,7 +379,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
     opts?: { isInternal?: boolean; recipientRole?: string; attachments?: Array<{ name: string; type: string; dataUrl: string }> },
   ) {
     const auth = useAuthStore();
-    if (!activeThread.value) return null;
+    if (!activeThread.value || isSending.value) return null;
     isSending.value = true;
     error.value = "";
     notice.value = "";
@@ -434,6 +436,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
 
   async function moderateMessage(messageId: number, action: "approve" | "reject" | "warn") {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     const newStatus = action === "approve" ? "approved" : action === "reject" ? "blocked" : "warned";
 
     if (auth.isPreviewSession) {
@@ -443,6 +446,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
       notice.value = `Message ${newStatus}.`;
       return;
     }
+    isSaving.value = true;
     try {
       await communicationsApi.moderateMessage(messageId, action);
       messages.value = messages.value.map((m) =>
@@ -451,6 +455,8 @@ export const useCommunicationsStore = defineStore("communications", () => {
       notice.value = `Message ${newStatus}.`;
     } catch {
       error.value = "Unable to moderate that message.";
+    } finally {
+      isSaving.value = false;
     }
   }
 
@@ -461,6 +467,7 @@ export const useCommunicationsStore = defineStore("communications", () => {
     messages,
     isLoading,
     isSending,
+    isSaving,
     error,
     notice,
     hasThread,

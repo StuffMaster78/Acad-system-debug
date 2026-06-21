@@ -214,6 +214,7 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function createTenant() {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     error.value = "";
     notice.value = "";
@@ -250,6 +251,7 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function updateTenant(id: number | string, payload: TenantUpdatePayload) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     error.value = "";
     notice.value = "";
@@ -274,6 +276,7 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function suspendTenant(id: number | string, reason?: string) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     error.value = "";
     notice.value = "";
@@ -306,6 +309,7 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function activateTenant(id: number | string) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     error.value = "";
     notice.value = "";
@@ -331,6 +335,7 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function removeStaff(tenantId: number | string, staffId: number) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     error.value = "";
     notice.value = "";

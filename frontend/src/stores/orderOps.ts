@@ -268,6 +268,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function routeToStaffing(orderId: number) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -294,6 +295,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
     payment_method?: string;
   }) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -317,6 +319,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function assignDirect(orderId: number, writerId: number, note = "") {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -338,6 +341,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function releaseToPool(orderId: number, reason = "") {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -359,6 +363,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function approveForDelivery(orderId: number, notes = "") {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -380,6 +385,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function returnToWriter(orderId: number, notes: string) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -401,6 +407,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function requestRevision(orderId: number, instructions: string) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -422,6 +429,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function cancel(orderId: number, reason: string) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -443,6 +451,7 @@ export const useOrderOpsStore = defineStore("order-ops", () => {
 
   async function archive(orderId: number) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";

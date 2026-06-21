@@ -127,7 +127,7 @@ export const useBidsStore = defineStore("bids", () => {
 
   async function submitBid() {
     const auth = useAuthStore();
-    if (!bidFormOrderId.value) return;
+    if (!bidFormOrderId.value || isSaving.value) return;
     isSaving.value = true;
     error.value = null;
     try {
@@ -204,6 +204,7 @@ export const useBidsStore = defineStore("bids", () => {
 
   async function acceptBid(orderId: number | string, bidId: number | string) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     notice.value = null;
     try {
@@ -231,6 +232,7 @@ export const useBidsStore = defineStore("bids", () => {
 
   async function rejectBid(orderId: number | string, bidId: number | string, reason?: string) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     try {
       if (auth.isPreviewSession) {
@@ -249,6 +251,7 @@ export const useBidsStore = defineStore("bids", () => {
 
   async function withdrawBid(bidId: number | string) {
     const auth = useAuthStore();
+    if (isSaving.value) return;
     isSaving.value = true;
     try {
       if (auth.isPreviewSession) {

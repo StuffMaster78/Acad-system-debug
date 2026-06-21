@@ -112,6 +112,7 @@ export const useWalletStore = defineStore("wallets", () => {
 
   async function initiateTopup(payload: TopupPayload): Promise<TopupResponse> {
     const auth = useAuthStore();
+    if (isMutating.value) throw new Error("Payment already in progress.");
     isMutating.value = true;
     try {
       if (auth.isPreviewSession) {
@@ -161,6 +162,7 @@ export const useWalletStore = defineStore("wallets", () => {
 
   async function requestPayout(payload: PayoutRequestPayload) {
     const auth = useAuthStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     try {
       if (auth.isPreviewSession) {

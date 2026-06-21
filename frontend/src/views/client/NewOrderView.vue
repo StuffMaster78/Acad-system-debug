@@ -568,6 +568,7 @@ async function submit() {
       ...(preferredWriterResolved.value ? { preferred_writer_id: preferredWriterResolved.value.id } : {}),
     };
 
+    if (orders.isCreating) return;
     let created;
     if (serviceMode.value === "paper") {
       created = await orders.createPaperOrder(quotePayload(), {
@@ -622,6 +623,7 @@ async function submit() {
       );
     }
 
+    if (!created) return; // pre-flight guard already fired above; this narrows the type
     if (files.uploadQueue.length) {
       await files.uploadFiles(created.order.id);
     }

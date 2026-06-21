@@ -291,6 +291,7 @@ export const useAdminClientsStore = defineStore("admin-clients", () => {
   async function runClientAction(action: "suspend" | "activate" | "deactivate") {
     const auth = useAuthStore();
     if (!selectedClient.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -319,6 +320,7 @@ export const useAdminClientsStore = defineStore("admin-clients", () => {
   async function resetPassword() {
     const auth = useAuthStore();
     if (!selectedClient.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";

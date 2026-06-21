@@ -230,6 +230,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function issueWarning(reason: string) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -256,6 +257,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function issueStrike(reason: string) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -283,6 +285,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function toggleSuspension(reason: string) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -317,6 +320,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function toggleDeleted(reason: string) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -343,6 +347,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function toggleBlacklist(reason: string) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -373,6 +378,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function placeProbation(reason: string, durationDays: number) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -397,6 +403,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function applyPenalty(reason: string, amount: string | number) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -420,6 +427,7 @@ export const useAdminWritersStore = defineStore("adminWriters", () => {
   async function createNote(body: string, isPinned = false) {
     const auth = useAuthStore();
     if (!selectedWriter.value) return;
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";

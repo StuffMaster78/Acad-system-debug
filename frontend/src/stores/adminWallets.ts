@@ -368,6 +368,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
       ui.toast(error.value, "error");
       return;
     }
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
     notice.value = "";
@@ -433,6 +434,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
     const walletId = selectedWalletId.value;
     if (!walletId) return;
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     notice.value = "";
     error.value = "";
@@ -516,6 +518,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
     const holdId = selectedHoldId.value;
     if (!holdId) return;
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
 
@@ -544,6 +547,7 @@ export const useAdminWalletsStore = defineStore("admin-wallets", () => {
     const holdId = selectedHoldId.value;
     if (!holdId) return;
     const ui = useUiStore();
+    if (isMutating.value) return;
     isMutating.value = true;
     error.value = "";
 
