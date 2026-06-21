@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import django_filters
+from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now
 
 from activity.models import ActivityEvent
@@ -49,6 +50,17 @@ class ActivityEventFilter(django_filters.FilterSet):
     is_dismissed = django_filters.BooleanFilter(
         method="filter_is_dismissed",
     )
+    # Filter by target object: ?target_type=order&target_id=42
+    # target_type matches the ContentType model name (e.g. "order", "blogpostpage")
+    target_type = django_filters.CharFilter(
+        method="filter_target_type",
+        label="Target type (model name)",
+    )
+    target_id = django_filters.CharFilter(
+        field_name="target_object_id",
+        lookup_expr="exact",
+        label="Target object ID",
+    )
 
     class Meta:
         model = ActivityEvent
@@ -62,6 +74,8 @@ class ActivityEventFilter(django_filters.FilterSet):
             "is_unread",
             "is_pinned",
             "is_dismissed",
+            "target_type",
+            "target_id",
         )
 
     def filter_by_time_range(self, queryset, name, value):
@@ -166,6 +180,16 @@ class ActivityEventFilter(django_filters.FilterSet):
             feed_states__is_dismissed=value,
         )
 
+
+    def filter_target_type(self, queryset, name, value):
+        """
+        Filter by target ContentType model name, e.g. ?target_type=order.
+        """
+        try:
+            ct = ContentType.objects.get(model=value.lower())
+            return queryset.filter(target_content_type=ct)
+        except ContentType.DoesNotExist:
+            return queryset.none()
 
     def _get_request_user(self):
         """
