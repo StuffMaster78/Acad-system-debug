@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2, ArrowRight, ChevronLeft, CheckCircle2 } from '@lucide/vue'
+import { Loader2, CheckCircle2 } from '@lucide/vue'
 import {
   fetchPricingConfig,
   FALLBACK_LEVELS,
@@ -23,8 +23,6 @@ const deadlines  = computed<PricingDeadline[]>(() => pricingConfig.value?.deadli
 const paperTypes = computed<PricingPaperType[]>(() => pricingConfig.value?.paper_types ?? FALLBACK_PAPER_TYPES)
 
 // ── Form state ───────────────────────────────────────────────────────────────
-const step        = ref(1)
-const direction   = ref<'forward' | 'back'>('forward')
 const serviceType = ref<'writing' | 'editing' | 'rewriting'>('writing')
 const paperCode   = ref<string | null>(props.preselectedPaper ?? null)
 const levelCode   = ref<string>(FALLBACK_LEVELS[1]?.code ?? 'undergrad')
@@ -101,17 +99,6 @@ function scheduleEstimate() {
 }
 
 watch([serviceType, paperCode, levelCode, deadlineHrs, pages, spacing], scheduleEstimate)
-watch(step, s => { if (s === 3) void refreshEstimate() })
-
-// ── Navigation ───────────────────────────────────────────────────────────────
-function next() {
-  direction.value = 'forward'
-  step.value = Math.min(step.value + 1, 3)
-}
-function back() {
-  direction.value = 'back'
-  step.value = Math.max(step.value - 1, 1)
-}
 
 // ── Order URL ────────────────────────────────────────────────────────────────
 const orderUrl = computed(() => {
@@ -138,218 +125,125 @@ const FREE_INCLUSIONS = ['Cover page', 'Reference list', 'Plagiarism report', 'A
 <template>
   <div class="overflow-hidden rounded-2xl bg-forest-950 shadow-[0_16px_48px_rgba(0,0,0,0.5)] ring-1 ring-white/10 select-none">
 
-    <!-- Step indicator -->
-    <div class="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
-      <p class="text-[10px] font-bold uppercase tracking-widest text-gold-400">
-        {{ step === 1 ? 'What do you need?' : step === 2 ? 'When do you need it?' : 'Your price' }}
-      </p>
-      <div class="flex items-center gap-1.5">
-        <span
-          v-for="i in 3"
-          :key="i"
-          class="h-1.5 rounded-full transition-all duration-300"
-          :class="i === step ? 'w-5 bg-gold-400' : i < step ? 'w-1.5 bg-gold-600/60' : 'w-1.5 bg-white/15'"
-        />
+    <!-- Header -->
+    <div class="border-b border-white/10 px-5 py-3.5">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-gold-400">Instant price calculator</p>
+    </div>
+
+    <div class="space-y-4 p-5">
+
+      <!-- Service type -->
+      <div class="flex gap-1 rounded-xl border border-white/10 bg-forest-900/50 p-1">
+        <button
+          v-for="s in SERVICE_TYPES"
+          :key="s.id"
+          type="button"
+          class="flex-1 rounded-lg py-2 text-xs font-bold uppercase tracking-widest transition-all"
+          :class="serviceType === s.id ? 'bg-gc-600 text-white shadow-sm' : 'text-white/40 hover:text-white/70'"
+          @click="serviceType = s.id"
+        >{{ s.label }}</button>
       </div>
-    </div>
 
-    <!-- Steps -->
-    <div class="relative overflow-hidden">
-      <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
-
-        <!-- ── Step 1: Paper type + Level ──────────────────────────────────── -->
-        <div v-if="step === 1" key="step1" class="space-y-4 p-5">
-
-          <!-- Service type -->
-          <div class="flex gap-1 rounded-xl border border-white/10 bg-forest-900/50 p-1">
-            <button
-              v-for="s in SERVICE_TYPES"
-              :key="s.id"
-              type="button"
-              class="flex-1 rounded-lg py-2 text-xs font-bold uppercase tracking-widest transition-all"
-              :class="serviceType === s.id ? 'bg-gc-600 text-white shadow-sm' : 'text-white/40 hover:text-white/70'"
-              @click="serviceType = s.id"
-            >{{ s.label }}</button>
-          </div>
-
-          <!-- Paper type -->
-          <div>
-            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/35">Paper type</label>
-            <select v-model="paperCode" class="sel">
-              <option :value="null">— Any type —</option>
-              <option v-for="pt in paperTypes" :key="pt.code" :value="pt.code">{{ pt.label }}</option>
-            </select>
-          </div>
-
-          <!-- Academic level -->
-          <div>
-            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/35">Academic level</label>
-            <select v-model="levelCode" class="sel">
-              <option v-for="lvl in levels" :key="lvl.code" :value="lvl.code">
-                {{ lvl.label }}{{ lvl.price_per_page ? ` — from $${lvl.price_per_page}/pg` : '' }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Next -->
-          <button
-            type="button"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-gc-600 py-3 text-sm font-bold text-white transition-colors hover:bg-gc-700"
-            @click="next"
-          >
-            Next — set deadline <ArrowRight class="size-4" />
-          </button>
-
+      <!-- Paper type + Level -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Paper type</label>
+          <select v-model="paperCode" class="sel">
+            <option :value="null">— Any type —</option>
+            <option v-for="pt in paperTypes" :key="pt.code" :value="pt.code">{{ pt.label }}</option>
+          </select>
         </div>
-
-        <!-- ── Step 2: Deadline + Pages ────────────────────────────────────── -->
-        <div v-else-if="step === 2" key="step2" class="space-y-4 p-5">
-
-          <!-- Deadline -->
-          <div>
-            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/35">Deadline</label>
-            <select v-model.number="deadlineHrs" class="sel">
-              <option v-for="dl in deadlines" :key="dl.max_hours" :value="dl.max_hours">
-                {{ dl.label }}{{ dl.multiplier === 1 ? ' — best price' : ` (+${Math.round((dl.multiplier - 1) * 100)}%)` }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Pages + Spacing -->
-          <div class="flex items-end gap-3">
-            <div class="flex-1">
-              <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/35">Pages</label>
-              <div class="flex h-10 items-center justify-between gap-2 rounded-lg border border-white/10 bg-forest-900/60 px-3">
-                <button
-                  type="button"
-                  class="flex size-6 items-center justify-center rounded text-lg font-bold text-white/40 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-20"
-                  :disabled="pages <= 1"
-                  @click="pages--"
-                >−</button>
-                <div class="text-center">
-                  <span class="text-sm font-extrabold tabular-nums text-white">{{ pages }}</span>
-                  <span class="ml-1 text-xs text-white/30">pg</span>
-                </div>
-                <button
-                  type="button"
-                  class="flex size-6 items-center justify-center rounded text-lg font-bold text-white/40 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-20"
-                  :disabled="pages >= 100"
-                  @click="pages++"
-                >+</button>
-              </div>
-              <p class="mt-0.5 text-center text-[9px] text-white/25">{{ words.toLocaleString() }} words</p>
-            </div>
-
-            <div class="shrink-0">
-              <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/35">Spacing</label>
-              <select v-model="spacing" class="sel">
-                <option value="double">Double (275 w/pg)</option>
-                <option value="single">Single (550 w/pg)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Navigation -->
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="flex h-11 items-center gap-1 rounded-xl border border-white/10 px-4 text-sm font-semibold text-white/50 transition-colors hover:border-white/20 hover:text-white/70"
-              @click="back"
-            >
-              <ChevronLeft class="size-4" /> Back
-            </button>
-            <button
-              type="button"
-              class="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-gc-600 text-sm font-bold text-white transition-colors hover:bg-gc-700"
-              @click="next"
-            >
-              See my price <ArrowRight class="size-4" />
-            </button>
-          </div>
-
+        <div>
+          <label class="lbl">Academic level</label>
+          <select v-model="levelCode" class="sel">
+            <option v-for="lvl in levels" :key="lvl.code" :value="lvl.code">
+              {{ lvl.label }}{{ lvl.price_per_page ? ` · $${lvl.price_per_page}/pg` : '' }}
+            </option>
+          </select>
         </div>
+      </div>
 
-        <!-- ── Step 3: Price + CTA ──────────────────────────────────────────── -->
-        <div v-else key="step3" class="space-y-4 p-5">
+      <!-- Deadline -->
+      <div>
+        <label class="lbl">Deadline</label>
+        <select v-model.number="deadlineHrs" class="sel">
+          <option v-for="dl in deadlines" :key="dl.max_hours" :value="dl.max_hours">
+            {{ dl.label }}{{ dl.multiplier === 1 ? ' — best price' : ` (+${Math.round((dl.multiplier - 1) * 100)}%)` }}
+          </option>
+        </select>
+      </div>
 
-          <!-- Price display -->
-          <div class="rounded-xl border border-white/10 bg-forest-900/70 px-5 py-4">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">
-                  {{ hasLivePrice ? 'Live price' : 'Estimated price' }}
-                  <Loader2 v-if="isPricing" class="size-3 animate-spin text-gold-400" />
-                </p>
-                <p class="mt-1 text-4xl font-extrabold tabular-nums leading-none text-gold-300">
-                  ${{ displayPrice.toFixed(2) }}
-                </p>
-                <p class="mt-1.5 text-[10px] text-white/35">
-                  ${{ pricePerPage }}/page ·
-                  {{ selectedLevel?.label }} ·
-                  {{ selectedDeadline?.label }} ·
-                  {{ pages }} {{ pages === 1 ? 'page' : 'pages' }}
-                  ({{ words.toLocaleString() }} words)
-                </p>
-              </div>
-              <div class="text-right text-[10px] leading-relaxed text-white/30">
-                <p>✓ Free revisions</p>
-                <p>✓ Grade guarantee</p>
-                <p>✓ No payment now</p>
-              </div>
+      <!-- Pages + Spacing -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Pages</label>
+          <div class="flex h-10 items-center justify-between rounded-lg border border-white/10 bg-forest-900/60 px-3">
+            <button type="button" class="flex size-6 items-center justify-center rounded text-lg font-bold text-white/40 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-20" :disabled="pages <= 1" @click="pages--">−</button>
+            <div class="text-center">
+              <span class="text-sm font-extrabold tabular-nums text-white">{{ pages }}</span>
+              <span class="ml-1 text-xs text-white/30">pg</span>
             </div>
+            <button type="button" class="flex size-6 items-center justify-center rounded text-lg font-bold text-white/40 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-20" :disabled="pages >= 100" @click="pages++">+</button>
           </div>
-
-          <!-- Free inclusions (writing only) -->
-          <div v-if="serviceType === 'writing'" class="rounded-xl border border-gold-700/30 bg-gold-500/8 px-4 py-3">
-            <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gold-400/80">Included free</p>
-            <div class="grid grid-cols-2 gap-x-3 gap-y-1">
-              <p v-for="item in FREE_INCLUSIONS" :key="item" class="flex items-center gap-1.5 text-[10px] font-medium text-gold-200/60">
-                <CheckCircle2 class="size-2.5 shrink-0 text-gold-500/70" />
-                {{ item }}
-              </p>
-            </div>
-          </div>
-
-          <!-- CTA -->
-          <a
-            :href="orderUrl"
-            class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gc-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gc-700"
-          >
-            Place my order — ${{ displayPrice.toFixed(2) }} <ArrowRight class="size-4" />
-          </a>
-          <p class="text-center text-[10px] text-white/25">Price confirmed at checkout · No card needed now</p>
-
-          <!-- Back -->
-          <button
-            type="button"
-            class="flex w-full items-center justify-center gap-1 text-xs text-white/30 transition-colors hover:text-white/55"
-            @click="back"
-          >
-            <ChevronLeft class="size-3.5" /> Edit details
-          </button>
-
+          <p class="mt-0.5 text-center text-[9px] text-white/25">{{ words.toLocaleString() }} words</p>
         </div>
+        <div>
+          <label class="lbl">Spacing</label>
+          <select v-model="spacing" class="sel">
+            <option value="double">Double · 275 w/pg</option>
+            <option value="single">Single · 550 w/pg</option>
+          </select>
+        </div>
+      </div>
 
+      <!-- Free inclusions (writing only) -->
+      <Transition name="slide">
+        <div v-if="serviceType === 'writing'" class="rounded-xl border border-gold-700/30 bg-gold-500/8 px-4 py-3">
+          <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gold-400/80">Included free</p>
+          <div class="grid grid-cols-2 gap-x-3 gap-y-1">
+            <p v-for="item in FREE_INCLUSIONS" :key="item" class="flex items-center gap-1.5 text-[10px] font-medium text-gold-200/60">
+              <CheckCircle2 class="size-2.5 shrink-0 text-gold-500/70" />
+              {{ item }}
+            </p>
+          </div>
+        </div>
       </Transition>
-    </div>
 
+      <!-- Price + CTA -->
+      <div class="rounded-xl border border-white/10 bg-forest-900/70 px-4 py-4">
+        <div class="mb-3 flex items-end justify-between">
+          <div>
+            <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">
+              {{ hasLivePrice ? 'Live price' : 'Estimated' }}
+              <Loader2 v-if="isPricing" class="size-3 animate-spin text-gold-400" />
+            </p>
+            <p class="text-3xl font-extrabold tabular-nums leading-none text-gold-300">${{ displayPrice.toFixed(2) }}</p>
+            <p class="mt-1 text-[10px] text-white/35">
+              ${{ pricePerPage }}/page · {{ selectedLevel?.label }} · {{ selectedDeadline?.label }}
+            </p>
+          </div>
+          <div class="text-right text-[10px] leading-relaxed text-white/30">
+            <p>✓ Free revisions</p>
+            <p>✓ Grade guarantee</p>
+            <p>✓ No payment now</p>
+          </div>
+        </div>
+        <a :href="orderUrl" class="flex h-11 w-full items-center justify-center rounded-xl bg-gc-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gc-700">
+          Place my order — ${{ displayPrice.toFixed(2) }} →
+        </a>
+        <p class="mt-2 text-center text-[10px] text-white/25">Price confirmed at checkout · No card needed now</p>
+      </div>
+
+    </div>
   </div>
 </template>
 
 <style scoped>
+.lbl { @apply mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/35; }
 .sel {
   @apply h-10 w-full rounded-lg border border-white/10 bg-forest-900/60 px-3 text-sm text-white/80 focus:border-gold-500/50 focus:outline-none focus:ring-1 focus:ring-gold-500/30;
 }
 .sel option { background: #052e16; color: white; }
-
-.slide-left-enter-active,
-.slide-left-leave-active,
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.slide-left-enter-from  { opacity: 0; transform: translateX(28px); }
-.slide-left-leave-to    { opacity: 0; transform: translateX(-28px); }
-.slide-right-enter-from { opacity: 0; transform: translateX(-28px); }
-.slide-right-leave-to   { opacity: 0; transform: translateX(28px); }
+.slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>

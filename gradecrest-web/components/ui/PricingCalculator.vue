@@ -247,16 +247,10 @@ const orderUrl = computed(() => {
 
         <div>
           <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Spacing</label>
-          <div class="flex h-10 rounded-lg border border-white/10">
-            <div class="group/dbl relative flex-1">
-              <button type="button" class="h-full w-full rounded-l-lg px-2.5 text-[11px] font-bold transition-colors" :class="spacing === 'double' ? 'bg-gc-700 text-white' : 'bg-forest-900/60 text-white/40 hover:text-white/70'" @click="spacing = 'double'">Dbl</button>
-              <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-forest-900 opacity-0 transition-opacity group-hover/dbl:opacity-100">Double spacing · 275 words/page</span>
-            </div>
-            <div class="group/sgl relative flex-1 border-l border-white/10">
-              <button type="button" class="h-full w-full rounded-r-lg px-2.5 text-[11px] font-bold transition-colors" :class="spacing === 'single' ? 'bg-gc-700 text-white' : 'bg-forest-900/60 text-white/40 hover:text-white/70'" @click="spacing = 'single'">Sgl</button>
-              <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-forest-900 opacity-0 transition-opacity group-hover/sgl:opacity-100">Single spacing · 550 words/page</span>
-            </div>
-          </div>
+          <select v-model="spacing" class="sel">
+            <option value="double">Double · 275 w/pg</option>
+            <option value="single">Single · 550 w/pg</option>
+          </select>
         </div>
       </div>
 

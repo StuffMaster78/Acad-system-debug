@@ -198,20 +198,11 @@ const orderUrl = computed(() => {
       <!-- Academic level -->
       <div>
         <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Academic level</label>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="lvl in levels"
-            :key="lvl.code"
-            type="button"
-            class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
-            :class="levelCode === lvl.code
-              ? 'border-brand-600 bg-brand-600 text-white'
-              : 'border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'"
-            @click="levelCode = lvl.code"
-          >
-            {{ lvl.label }}
-          </button>
-        </div>
+        <select v-model="levelCode" class="sel">
+          <option v-for="lvl in levels" :key="lvl.code" :value="lvl.code">
+            {{ lvl.label }}{{ lvl.price_per_page ? ` — from $${lvl.price_per_page}/pg` : '' }}
+          </option>
+        </select>
       </div>
 
       <!-- Deadline + Pages + Spacing -->
@@ -254,20 +245,10 @@ const orderUrl = computed(() => {
 
         <div>
           <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400">Spacing</label>
-          <div class="flex h-10 overflow-hidden rounded-lg border border-slate-200">
-            <button
-              type="button"
-              class="flex-1 px-2.5 text-xs font-semibold transition-colors"
-              :class="spacing === 'double' ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
-              @click="spacing = 'double'"
-            >Dbl</button>
-            <button
-              type="button"
-              class="flex-1 border-l border-slate-200 px-2.5 text-xs font-semibold transition-colors"
-              :class="spacing === 'single' ? 'border-brand-600 bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
-              @click="spacing = 'single'"
-            >Sgl</button>
-          </div>
+          <select v-model="spacing" class="sel">
+            <option value="double">Double · 275 w/pg</option>
+            <option value="single">Single · 550 w/pg</option>
+          </select>
         </div>
       </div>
 

@@ -110,25 +110,11 @@ const orderUrl = computed(() => {
           >+</button>
         </div>
         <!-- Spacing -->
-        <div class="mt-2 flex overflow-hidden rounded-lg border border-slate-200">
-          <button
-            type="button"
-            class="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors"
-            :class="spacing === 'double' ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
-            @click="spacing = 'double'"
-          >
-            <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
-            Double spaced
-          </button>
-          <button
-            type="button"
-            class="flex flex-1 items-center justify-center gap-1.5 border-l border-slate-200 py-2 text-xs font-semibold transition-colors"
-            :class="spacing === 'single' ? 'border-brand-600 bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
-            @click="spacing = 'single'"
-          >
-            <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="3" x2="14" y2="3"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="9" x2="14" y2="9"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
-            Single spaced
-          </button>
+        <div class="mt-2">
+          <select v-model="spacing" class="sel">
+            <option value="double">Double spaced (275 words/page)</option>
+            <option value="single">Single spaced (550 words/page)</option>
+          </select>
         </div>
       </div>
     </div>
