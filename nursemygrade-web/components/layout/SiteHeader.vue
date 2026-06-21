@@ -21,14 +21,17 @@ const orderPaths = [
   { id: 'design',  label: 'Custom Quote',          desc: 'Unusual brief? Tell us — we\'ll price it',        href: '/quote',              color: 'text-purple-600' },
 ]
 
-const nav = [
+const navBefore = [
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Our nurses',   href: '/writers' },
   { label: 'Pricing',      href: '/pricing' },
   { label: 'Blog',         href: '/blog' },
-  { label: 'FAQ',          href: '/faq' },
-  { label: 'Reviews',      href: '/reviews' },
-  { label: 'Contact',      href: '/contact' },
+]
+
+const navAfter = [
+  { label: 'FAQ',      href: '/faq' },
+  { label: 'Reviews',  href: '/reviews' },
+  { label: 'Contact',  href: '/contact' },
 ]
 
 const route = useRoute()
@@ -90,6 +93,17 @@ const ORDER_SVG: Record<string, string> = {
 
       <!-- Desktop nav -->
       <nav class="hidden items-center gap-6 md:flex">
+
+        <!-- Nav items before Services -->
+        <NuxtLink
+          v-for="item in navBefore"
+          :key="item.href"
+          :href="item.href"
+          class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+          active-class="text-brand-600"
+        >
+          {{ item.label }}
+        </NuxtLink>
 
         <!-- Services mega-menu trigger -->
         <div
@@ -184,9 +198,9 @@ const ORDER_SVG: Record<string, string> = {
           </div>
         </div>
 
-        <!-- Other nav items -->
+        <!-- Nav items after Services -->
         <NuxtLink
-          v-for="item in nav"
+          v-for="item in navAfter"
           :key="item.href"
           :href="item.href"
           class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
