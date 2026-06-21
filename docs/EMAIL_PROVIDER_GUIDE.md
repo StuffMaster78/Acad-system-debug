@@ -64,19 +64,19 @@ debug bounces. Not recommended as a primary choice for a production writing plat
 
 ### Option A — Resend
 
-1. Sign up at resend.com → create an API key (send access).
-2. Add and verify your sending domain in the Resend dashboard (they give you three DNS records).
-3. Set env vars:
+See [RESEND_SETUP.md](RESEND_SETUP.md) for the full step-by-step guide.
+
+Quick reference:
 
 ```env
 DEFAULT_EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxxxx
-RESEND_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx   # optional — enables delivery event webhooks
+RESEND_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx   # optional but recommended
 DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
 ```
 
-`RESEND_WEBHOOK_SECRET` is needed only if you want Django to receive delivery / bounce /
-complaint events. The endpoint is `POST /api/v1/email/webhooks/resend/` (wired in anymail).
+Webhook endpoint (bounce + complaint suppression):
+`POST /api/v1/notifications/webhooks/resend/`
 
 ---
 
