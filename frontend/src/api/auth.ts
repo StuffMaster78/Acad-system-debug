@@ -142,6 +142,8 @@ export const authApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  verifyMfa: (userId: number, code: string) =>
+    api.post<LoginResponse>(apiPath("/auth/mfa/verify/"), { user_id: userId, code }),
   logout: () => api.post(apiPath("/auth/logout/")),
   accountDeletionState: () =>
     api.get<AccountDeletionState>(apiPath("/auth/account-deletion/")),

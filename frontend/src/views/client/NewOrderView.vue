@@ -215,7 +215,7 @@ const canQuote = computed(
   () =>
     form.topic.trim().length > 2 &&
     form.order_instructions.trim().length > 10 &&
-    Boolean(form.paper_type_id && form.type_of_work_id && form.academic_level_id),
+    (!isPaperMode.value || Boolean(form.paper_type_id && form.type_of_work_id && form.academic_level_id)),
 );
 
 const configSelectionError = computed(() => {
@@ -634,6 +634,9 @@ async function submit() {
         window.location.href = checkoutUrl;
         return;
       }
+      // checkout_started but no redirect URL — don't fire a false purchase event
+      error.value = "Checkout could not start. Please try again or contact support.";
+      return;
     }
 
     // GA4 purchase event

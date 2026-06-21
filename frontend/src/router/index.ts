@@ -1204,11 +1204,13 @@ export const router = createRouter({
     {
       path: "/auth/register",
       name: "register",
+      meta: { surface: "client" },
       component: () => import("@/views/auth/RegisterView.vue"),
     },
     {
       path: "/auth/register/confirm",
       name: "register-confirm",
+      meta: { surface: "client" },
       component: () => import("@/views/auth/RegisterView.vue"),
     },
     {

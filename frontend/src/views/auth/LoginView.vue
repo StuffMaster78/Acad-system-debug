@@ -22,6 +22,9 @@ const tab = ref<Tab>("password");
 
 const error = ref("");
 const mfaRequired = ref(false);
+const mfaUserId = ref(0);
+const mfaCode = ref("");
+const mfaError = ref("");
 const form = reactive({ email: "", password: "" });
 
 const magicEmail = ref("");
@@ -37,6 +40,9 @@ const canSendMagic = computed(() => magicEmail.value.includes("@") && magicState
 async function submit() {
   error.value = "";
   mfaRequired.value = false;
+  mfaUserId.value = 0;
+  mfaCode.value = "";
+  mfaError.value = "";
   try {
     await auth.login(form);
     const redirect = route.query.redirect?.toString();
@@ -44,9 +50,21 @@ async function submit() {
   } catch (err) {
     if (err instanceof MfaRequiredError) {
       mfaRequired.value = true;
+      mfaUserId.value = err.userId;
     } else {
       error.value = "We could not sign you in with those details.";
     }
+  }
+}
+
+async function submitMfa() {
+  mfaError.value = "";
+  try {
+    await auth.submitMfa(mfaUserId.value, mfaCode.value.trim());
+    const redirect = route.query.redirect?.toString();
+    await router.push(redirect || (auth.role ? roleHome[auth.role] : "/client"));
+  } catch {
+    mfaError.value = "Invalid code. Please check your authenticator app and try again.";
   }
 }
 
@@ -160,21 +178,48 @@ async function preview(role: UserRole) {
             </div>
           </Transition>
 
-          <div
-            v-if="mfaRequired"
-            class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm"
-            role="alert"
-          >
-            <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-            <div>
+          <div v-if="mfaRequired" class="space-y-3">
+            <div class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+              <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
               <p class="font-semibold text-amber-900">Two-factor authentication required</p>
-              <p class="mt-0.5 text-xs leading-relaxed text-amber-800">
-                Please contact your administrator or sign in from a trusted device.
-              </p>
             </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-ink" for="mfa-code">
+                Authenticator code
+              </label>
+              <input
+                id="mfa-code"
+                v-model="mfaCode"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                placeholder="6-digit code"
+                class="focus-ring w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tracking-widest placeholder:tracking-normal placeholder:text-slate-400"
+                @keyup.enter="submitMfa"
+              />
+            </div>
+            <p v-if="mfaError" class="text-xs text-rose-600">{{ mfaError }}</p>
+            <button
+              type="button"
+              class="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="mfaCode.trim().length < 6 || auth.isLoading"
+              @click="submitMfa"
+            >
+              <Loader2 v-if="auth.isLoading" class="h-4 w-4 animate-spin" aria-hidden="true" />
+              {{ auth.isLoading ? "Verifying…" : "Verify" }}
+            </button>
+            <button
+              type="button"
+              class="w-full text-center text-xs text-graphite underline-offset-2 hover:underline"
+              @click="mfaRequired = false; mfaCode = ''; mfaError = ''"
+            >
+              Back to sign in
+            </button>
           </div>
 
           <button
+            v-if="!mfaRequired"
             class="focus-ring relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="!canSubmit"
             type="submit"

@@ -71,6 +71,18 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  async function submitMfa(userId: number, code: string) {
+    isLoading.value = true;
+    try {
+      const { data } = await authApi.verifyMfa(userId, code);
+      if (!data.access_token) throw new Error("No access token in MFA response");
+      persist({ access: data.access_token, refresh: data.refresh_token });
+      await loadMe();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function loadMe() {
     const { data } = await authApi.me();
     user.value = data;
@@ -212,6 +224,7 @@ export const useAuthStore = defineStore("auth", () => {
     isImpersonating,
     isLoading,
     login,
+    submitMfa,
     loadMe,
     refreshToken,
     logout,

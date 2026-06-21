@@ -32,7 +32,7 @@ export const usePortalContextStore = defineStore("portalContext", () => {
           ? { name: "writer-dashboard" }
           : ctx.surface === "staff"
             ? { name: "admin-dashboard" }
-            : { name: "home" };
+            : { name: "client-dashboard" };
 
       if (ctx.branding) {
         applyBrandingToCss(ctx.branding);
@@ -41,7 +41,7 @@ export const usePortalContextStore = defineStore("portalContext", () => {
       // Network failure or dev environment without the endpoint — default to client surface.
       surface.value = "client";
       allowedRoles.value = ["client"];
-      homeRoute.value = { name: "home" };
+      homeRoute.value = { name: "client-dashboard" };
     } finally {
       ready.value = true;
     }
