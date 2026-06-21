@@ -48,6 +48,31 @@ services:
       timeout: 5s
       retries: 3
 
+  # PgBouncer — transaction-mode pooler. Keeps real Postgres connections at
+  # PGBOUNCER_DEFAULT_POOL_SIZE (20) no matter how many gunicorn/celery
+  # workers are running, preventing "too many clients" exhaustion.
+  pgbouncer:
+    image: bitnami/pgbouncer:1.23.1
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+    environment:
+      POSTGRESQL_HOST: db
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DATABASE: ${POSTGRES_DB_NAME}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER_NAME}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      PGBOUNCER_DATABASE: ${POSTGRES_DB_NAME}
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 500
+      PGBOUNCER_DEFAULT_POOL_SIZE: 20
+      PGBOUNCER_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     image: ${BACKEND_IMAGE:-writing-platform-backend:local}
     env_file: !reset []
@@ -71,8 +96,8 @@ services:
       POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: db
-      POSTGRES_HOST: db
+      DB_HOST: pgbouncer
+      POSTGRES_HOST: pgbouncer
       DB_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -120,6 +145,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live/', timeout=5)"]
       interval: 30s
@@ -150,8 +177,8 @@ services:
       POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: db
-      POSTGRES_HOST: db
+      DB_HOST: pgbouncer
+      POSTGRES_HOST: pgbouncer
       DB_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -194,6 +221,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
 
   beat:
     image: ${BACKEND_IMAGE:-writing-platform-backend:local}
@@ -218,8 +247,8 @@ services:
       POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: db
-      POSTGRES_HOST: db
+      DB_HOST: pgbouncer
+      POSTGRES_HOST: pgbouncer
       DB_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -259,6 +288,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
 
   nginx:
     image: nginx:1.27.5-alpine    # pinned minor version

@@ -37,6 +37,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # PgBouncer — transaction-mode connection pooler in front of Postgres.
+  # Caps real Postgres connections to PGBOUNCER_DEFAULT_POOL_SIZE regardless
+  # of how many Daphne threads / Celery workers are running.
+  pgbouncer:
+    image: bitnami/pgbouncer:1.23.1
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_HOST: db
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DATABASE: ${POSTGRES_DB_NAME:-writing_system_db}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER_NAME:-postgres}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      PGBOUNCER_DATABASE: ${POSTGRES_DB_NAME:-writing_system_db}
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 200
+      PGBOUNCER_DEFAULT_POOL_SIZE: 10
+      PGBOUNCER_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Django / Wagtail backend
   web:
     build:
@@ -53,9 +74,10 @@ services:
       POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-writing_system_db}
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-      DB_HOST: db
-      POSTGRES_HOST: db
+      DB_HOST: pgbouncer
+      POSTGRES_HOST: pgbouncer
       DB_PORT: 5432
+      DB_CONN_MAX_AGE: "60"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
@@ -79,6 +101,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
     # Daphne serves both HTTP and WebSocket (ASGI).
     # Restart this container after backend code changes in dev.
     command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "--proxy-headers", "writing_system.asgi:application"]
@@ -99,9 +123,10 @@ services:
       POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-writing_system_db}
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-      DB_HOST: db
-      POSTGRES_HOST: db
+      DB_HOST: pgbouncer
+      POSTGRES_HOST: pgbouncer
       DB_PORT: 5432
+      DB_CONN_MAX_AGE: "60"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
@@ -118,6 +143,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
     healthcheck:
       test: ["CMD", "celery", "-A", "writing_system", "inspect", "ping", "--timeout", "10"]
       interval: 30s
@@ -142,9 +169,10 @@ services:
       POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-writing_system_db}
       POSTGRES_USER_NAME: ${POSTGRES_USER_NAME:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-      DB_HOST: db
-      POSTGRES_HOST: db
+      DB_HOST: pgbouncer
+      POSTGRES_HOST: pgbouncer
       DB_PORT: 5432
+      DB_CONN_MAX_AGE: "60"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
@@ -159,6 +187,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
     healthcheck:
       # Beat doesn't expose a port — disable the inherited Dockerfile healthcheck
       test: ["CMD-SHELL", "test -f /proc/1/status"]

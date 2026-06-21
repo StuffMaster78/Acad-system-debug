@@ -36,8 +36,13 @@ DATABASES = {
         "PASSWORD": env("POSTGRES_PASSWORD", "postgres"),
         "HOST": DB_HOST,
         "PORT": env_int("DB_PORT", 5432),
-        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", 60),
+        # Default to 0 (no persistence) when running outside Docker / without PgBouncer.
+        # docker-compose sets DB_CONN_MAX_AGE=60 so connections persist through PgBouncer.
+        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", 0),
+        "CONN_HEALTH_CHECKS": True,
         "ATOMIC_REQUESTS": False,
+        # Required for PgBouncer transaction-mode pooling.
+        "DISABLE_SERVER_SIDE_CURSORS": True,
         "OPTIONS": {
             "connect_timeout": env_int("DB_CONNECT_TIMEOUT", 10),
         },
