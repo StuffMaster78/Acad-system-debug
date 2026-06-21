@@ -24,7 +24,6 @@ const wallets = useWalletStore();
 const files = useFilesStore();
 
 const error = ref("");
-const success = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
 
 // Preferred writer
@@ -491,7 +490,6 @@ function diagramPayload(): DiagramQuotePayload {
 
 async function calculate() {
   error.value = "";
-  success.value = "";
   discountPreview.value = null;
   couponApplied.value = false;
   try {
@@ -555,7 +553,6 @@ async function submit() {
     return;
   }
   error.value = "";
-  success.value = "";
   try {
     const provider = providerFor[paymentMethod.value];
     const baseOrder = {
@@ -1321,11 +1318,6 @@ watch(() => form.service_code, loadAddons);
           <span class="shrink-0 font-bold">!</span>
           {{ error }}
         </div>
-        <div v-if="success" class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800" role="status">
-          <span class="shrink-0 font-bold"></span>
-          {{ success }}
-        </div>
-        <PaymentDisclosureBanner v-if="success" variant="post" />
       </aside>
     </form>
   </div>
