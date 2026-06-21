@@ -8,8 +8,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
-from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -160,11 +160,27 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        """Create a new user (writer, editor, support, or client)."""
+        """
+        Create a new user. Idempotent on email: if a user with the same email
+        already exists, return that user (200) instead of erroring (409/400).
+        This makes double-submissions and retries safe.
+        """
         import secrets
         import string
 
         send_invite = bool(request.data.get("send_invite", False))
+
+        # ── Idempotency check ────────────────────────────────────────────────
+        # If a user with this email already exists, return them immediately.
+        # Covers both intentional re-submissions and race conditions between
+        # two near-simultaneous requests that both pass validate_email.
+        email = (request.data.get("email") or "").strip().lower()
+        if email:
+            existing = User.objects.filter(email__iexact=email).first()
+            if existing:
+                response_data = UserDetailSerializer(existing).data
+                response_data["already_existed"] = True
+                return Response(response_data, status=status.HTTP_200_OK)
 
         # When send_invite is requested, inject a strong random password so the
         # serializer's required-password validation passes. The staff member will
@@ -203,41 +219,51 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
 
         invite_link = None
 
-        with transaction.atomic():
-            user = serializer.save()
+        try:
+            with transaction.atomic():
+                user = serializer.save()
 
-            # Assign website if not provided
-            if not user.website:
-                website = getattr(request.user, 'website', None)
-                if website:
-                    user.website = website
-                    user.save()
+                # Assign website if not provided
+                if not user.website:
+                    website = getattr(request.user, 'website', None)
+                    if website:
+                        user.website = website
+                        user.save()
 
-            # Log activity
-            AdminActivityLog.objects.create(
-                admin=request.user,
-                action=f"Created user {user.username} with role {role}",
-                details=f"Created user: {user.email}"
-            )
+                # Log activity
+                AdminActivityLog.objects.create(
+                    admin=request.user,
+                    action=f"Created user {user.username} with role {role}",
+                    details=f"Created user: {user.email}"
+                )
 
-            # Generate a one-time invite link the admin can share with the new
-            # staff member so they can set their own password.
-            if send_invite:
-                try:
-                    from authentication.services.password_reset_service import PasswordResetService
-                    from authentication.services.token_service import TokenService
+                # Generate a one-time invite link the admin can share with the new
+                # staff member so they can set their own password.
+                if send_invite:
+                    try:
+                        from authentication.services.password_reset_service import PasswordResetService
 
-                    service = PasswordResetService(user=user, website=user.website)
-                    _, raw_token, _, _ = service.create_reset_request()
+                        service = PasswordResetService(user=user, website=user.website)
+                        _, raw_token, _, _ = service.create_reset_request()
 
-                    scheme = "https" if request.is_secure() else "http"
-                    host = request.get_host()
-                    invite_link = (
-                        f"{scheme}://{host}/auth/reset-password"
-                        f"?token={raw_token}&email={user.email}"
-                    )
-                except Exception:
-                    pass  # invite link generation is best-effort — account is still created
+                        scheme = "https" if request.is_secure() else "http"
+                        host = request.get_host()
+                        invite_link = (
+                            f"{scheme}://{host}/auth/reset-password"
+                            f"?token={raw_token}&email={user.email}"
+                        )
+                    except Exception:
+                        pass  # invite link generation is best-effort — account is still created
+
+        except IntegrityError:
+            # Race condition: another request created the same user between our
+            # idempotency check above and the INSERT. Return the winner's record.
+            existing = User.objects.filter(email__iexact=email).first()
+            if existing:
+                response_data = UserDetailSerializer(existing).data
+                response_data["already_existed"] = True
+                return Response(response_data, status=status.HTTP_200_OK)
+            raise  # unexpected integrity error — re-raise for 500 handling
 
         response_data = UserDetailSerializer(user).data
         if invite_link:

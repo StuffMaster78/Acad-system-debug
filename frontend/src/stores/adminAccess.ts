@@ -467,10 +467,14 @@ export const useAdminAccessStore = defineStore("admin-access", () => {
         return;
       }
 
-      const { data } = await adminAccessApi.createUser(createUserForm.value);
+      const res = await adminAccessApi.createUser(createUserForm.value);
+      const data = res.data;
+      const alreadyExisted = data.already_existed === true;
       lastInviteLink.value = data.invite_link ?? null;
-      notice.value = `User ${data.email} created.${lastInviteLink.value ? " Invite link ready." : ""}`;
-      ui.toast(notice.value, "success");
+      notice.value = alreadyExisted
+        ? `User ${data.email} already exists — showing their profile.`
+        : `User ${data.email} created.${lastInviteLink.value ? " Invite link ready." : ""}`;
+      ui.toast(notice.value, alreadyExisted ? "info" : "success");
       await hydrate();
       selectedUserId.value = data.id;
     } catch (caught) {

@@ -28,6 +28,7 @@ export interface CreateUserPayload {
 
 export interface CreateUserResponse extends AdminManagedUser {
   invite_link?: string;
+  already_existed?: boolean;
 }
 
 export interface DuplicateDetectResponse {
