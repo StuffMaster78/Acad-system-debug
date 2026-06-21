@@ -24,8 +24,9 @@ export default defineEventHandler(async (event) => {
         res.on('end', () => {
           const body = Buffer.concat(chunks).toString('utf8')
           setResponseStatus(event, res.statusCode ?? 200)
-          setResponseHeader(event, 'content-type', 'application/json')
-          resolve(body)
+          // Parse JSON so Nuxt's internal SSR fetch receives an object,
+          // not a raw string (which would make data.value?.items undefined)
+          try { resolve(JSON.parse(body)) } catch { resolve(body) }
         })
       },
     )

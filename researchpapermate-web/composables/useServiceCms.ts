@@ -33,7 +33,7 @@ export function useServiceCms(serviceSlug: string) {
           'title', 'slug', 'pricing_from', 'pricing_to',
           'turnaround_hours_fastest', 'turnaround_hours_standard',
           'primary_cta_text', 'primary_cta_url',
-          'reviewer', 'last_substantive_update', 'body', 'schema',
+          'reviewer', 'last_substantive_update', 'body',
         ].join(','),
       },
       onResponseError() {},

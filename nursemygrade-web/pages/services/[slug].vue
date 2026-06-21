@@ -1,10 +1,30 @@
 <script setup lang="ts">
-const route = useRoute()
-const slug = route.params.slug as string
+const route  = useRoute()
+const slug   = route.params.slug as string
+const config = useRuntimeConfig()
 const { getBySlug, getRelated } = useServices()
 
-// useServiceCms now fetches via /wagtail/ proxy (correctly awaited by Nuxt SSR)
-const { page: cmsPage, hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
+// Use the /wagtail server route — it uses node:http which correctly passes the
+// Host header (undici/$fetch ignores Host overrides, so direct backend calls
+// return 0 items because Wagtail doesn't match the site). Await here so the
+// 404 guard below has real data before it runs.
+const wagtailBase = `${config.public.apiBase || ''}/wagtail`
+const svcFields = 'title,slug,pricing_from,pricing_to,turnaround_hours_fastest,turnaround_hours_standard,primary_cta_text,primary_cta_url,reviewer,last_substantive_update,body'
+
+const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(
+  `svc-${slug}`,
+  () => $fetch<{ items: unknown[] }>(`${wagtailBase}/api/v2/pages/`, {
+    params: { type: 'cms_service_pages.ServicePage', slug, fields: svcFields },
+  }).catch(() => null),
+)
+
+import type { CmsServicePage } from '~/composables/useServiceCms'
+// Use awaited data as source of truth — cmsPage from useServiceCms is also kept
+// so useFetch stays active for client-side navigation refreshes
+const cmsPage = computed<CmsServicePage | null>(
+  () => ((_cmsRaw.value as { items?: CmsServicePage[] } | null)?.items?.[0]) ?? null
+)
+const { hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
 const service = getBySlug(slug)
 
 if (!service && !cmsPage.value) {
@@ -24,7 +44,6 @@ const bodyBlocks  = computed(() => cmsPage.value?.body ?? [])
 const bodyLeft    = computed(() => bodyBlocks.value.slice(0, Math.ceil(bodyBlocks.value.length / 2)))
 const bodyRight   = computed(() => bodyBlocks.value.slice(Math.ceil(bodyBlocks.value.length / 2)))
 
-const config  = useRuntimeConfig()
 const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
 const canonicalUrl = `${siteUrl}/services/${slug}`
 

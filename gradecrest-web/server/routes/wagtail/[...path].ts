@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
           const body = Buffer.concat(chunks).toString('utf8')
           setResponseStatus(event, res.statusCode ?? 200)
           setResponseHeader(event, 'content-type', 'application/json')
-          resolve(body)
+          try { resolve(JSON.parse(body)) } catch { resolve(body) }
         })
       },
     )

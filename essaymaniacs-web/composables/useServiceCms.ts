@@ -41,7 +41,7 @@ export function useServiceCms(serviceSlug: string) {
           'turnaround_hours_fastest', 'turnaround_hours_standard',
           'includes_items', 'delivers_items', 'who_for',
           'primary_cta_text', 'primary_cta_url',
-          'reviewer', 'last_substantive_update', 'body', 'schema',
+          'reviewer', 'last_substantive_update', 'body',
         ].join(','),
       },
       onResponseError() {},

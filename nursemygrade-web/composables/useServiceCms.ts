@@ -21,24 +21,26 @@ export interface CmsBlock {
 
 export function useServiceCms(serviceSlug: string) {
   const config = useRuntimeConfig()
-  // /wagtail/[...path] is a Nitro server route that proxies to Django with the
-  // correct Host header. Pass the full path so useFetch doesn't strip the
-  // /wagtail prefix (ofetch drops the baseURL path when the path starts with /).
-  const wagtailBase = `${config.public.apiBase || ''}/wagtail`
+  // In SSR, call Django directly with the site hostname so the API filters
+  // by site correctly. On the client, route through the /wagtail proxy.
+  const apiBase = import.meta.server
+    ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+    : `${config.public.apiBase || ''}/wagtail`
+  const extraHeaders = import.meta.server
+    ? { Host: config.siteHostname as string || 'nursemygrade.com' }
+    : {}
+  const fields = [
+    'title', 'slug', 'pricing_from', 'pricing_to',
+    'turnaround_hours_fastest', 'turnaround_hours_standard',
+    'primary_cta_text', 'primary_cta_url',
+    'reviewer', 'last_substantive_update', 'body',
+  ].join(',')
 
   const { data, status, error } = useFetch<{ items: CmsServicePage[] }>(
-    `${wagtailBase}/api/v2/pages/`,
+    `${apiBase}/api/v2/pages/`,
     {
-      query: {
-        type: 'cms_service_pages.ServicePage',
-        slug: serviceSlug,
-        fields: [
-          'title', 'slug', 'pricing_from', 'pricing_to',
-          'turnaround_hours_fastest', 'turnaround_hours_standard',
-          'primary_cta_text', 'primary_cta_url',
-          'reviewer', 'last_substantive_update', 'body', 'schema',
-        ].join(','),
-      },
+      query: { type: 'cms_service_pages.ServicePage', slug: serviceSlug, fields },
+      headers: extraHeaders,
       onResponseError() {},
     },
   )
