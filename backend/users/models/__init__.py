@@ -8,6 +8,12 @@ from .profile_reminder import (
     ProfileReminderStatus,
     ProfileReminderType,
 )
+from .subscriptions import (
+    ClientSubscription,
+    SubscriptionPreference,
+    SubscriptionType,
+    DeliveryChannel,
+)
 
 __all__ = [
     "User",
@@ -18,5 +24,8 @@ __all__ = [
     "ProfileReminder",
     "ProfileReminderStatus",
     "ProfileReminderType",
-
+    "ClientSubscription",
+    "SubscriptionPreference",
+    "SubscriptionType",
+    "DeliveryChannel",
 ]

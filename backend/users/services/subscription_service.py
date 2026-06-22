@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Any
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from users.models.models_moving_out.subscriptions import (
+from users.models.subscriptions import (
     ClientSubscription,
     SubscriptionPreference,
     SubscriptionType,

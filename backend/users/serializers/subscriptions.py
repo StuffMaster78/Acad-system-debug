@@ -2,7 +2,7 @@
 Serializers for subscription management.
 """
 from rest_framework import serializers
-from users.models.models_moving_out.subscriptions import (
+from users.models.subscriptions import (
     ClientSubscription,
     SubscriptionPreference,
     SubscriptionType,
