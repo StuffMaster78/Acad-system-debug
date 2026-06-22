@@ -2,42 +2,66 @@
   <section class="rounded-lg border border-slate-200 bg-white">
     <div class="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div class="p-5">
+        <!-- Header row -->
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Writer brief</p>
-            <h2 class="mt-1 text-xl font-semibold text-ink">{{ order.topic || "Untitled order" }}</h2>
-            <p class="mt-1 text-sm text-graphite">
-              Order {{ displayReference }} · {{ serviceLabel }}
+            <p class="text-xs font-semibold uppercase tracking-wide text-graphite">
+              Writer brief · <span class="font-bold text-ink">{{ displayReference }}</span>
             </p>
+            <h2 class="mt-1 text-xl font-bold text-ink">{{ order.topic || "Untitled order" }}</h2>
+            <p class="mt-1 text-sm text-graphite">{{ serviceLabel }}</p>
           </div>
-          <span
-            class="rounded-full px-3 py-1 text-xs font-semibold capitalize"
-            :class="deadlineTone.badge"
-          >
-            {{ deadlineTone.label }}
-          </span>
+          <div class="flex flex-col items-end gap-1.5">
+            <span class="rounded-full px-3 py-1 text-xs font-semibold capitalize" :class="deadlineTone.badge">
+              {{ deadlineTone.label }}
+            </span>
+            <span class="text-sm font-bold" :class="deadlineTone.text">{{ deadlineProgressLabel }}</span>
+          </div>
         </div>
 
-        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <BriefMetric label="Pages" :value="pagesLabel" />
-          <BriefMetric label="Slides" :value="slidesLabel" />
-          <BriefMetric label="Designs" :value="designsLabel" />
-          <BriefMetric label="Diagrams" :value="diagramsLabel" />
-          <BriefMetric label="Citation" :value="citationLabel" />
+        <!-- Time progress bar -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between gap-3 text-xs font-semibold text-graphite mb-1.5">
+            <span>Time elapsed</span>
+            <span class="font-bold text-ink">{{ deadlineProgress }}%</span>
+          </div>
+          <div class="h-2.5 rounded-full bg-slate-100">
+            <div class="h-2.5 rounded-full transition-all" :class="deadlineTone.bar" :style="{ width: `${deadlineProgress}%` }" />
+          </div>
+        </div>
+
+        <!-- Full order spec grid -->
+        <div class="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <BriefMetric label="Subject" :value="subjectLabel" />
           <BriefMetric label="Paper type" :value="paperTypeLabel" />
           <BriefMetric label="Academic level" :value="academicLevelLabel" />
-          <BriefMetric label="Sources" :value="sourcesLabel" />
+          <BriefMetric label="Work type" :value="workTypeLabel" />
+          <BriefMetric label="Language" :value="languageLabel" />
+          <BriefMetric label="Formatting style" :value="citationLabel" />
+          <BriefMetric label="Spacing" :value="spacingLabel" />
+          <BriefMetric label="Pages" :value="pagesOnlyLabel" />
+          <BriefMetric label="Words" :value="wordsLabel" />
+          <BriefMetric label="Sources required" :value="sourcesLabel" />
+          <BriefMetric label="Presentation slides" :value="slidesLabel" />
+          <BriefMetric v-if="designs > 0" label="Designs" :value="designsLabel" />
+          <BriefMetric v-if="diagrams > 0" label="Diagrams" :value="diagramsLabel" />
           <BriefMetric label="Your deadline" :value="writerDeadlineLabel" />
         </div>
 
-        <div class="mt-5">
-          <div class="flex items-center justify-between gap-3 text-xs font-semibold text-graphite">
-            <span>Deadline progress</span>
-            <span>{{ deadlineProgressLabel }}</span>
+        <!-- Order status panel -->
+        <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 grid gap-2 sm:grid-cols-2">
+          <p class="col-span-full text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Order status</p>
+          <StatusRow label="Assigned writer" :value="assignedWriterLabel" />
+          <StatusRow label="QA review" :value="qaStatusLabel" :tone="qaStatusTone" />
+          <StatusRow label="Plagiarism check" :value="plagiarismLabel" :tone="plagiarismTone" />
+          <StatusRow label="AI detection" :value="aiDetectionLabel" :tone="aiDetectionTone" />
+          <StatusRow label="Formatting review" :value="formattingReviewLabel" :tone="formattingReviewTone" />
+          <div v-if="order.qa_review_note" class="col-span-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs">
+            <span class="font-semibold text-graphite">Editor notes: </span>
+            <span class="text-ink">{{ order.qa_review_note }}</span>
           </div>
-          <div class="mt-2 h-2 rounded-full bg-slate-100">
-            <div class="h-2 rounded-full transition-all" :class="deadlineTone.bar" :style="{ width: `${deadlineProgress}%` }" />
+          <div v-else class="col-span-full text-xs text-graphite">
+            <span class="font-semibold">Editor notes: </span>None
           </div>
         </div>
 
@@ -300,9 +324,31 @@ const BriefMetric = defineComponent({
     value: { type: String, required: true },
   },
   template: `
-    <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
-      <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">{{ label }}</dt>
-      <dd class="mt-1 truncate text-sm font-semibold text-ink" :title="value">{{ value }}</dd>
+    <div class="rounded-lg border border-slate-100 bg-white p-3">
+      <dt class="text-xs font-medium text-graphite">{{ label }}</dt>
+      <dd class="mt-0.5 truncate text-sm font-bold text-ink" :title="value">{{ value }}</dd>
+    </div>
+  `,
+});
+
+type StatusTone = "pass" | "fail" | "warn" | "neutral";
+const StatusRow = defineComponent({
+  props: {
+    label: { type: String, required: true },
+    value: { type: String, required: true },
+    tone: { type: String as () => StatusTone, default: "neutral" },
+  },
+  template: `
+    <div class="flex items-center justify-between gap-2 text-sm">
+      <span class="text-xs font-semibold text-graphite">{{ label }}</span>
+      <span class="text-xs font-bold rounded-full px-2 py-0.5"
+        :class="{
+          'bg-emerald-100 text-emerald-700': tone === 'pass',
+          'bg-rose-100 text-rose-700': tone === 'fail',
+          'bg-amber-100 text-amber-700': tone === 'warn',
+          'text-graphite': tone === 'neutral',
+        }"
+      >{{ value }}</span>
     </div>
   `,
 });
@@ -366,19 +412,95 @@ const ratePerSlide = computed(() => numeric(props.order.writer_pay_breakdown?.ra
 const ratePerDesign = computed(() => numeric(props.order.writer_pay_breakdown?.rates?.design) || (designCount.value > 0 ? writerTotal.value / designCount.value : 0));
 const ratePerDiagram = computed(() => numeric(props.order.writer_pay_breakdown?.rates?.diagram) || (diagramCount.value > 0 ? writerTotal.value / diagramCount.value : 0));
 
+// — Spec labels ——————————————————————————————————————————————————————————————
 const pagesLabel = computed(() => pages.value > 0 ? `${pages.value}${props.order.spacing ? ` · ${props.order.spacing}` : ""}` : "Not set");
-const slidesLabel = computed(() => slides.value > 0 ? String(slides.value) : "None");
+const pagesOnlyLabel = computed(() => pages.value > 0 ? `${pages.value} page${pages.value !== 1 ? "s" : ""}` : "Not set");
+const slidesLabel = computed(() => slides.value > 0 ? String(slides.value) : "0");
 const designsLabel = computed(() => designs.value > 0 ? String(designs.value) : "None");
 const diagramsLabel = computed(() => diagrams.value > 0 ? String(diagrams.value) : "None");
 const citationLabel = computed(() => props.order.formatting_style_name || String(props.order.formatting_style || "Not set"));
 const subjectLabel = computed(() => props.order.subject_name || String(props.order.subject || "Not set"));
 const paperTypeLabel = computed(() => props.order.paper_type_name || String(props.order.paper_type || "Not set"));
 const academicLevelLabel = computed(() => props.order.academic_level_name || String(props.order.academic_level || "Not set"));
+const workTypeLabel = computed(() => props.order.type_of_work_name || String(props.order.type_of_work || "Not set"));
+const languageLabel = computed(() => props.order.english_type_name || String(props.order.english_type || "Not set"));
+const spacingLabel = computed(() => {
+  const s = String(props.order.spacing ?? "").toLowerCase();
+  if (!s) return "Not set";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+});
+const wordsLabel = computed(() => {
+  if (pages.value <= 0) return "—";
+  const s = String(props.order.spacing ?? "").toLowerCase();
+  const perPage = s.includes("single") ? 550 : 275;
+  const low = pages.value * perPage;
+  const high = pages.value * (perPage + 25);
+  return `${low.toLocaleString()}–${high.toLocaleString()} (auto)`;
+});
 const sourcesLabel = computed(() => {
   const sources = numeric(props.order.number_of_refereces);
   return sources > 0 ? `${sources} source${sources === 1 ? "" : "s"}` : "Check brief";
 });
 const writerDeadlineLabel = computed(() => props.order.writer_deadline ? dateLabel(props.order.writer_deadline) : "Not set");
+
+// — Order status computeds ————————————————————————————————————————————————————
+const assignedWriterLabel = computed(() => {
+  const name = props.order.writer_username;
+  if (name) return name;
+  if (props.lifecycle?.current_writer_registration_id) return props.lifecycle.current_writer_registration_id;
+  return "Unassigned";
+});
+
+const qaStatusLabel = computed(() => {
+  if (props.order.qa_approved_at) return "Approved";
+  if (props.order.qa_returned_at) return "Returned";
+  return "Pending";
+});
+const qaStatusTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
+  if (props.order.qa_approved_at) return "pass";
+  if (props.order.qa_returned_at) return "fail";
+  return "warn";
+});
+
+// Plagiarism/AI detection/formatting review — derived from flags/addons or "Pending"
+const allFlags = computed(() => [
+  ...(props.order.flags ?? []),
+  ...(props.order.addon_names ?? []),
+  ...(props.order.selected_addon_codes ?? []),
+].map((f) => String(f).toLowerCase()));
+
+const plagiarismLabel = computed(() => {
+  if (allFlags.value.some((f) => f.includes("plag") && f.includes("pass"))) return "Passed";
+  if (allFlags.value.some((f) => f.includes("plag") && f.includes("fail"))) return "Failed";
+  return "Pending";
+});
+const plagiarismTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
+  if (plagiarismLabel.value === "Passed") return "pass";
+  if (plagiarismLabel.value === "Failed") return "fail";
+  return "warn";
+});
+
+const aiDetectionLabel = computed(() => {
+  if (allFlags.value.some((f) => f.includes("ai") && f.includes("pass"))) return "Passed";
+  if (allFlags.value.some((f) => f.includes("ai") && f.includes("fail"))) return "Failed";
+  return "Pending";
+});
+const aiDetectionTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
+  if (aiDetectionLabel.value === "Passed") return "pass";
+  if (aiDetectionLabel.value === "Failed") return "fail";
+  return "warn";
+});
+
+const formattingReviewLabel = computed(() => {
+  if (props.order.qa_approved_at) return "Passed";
+  if (props.order.qa_returned_at) return "Returned";
+  return "Pending";
+});
+const formattingReviewTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
+  if (formattingReviewLabel.value === "Passed") return "pass";
+  if (formattingReviewLabel.value === "Returned") return "fail";
+  return "warn";
+});
 
 const addonLabels = computed(() => {
   const raw = [
@@ -434,9 +556,9 @@ const deadlineProgressLabel = computed(() => {
 });
 
 const deadlineTone = computed(() => {
-  if (deadlineProgress.value >= 90) return { label: "Critical", badge: "bg-rose-100 text-rose-700", bar: "bg-rose-500" };
-  if (deadlineProgress.value >= 70) return { label: "Tight", badge: "bg-amber-100 text-amber-700", bar: "bg-amber-500" };
-  return { label: "On track", badge: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" };
+  if (deadlineProgress.value >= 90) return { label: "Critical", badge: "bg-rose-100 text-rose-700", bar: "bg-rose-500", text: "text-rose-600" };
+  if (deadlineProgress.value >= 70) return { label: "Tight", badge: "bg-amber-100 text-amber-700", bar: "bg-amber-500", text: "text-amber-600" };
+  return { label: "On track", badge: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500", text: "text-emerald-600" };
 });
 
 function money(value: number): string {
