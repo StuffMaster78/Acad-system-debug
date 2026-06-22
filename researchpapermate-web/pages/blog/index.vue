@@ -116,6 +116,9 @@ function goPage(p: number) { if (usingCms.value) loadCmsPage(p); else { currentP
 
 const totalPages = computed(() => usingCms.value ? cmsTotalPages.value : staticTotalPages.value)
 const activePage = computed(() => usingCms.value ? cmsPage.value : currentPage.value)
+const displayTotal = computed(() =>
+  usingCms.value && activeCategory.value === 'All' ? cmsTotal.value : filtered.value.length
+)
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -133,132 +136,183 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
 </script>
 
 <template>
-  <div>
+  <div class="bg-parchment-50 min-h-screen" style="--parchment-50: #fdf8f0">
 
-    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-claret-950 py-16 text-center">
-      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-amber-400">Resources</p>
-        <h1 class="text-4xl font-bold text-white sm:text-5xl">Research Paper Blog</h1>
-        <p class="mt-4 text-lg text-brand-200">APA, MLA, citations, literature reviews, and research methodology — from Master's and PhD writers.</p>
+    <!-- ── Header: academic journal cover ───────────────────────────────────── -->
+    <!-- amber rule = journal cover spine -->
+    <div class="h-1.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
+    <section class="bg-claret-950 border-b border-claret-800">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+
+        <!-- Journal masthead -->
+        <div class="border-b border-claret-800 pb-5 mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-500">ResearchPaperMate</p>
+            <h1 class="text-3xl font-bold text-white sm:text-4xl tracking-tight">Research Writing Library</h1>
+          </div>
+          <!-- Journal volume block -->
+          <div class="shrink-0 border border-claret-700 rounded px-4 py-2 text-right">
+            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-claret-400">Academic Reference Series</p>
+            <p class="text-xs text-amber-400 font-semibold mt-0.5">
+              Vol. {{ new Date().getFullYear() }} · Issue {{ new Date().getMonth() + 1 }} · {{ displayTotal }} Guides
+            </p>
+          </div>
+        </div>
+
+        <!-- Description + discipline tags -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <p class="text-claret-300 text-sm max-w-lg leading-relaxed">
+            APA · MLA · Chicago · Harvard style guides, literature review frameworks, and research methodology primers —
+            written by Master's and PhD researchers across 100+ disciplines.
+          </p>
+          <div class="flex flex-wrap gap-1.5 sm:justify-end shrink-0">
+            <span v-for="d in ['APA 7th', 'MLA 9th', 'Chicago', 'Harvard', 'IEEE']" :key="d"
+              class="rounded border border-claret-700 px-2 py-0.5 text-[10px] font-semibold text-claret-300">
+              {{ d }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Category filter as academic subject tabs -->
+        <div v-if="categories.length > 1" class="mt-6 flex flex-wrap gap-2 border-t border-claret-800 pt-5">
+          <button
+            v-for="cat in categories" :key="cat"
+            class="rounded border px-3 py-1 text-xs font-semibold transition-colors"
+            :class="activeCategory === cat
+              ? 'border-amber-500 bg-amber-500 text-claret-950'
+              : 'border-claret-700 text-claret-300 hover:border-amber-400 hover:text-amber-300'"
+            @click="setCategory(cat)"
+          >{{ cat }}</button>
+        </div>
       </div>
     </section>
 
-    <!-- ── Content ────────────────────────────────────────────────────────── -->
-    <section class="bg-white py-14">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- ── Content: numbered journal index layout ─────────────────────────── -->
+    <section class="py-10">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 
-        <div v-if="cmsLoading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="i in 6" :key="i" class="animate-pulse overflow-hidden rounded-2xl border border-slate-200">
-            <div class="h-44 bg-slate-100" />
-            <div class="space-y-3 p-5">
-              <div class="h-3 w-1/3 rounded bg-slate-100" />
-              <div class="h-4 w-3/4 rounded bg-slate-100" />
+        <!-- Loading -->
+        <div v-if="cmsLoading" class="space-y-5">
+          <div v-for="i in 5" :key="i" class="flex gap-6 animate-pulse bg-white rounded-xl p-5">
+            <div class="h-32 w-44 shrink-0 rounded-lg bg-slate-100" />
+            <div class="flex-1 space-y-3 py-2">
+              <div class="h-3 w-1/4 rounded bg-slate-100" />
+              <div class="h-5 w-3/4 rounded bg-slate-100" />
               <div class="h-3 rounded bg-slate-100" />
             </div>
           </div>
         </div>
 
-        <template v-else>
-          <!-- Category filter -->
-          <div v-if="categories.length > 1" class="mb-8 flex flex-wrap gap-2">
-            <button
-              v-for="cat in categories" :key="cat"
-              class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
-              :class="activeCategory === cat ? 'border-brand-600 bg-amber-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
-              @click="setCategory(cat)"
-            >{{ cat }}</button>
-          </div>
+        <!-- Empty -->
+        <div v-else-if="!filtered.length" class="py-20 text-center space-y-4">
+          <p class="text-sm text-slate-500">No articles yet.</p>
+          <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-3 text-sm font-bold text-white hover:bg-amber-700">
+            Place an order →
+          </a>
+        </div>
 
-          <!-- Empty -->
-          <div v-if="!filtered.length" class="space-y-4 py-20 text-center">
-            <p class="text-sm text-slate-500">No articles yet — check back soon.</p>
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors">
-              Place an order <Icon name="arrow-right" class="h-4 w-4" />
-            </a>
-          </div>
+        <div v-else class="space-y-4">
 
-          <template v-else>
-            <!-- Featured post -->
-            <NuxtLink
-              v-if="featured"
-              :to="`/blog/${featured.slug}`"
-              class="group mb-10 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:flex-row"
-            >
-              <div class="h-52 shrink-0 overflow-hidden bg-slate-100 sm:h-auto sm:w-2/5">
-                <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div v-else class="flex h-full items-center justify-center">
-                  <span class="select-none text-5xl font-extrabold text-slate-200">R</span>
-                </div>
+          <!-- Featured: large card with image on right (reversed from NMG) -->
+          <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
+            class="group flex flex-col-reverse gap-5 rounded-2xl border border-claret-100 bg-white p-6 shadow-sm hover:shadow-md transition-all sm:flex-row">
+            <!-- Content (left) -->
+            <div class="flex flex-1 flex-col justify-center space-y-3">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-bold uppercase tracking-widest text-amber-600">Featured</span>
+                <span v-if="featured.category" class="rounded px-2 py-0.5 text-[10px] font-bold" :class="catColor(featured.category)">
+                  {{ featured.category }}
+                </span>
               </div>
-              <div class="flex flex-1 flex-col justify-center space-y-3 p-6 sm:p-8">
-                <div class="flex items-center gap-3 text-xs text-slate-500">
-                  <span v-if="featured.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(featured.category)">{{ featured.category }}</span>
-                  <span class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ featured.readingTime }} min read</span>
-                </div>
-                <h2 class="text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ featured.title }}</h2>
-                <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-slate-500">{{ featured.excerpt }}</p>
-                <div class="flex items-center gap-4 pt-1">
-                  <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(featured.publishedAt) }}</span>
-                  <span class="flex items-center gap-1 text-xs font-semibold text-brand-600 group-hover:underline">Read article <Icon name="arrow-right" class="h-3 w-3" /></span>
-                </div>
+              <h2 class="text-xl font-bold leading-snug text-ink group-hover:text-claret-700 transition-colors sm:text-2xl">
+                {{ featured.title }}
+              </h2>
+              <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-graphite">{{ featured.excerpt }}</p>
+              <div class="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+                <span>{{ featured.readingTime }} min read</span>
+                <span>{{ formatDate(featured.publishedAt) }}</span>
+                <span class="text-claret-700 font-semibold group-hover:underline ml-auto">Read full article →</span>
               </div>
-            </NuxtLink>
-
-            <!-- Post grid -->
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <NuxtLink
-                v-for="post in rest"
-                :key="post.slug"
-                :to="`/blog/${post.slug}`"
-                class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div class="h-44 overflow-hidden bg-slate-100">
-                  <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  <div v-else class="flex h-full items-center justify-center">
-                    <span class="select-none text-2xl font-extrabold text-slate-200">R</span>
-                  </div>
-                </div>
-                <div class="flex flex-1 flex-col space-y-2.5 p-5">
-                  <div class="flex items-center gap-2.5 text-xs text-slate-500">
-                    <span v-if="post.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(post.category)">{{ post.category }}</span>
-                    <span v-if="post.readingTime" class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ post.readingTime }} min</span>
-                  </div>
-                  <h2 class="line-clamp-2 flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ post.title }}</h2>
-                  <p v-if="post.excerpt" class="line-clamp-2 text-xs leading-relaxed text-slate-500">{{ post.excerpt }}</p>
-                  <div class="flex items-center justify-between border-t border-slate-100 pt-1.5">
-                    <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(post.publishedAt) }}</span>
-                    <Icon name="arrow-right" class="h-3.5 w-3.5 text-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
-                  </div>
-                </div>
-              </NuxtLink>
             </div>
-
-            <!-- Pagination -->
-            <div v-if="totalPages > 1" class="mt-12 flex items-center justify-center gap-2">
-              <button :disabled="activePage === 1" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage - 1)">←</button>
-              <button
-                v-for="p in totalPages" :key="p"
-                class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
-                :class="p === activePage ? 'border-brand-600 bg-amber-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
-                @click="goPage(p)"
-              >{{ p }}</button>
-              <button :disabled="activePage === totalPages" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage + 1)">→</button>
+            <!-- Image (right, taller) -->
+            <div class="h-48 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-auto sm:w-64">
+              <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div v-else class="flex h-full items-center justify-center bg-parchment-100">
+                <span class="text-5xl font-extrabold text-parchment-300 select-none">R</span>
+              </div>
             </div>
-          </template>
-        </template>
+          </NuxtLink>
+
+          <!-- Numbered article entries -->
+          <NuxtLink
+            v-for="(post, idx) in rest" :key="post.slug"
+            :to="`/blog/${post.slug}`"
+            class="group flex items-stretch gap-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:shadow-md hover:border-claret-100"
+          >
+            <!-- Entry number -->
+            <div class="flex w-10 shrink-0 flex-col items-center justify-center">
+              <span class="text-xl font-extrabold text-slate-200 tabular-nums">
+                {{ String((featured ? idx + 2 : idx + 1)).padStart(2, '0') }}
+              </span>
+            </div>
+            <!-- Thumbnail -->
+            <div class="h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+              <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <div v-else class="flex h-full items-center justify-center bg-parchment-100">
+                <span class="text-2xl font-extrabold text-parchment-300 select-none">R</span>
+              </div>
+            </div>
+            <!-- Content -->
+            <div class="min-w-0 flex-1 py-1 space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span v-if="post.category" class="rounded px-2 py-0.5 text-[10px] font-bold" :class="catColor(post.category)">
+                  {{ post.category }}
+                </span>
+                <span class="text-xs text-slate-400">{{ post.readingTime }} min read</span>
+              </div>
+              <h2 class="font-bold leading-snug text-ink group-hover:text-claret-700 transition-colors line-clamp-2">
+                {{ post.title }}
+              </h2>
+              <p v-if="post.excerpt" class="line-clamp-2 text-xs leading-relaxed text-graphite hidden sm:block">
+                <span class="font-semibold text-slate-500 uppercase tracking-wide text-[9px]">Abstract — </span>{{ post.excerpt }}
+              </p>
+              <p class="text-xs text-slate-400">{{ formatDate(post.publishedAt) }}</p>
+            </div>
+            <!-- Arrow -->
+            <div class="flex shrink-0 items-center pl-2">
+              <span class="text-slate-200 group-hover:text-claret-700 transition-colors text-lg">→</span>
+            </div>
+          </NuxtLink>
+
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="mt-10 flex items-center justify-center gap-2">
+          <button :disabled="activePage === 1"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-amber-400 hover:text-amber-600 disabled:opacity-40 transition-colors"
+            @click="goPage(activePage - 1)">←</button>
+          <button v-for="p in totalPages" :key="p"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
+            :class="p === activePage ? 'border-amber-500 bg-amber-500 text-white' : 'bg-white border-slate-200 text-slate-500 hover:border-amber-400 hover:text-amber-600'"
+            @click="goPage(p)">{{ p }}</button>
+          <button :disabled="activePage === totalPages"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-amber-400 hover:text-amber-600 disabled:opacity-40 transition-colors"
+            @click="goPage(activePage + 1)">→</button>
+        </div>
 
       </div>
     </section>
 
-    <!-- ── CTA ───────────────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-12 text-center">
+    <!-- CTA: academic/dark -->
+    <section class="bg-claret-950 py-14 text-center border-t border-claret-800">
       <div class="mx-auto max-w-xl space-y-4 px-4">
-        <h2 class="text-xl font-bold text-slate-900">Need your research paper written?</h2>
-        <p class="text-sm text-slate-500">Master's and PhD writers, 100+ subjects. Properly cited, from $15/page.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-amber-600">
-          Place my order <Icon name="arrow-right" class="h-4 w-4" />
+        <p class="text-xs font-bold uppercase tracking-widest text-amber-400">Expert Research Writers</p>
+        <h2 class="text-2xl font-bold text-white">Need your research paper written?</h2>
+        <p class="text-claret-300 text-sm">Master's and PhD writers across 100+ subjects. Properly cited, from $15/page.</p>
+        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-3.5 text-sm font-bold text-claret-950 hover:bg-amber-400 transition-colors">
+          Place my order →
         </a>
       </div>
     </section>

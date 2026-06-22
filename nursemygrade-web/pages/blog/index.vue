@@ -8,7 +8,6 @@ useSeoMeta({
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/blog' }] })
 
-// ── Shared shape used for both CMS and static posts ──────────────────────
 interface Post {
   slug: string
   title: string
@@ -20,7 +19,6 @@ interface Post {
   fromCms: boolean
 }
 
-// ── CMS types ─────────────────────────────────────────────────────────────
 interface CmsPost {
   id: number
   meta: { slug: string; first_published_at: string }
@@ -62,25 +60,14 @@ async function loadCmsPage(p: number) {
 
 await loadCmsPage(1)
 
-// ── Static fallback ────────────────────────────────────────────────────────
 const { getAll } = useBlog()
 const staticPosts = usingCms.value ? [] : getAll()
 
-// ── Normalise ──────────────────────────────────────────────────────────────
 function normCms(p: CmsPost): Post {
   return { slug: p.meta.slug, title: p.title, excerpt: p.excerpt, category: p.category_name || '', readingTime: p.reading_time_minutes || 1, publishedAt: p.meta.first_published_at, thumbnail: p.thumbnail?.url ?? null, fromCms: true }
 }
 function normStatic(p: ReturnType<typeof getAll>[0]): Post {
-  return {
-    slug: p.slug,
-    title: p.title,
-    excerpt: p.excerpt,
-    category: p.category,
-    readingTime: Number.parseInt(p.readTime, 10) || 1,
-    publishedAt: p.date,
-    thumbnail: null,
-    fromCms: false,
-  }
+  return { slug: p.slug, title: p.title, excerpt: p.excerpt, category: p.category, readingTime: Number.parseInt(p.readTime, 10) || 1, publishedAt: p.date, thumbnail: null, fromCms: false }
 }
 
 const allPosts = computed<Post[]>(() =>
@@ -89,7 +76,6 @@ const allPosts = computed<Post[]>(() =>
 
 const cmsTotalPages = computed(() => Math.ceil(cmsTotal.value / PAGE_SIZE))
 
-// ── Category filter (works for both sources) ──────────────────────────────
 const categories = computed(() => {
   const cats = new Set(allPosts.value.map(p => p.category).filter(Boolean))
   return ['All', ...cats]
@@ -116,12 +102,32 @@ function goPage(p: number) { if (usingCms.value) loadCmsPage(p); else { currentP
 
 const totalPages = computed(() => usingCms.value ? cmsTotalPages.value : staticTotalPages.value)
 const activePage = computed(() => usingCms.value ? cmsPage.value : currentPage.value)
+const displayTotal = computed(() =>
+  usingCms.value && activeCategory.value === 'All' ? cmsTotal.value : filtered.value.length
+)
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
-const CAT_COLOR: Record<string, string> = {
+// Tile appearance per category — fallback covers CMS-generated categories
+const CAT_TILE: Record<string, { icon: string; bg: string; text: string; border: string }> = {
+  'All':                  { icon: '📚', bg: 'bg-brand-50',   text: 'text-brand-700',  border: 'border-brand-200' },
+  'Nursing Papers':       { icon: '📄', bg: 'bg-teal-50',    text: 'text-teal-700',   border: 'border-teal-200'  },
+  'Capstone & Research':  { icon: '🎓', bg: 'bg-indigo-50',  text: 'text-indigo-700', border: 'border-indigo-200'},
+  'Citation & Format':    { icon: '📝', bg: 'bg-slate-50',   text: 'text-slate-700',  border: 'border-slate-200' },
+  'Clinical Simulations': { icon: '🏥', bg: 'bg-emerald-50', text: 'text-emerald-700',border: 'border-emerald-200'},
+  'Nursing School':       { icon: '🩺', bg: 'bg-rose-50',    text: 'text-rose-700',   border: 'border-rose-200'  },
+  'Essays':               { icon: '✍️', bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200' },
+  'Research Papers':      { icon: '🔬', bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200'  },
+  'SOAP Notes':           { icon: '🗒️', bg: 'bg-cyan-50',    text: 'text-cyan-700',   border: 'border-cyan-200'  },
+  'Care Plans':           { icon: '💊', bg: 'bg-violet-50',  text: 'text-violet-700', border: 'border-violet-200'},
+}
+function tile(cat: string) {
+  return CAT_TILE[cat] ?? { icon: '📖', bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' }
+}
+
+const CAT_BADGE: Record<string, string> = {
   'Nursing Papers':       'bg-brand-50  text-brand-700',
   'Capstone & Research':  'bg-slate-100 text-slate-700',
   'Citation & Format':    'bg-indigo-50 text-indigo-700',
@@ -130,136 +136,192 @@ const CAT_COLOR: Record<string, string> = {
   'Essays':               'bg-brand-50  text-brand-700',
   'Research Papers':      'bg-blue-50   text-blue-700',
 }
-function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-slate-600' }
+function catBadge(cat: string) { return CAT_BADGE[cat] ?? 'bg-slate-100 text-slate-600' }
 </script>
 
 <template>
-  <div>
+  <div class="min-h-screen bg-slate-50">
 
-    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-16 text-center">
-      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Resources</p>
-        <h1 class="text-4xl font-bold text-white sm:text-5xl">Nursing Blog</h1>
-        <p class="mt-4 text-lg text-brand-200">Care plans, SOAP notes, capstones, and clinical guides — written by real nurses.</p>
+    <!-- ── Header: clean clinical white ─────────────────────────────────────── -->
+    <section class="bg-white border-b border-slate-100 pt-10 pb-6">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div class="mb-2 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1">
+              <span class="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span class="text-xs font-semibold text-brand-700 uppercase tracking-wide">Clinical Resource Centre</span>
+            </div>
+            <h1 class="text-3xl font-bold text-ink sm:text-4xl">Nursing Study Hub</h1>
+            <p class="mt-2 text-sm text-graphite max-w-md">
+              Evidence-based care plans, SOAP notes, capstone guides and clinical tips — written by BSN, MSN, and DNP nurses.
+            </p>
+            <div class="mt-4 flex flex-wrap gap-2 text-xs">
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">✓ NANDA approved</span>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">✓ APA 7th format</span>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">✓ Evidence-based</span>
+            </div>
+          </div>
+          <div class="shrink-0 text-right hidden sm:block">
+            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Clinical Guides</p>
+            <p class="text-4xl font-bold text-brand-600">{{ displayTotal }}<span class="text-2xl">+</span></p>
+            <p class="text-xs text-slate-400 mt-1">Written by real nurses</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ── Content ────────────────────────────────────────────────────────── -->
-    <section class="bg-white py-14">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- ── Topic tiles ───────────────────────────────────────────────────────── -->
+    <section class="bg-white border-b border-slate-100 pb-8 pt-6">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Browse by topic</p>
+        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          <button
+            v-for="cat in categories" :key="cat"
+            class="group flex flex-col items-center gap-2 rounded-2xl border-2 px-2 py-4 text-center transition-all"
+            :class="activeCategory === cat
+              ? [tile(cat).bg, tile(cat).border, 'shadow-sm scale-[1.02]']
+              : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'"
+            @click="setCategory(cat)"
+          >
+            <span class="text-2xl leading-none select-none">{{ tile(cat).icon }}</span>
+            <span class="text-[10px] font-bold leading-snug"
+              :class="activeCategory === cat ? tile(cat).text : 'text-slate-500'">
+              {{ cat }}
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
 
-        <div v-if="cmsLoading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="i in 6" :key="i" class="animate-pulse overflow-hidden rounded-2xl border border-slate-200">
-            <div class="h-44 bg-slate-100" />
-            <div class="space-y-3 p-5">
-              <div class="h-3 w-1/3 rounded bg-slate-100" />
-              <div class="h-4 w-3/4 rounded bg-slate-100" />
+    <!-- ── Article list ──────────────────────────────────────────────────────── -->
+    <section class="py-8">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+
+        <!-- Active filter label -->
+        <div v-if="activeCategory !== 'All'" class="mb-5 flex items-center gap-2">
+          <span class="text-sm font-semibold text-ink">{{ activeCategory }}</span>
+          <span class="text-xs text-slate-400">· {{ filtered.length }} articles</span>
+          <button class="ml-2 text-xs text-brand-600 hover:underline" @click="setCategory('All')">Clear</button>
+        </div>
+
+        <!-- Loading skeleton -->
+        <div v-if="cmsLoading" class="space-y-4">
+          <div v-for="i in 5" :key="i" class="flex gap-5 rounded-2xl bg-white p-5 animate-pulse shadow-sm">
+            <div class="h-32 w-44 shrink-0 rounded-xl bg-slate-100" />
+            <div class="flex-1 space-y-3 py-2">
+              <div class="h-3 w-1/4 rounded bg-slate-100" />
+              <div class="h-5 w-3/4 rounded bg-slate-100" />
               <div class="h-3 rounded bg-slate-100" />
+              <div class="h-3 w-2/3 rounded bg-slate-100" />
             </div>
           </div>
         </div>
 
-        <template v-else>
-          <!-- Category filter -->
-          <div v-if="categories.length > 1" class="mb-8 flex flex-wrap gap-2">
-            <button
-              v-for="cat in categories" :key="cat"
-              class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
-              :class="activeCategory === cat ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
-              @click="setCategory(cat)"
-            >{{ cat }}</button>
-          </div>
+        <!-- Empty -->
+        <div v-else-if="!filtered.length" class="py-20 text-center space-y-4">
+          <p class="text-sm text-slate-500">No articles in this category yet.</p>
+          <a :href="app.order"
+            class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700">
+            Place an order →
+          </a>
+        </div>
 
-          <!-- Empty -->
-          <div v-if="!filtered.length" class="space-y-4 py-20 text-center">
-            <p class="text-sm text-slate-500">No articles yet — check back soon.</p>
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700 transition-colors">
-              Place an order <Icon name="arrow-right" class="h-4 w-4" />
-            </a>
-          </div>
+        <div v-else class="space-y-3">
 
-          <template v-else>
-            <!-- Featured post -->
-            <NuxtLink
-              v-if="featured"
-              :to="`/blog/${featured.slug}`"
-              class="group mb-10 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:flex-row"
-            >
-              <div class="h-52 shrink-0 overflow-hidden bg-slate-100 sm:h-auto sm:w-2/5">
-                <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div v-else class="flex h-full items-center justify-center">
-                  <span class="select-none text-5xl font-extrabold text-slate-200">N</span>
-                </div>
+          <!-- Featured: large card -->
+          <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
+            class="group flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-sm transition-all hover:shadow-md sm:flex-row sm:items-stretch">
+            <div class="h-52 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-auto sm:w-64">
+              <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div v-else class="flex h-full min-h-[180px] items-center justify-center bg-brand-50">
+                <span class="text-5xl font-extrabold text-brand-200 select-none">N</span>
               </div>
-              <div class="flex flex-1 flex-col justify-center space-y-3 p-6 sm:p-8">
-                <div class="flex items-center gap-3 text-xs text-slate-500">
-                  <span v-if="featured.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(featured.category)">{{ featured.category }}</span>
-                  <span class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ featured.readingTime }} min read</span>
-                </div>
-                <h2 class="text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ featured.title }}</h2>
-                <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-slate-500">{{ featured.excerpt }}</p>
-                <div class="flex items-center gap-4 pt-1">
-                  <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(featured.publishedAt) }}</span>
-                  <span class="flex items-center gap-1 text-xs font-semibold text-brand-600 group-hover:underline">Read article <Icon name="arrow-right" class="h-3 w-3" /></span>
-                </div>
+            </div>
+            <div class="flex flex-1 flex-col justify-center space-y-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wide">Latest</span>
+                <span v-if="featured.category"
+                  :class="catBadge(featured.category)"
+                  class="rounded-full px-2.5 py-0.5 text-[10px] font-bold">
+                  {{ featured.category }}
+                </span>
+                <span class="text-xs text-slate-400">{{ featured.readingTime }} min read</span>
               </div>
-            </NuxtLink>
-
-            <!-- Post grid -->
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <NuxtLink
-                v-for="post in rest"
-                :key="post.slug"
-                :to="`/blog/${post.slug}`"
-                class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div class="h-44 overflow-hidden bg-slate-100">
-                  <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  <div v-else class="flex h-full items-center justify-center">
-                    <span class="select-none text-2xl font-extrabold text-slate-200">N</span>
-                  </div>
-                </div>
-                <div class="flex flex-1 flex-col space-y-2.5 p-5">
-                  <div class="flex items-center gap-2.5 text-xs text-slate-500">
-                    <span v-if="post.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(post.category)">{{ post.category }}</span>
-                    <span v-if="post.readingTime" class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ post.readingTime }} min</span>
-                  </div>
-                  <h2 class="line-clamp-2 flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ post.title }}</h2>
-                  <p v-if="post.excerpt" class="line-clamp-2 text-xs leading-relaxed text-slate-500">{{ post.excerpt }}</p>
-                  <div class="flex items-center justify-between border-t border-slate-100 pt-1.5">
-                    <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(post.publishedAt) }}</span>
-                    <Icon name="arrow-right" class="h-3.5 w-3.5 text-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
-                  </div>
-                </div>
-              </NuxtLink>
+              <h2 class="text-xl font-bold leading-snug text-ink transition-colors group-hover:text-brand-700 sm:text-2xl">
+                {{ featured.title }}
+              </h2>
+              <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-graphite">
+                {{ featured.excerpt }}
+              </p>
+              <div class="flex items-center gap-4 pt-1 text-xs text-slate-400">
+                <span>{{ formatDate(featured.publishedAt) }}</span>
+                <span class="font-semibold text-brand-600 group-hover:underline ml-auto">Read guide →</span>
+              </div>
             </div>
+          </NuxtLink>
 
-            <!-- Pagination -->
-            <div v-if="totalPages > 1" class="mt-12 flex items-center justify-center gap-2">
-              <button :disabled="activePage === 1" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage - 1)">←</button>
-              <button
-                v-for="p in totalPages" :key="p"
-                class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
-                :class="p === activePage ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
-                @click="goPage(p)"
-              >{{ p }}</button>
-              <button :disabled="activePage === totalPages" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage + 1)">→</button>
+          <!-- Compact article rows -->
+          <NuxtLink
+            v-for="post in rest" :key="post.slug"
+            :to="`/blog/${post.slug}`"
+            class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition-all hover:shadow-md"
+          >
+            <div class="h-24 w-36 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+              <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <div v-else class="flex h-full items-center justify-center bg-brand-50">
+                <span class="text-2xl font-extrabold text-brand-200 select-none">N</span>
+              </div>
             </div>
-          </template>
-        </template>
+            <div class="min-w-0 flex-1 space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span v-if="post.category"
+                  :class="catBadge(post.category)"
+                  class="rounded-full px-2 py-0.5 text-[10px] font-bold">
+                  {{ post.category }}
+                </span>
+                <span class="text-xs text-slate-400">{{ post.readingTime }} min</span>
+              </div>
+              <h2 class="text-sm font-bold leading-snug text-ink group-hover:text-brand-700 transition-colors line-clamp-2 sm:text-base">
+                {{ post.title }}
+              </h2>
+              <p v-if="post.excerpt" class="hidden line-clamp-1 text-xs leading-relaxed text-graphite sm:block">
+                {{ post.excerpt }}
+              </p>
+              <p class="text-xs text-slate-400">{{ formatDate(post.publishedAt) }}</p>
+            </div>
+            <div class="shrink-0 text-slate-300 group-hover:text-brand-600 transition-colors">→</div>
+          </NuxtLink>
+
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="mt-10 flex items-center justify-center gap-2">
+          <button :disabled="activePage === 1"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-40 transition-colors"
+            @click="goPage(activePage - 1)">←</button>
+          <button v-for="p in totalPages" :key="p"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
+            :class="p === activePage ? 'border-brand-600 bg-brand-600 text-white' : 'bg-white border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
+            @click="goPage(p)">{{ p }}</button>
+          <button :disabled="activePage === totalPages"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-40 transition-colors"
+            @click="goPage(activePage + 1)">→</button>
+        </div>
 
       </div>
     </section>
 
-    <!-- ── CTA ───────────────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-12 text-center">
+    <!-- ── CTA ────────────────────────────────────────────────────────────────── -->
+    <section class="bg-brand-900 py-14 text-center">
       <div class="mx-auto max-w-xl space-y-4 px-4">
-        <h2 class="text-xl font-bold text-slate-900">Need a nurse to write it for you?</h2>
-        <p class="text-sm text-slate-500">BSN · MSN · DNP writers. NANDA, SOAP, APA 7th. Grade or money back.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-700">
-          Get my nurse writer <Icon name="arrow-right" class="h-4 w-4" />
+        <p class="text-xs font-bold uppercase tracking-widest text-brand-400">Expert Help Available</p>
+        <h2 class="text-2xl font-bold text-white">Need a nurse to write it for you?</h2>
+        <p class="text-brand-200 text-sm">BSN · MSN · DNP writers. NANDA, SOAP, APA 7th. Grade or money back.</p>
+        <a :href="app.order"
+          class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 hover:bg-brand-50 transition-colors">
+          Get my nurse writer →
         </a>
       </div>
     </section>

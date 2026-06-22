@@ -142,6 +142,13 @@ if (article.value) {
 const toc = computed(() => extractToc(article.value?.body ?? []))
 const tocOpen = ref(true)
 const activeTocId = ref('')
+const activeTocIndex = computed(() => toc.value.findIndex(t => t.id === activeTocId.value))
+const tocProgress = computed(() => {
+  const total = toc.value.length
+  if (!total) return 0
+  const idx = activeTocIndex.value
+  return idx < 0 ? 0 : Math.round((idx / Math.max(total - 1, 1)) * 100)
+})
 onMounted(() => {
   if (!toc.value.length) return
   const observer = new IntersectionObserver(
@@ -182,8 +189,7 @@ onMounted(() => {
 })
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-// ── Engagement: view tracking + helpful reaction ──────────────────────────
-const helpfulState = ref<'idle' | 'yes' | 'no'>('idle')
+// ── Engagement: view tracking + star rating feedback ─────────────────────
 const viewsDisplay = ref(article.value?.views_count ?? 0)
 
 onMounted(async () => {
@@ -191,8 +197,6 @@ onMounted(async () => {
   if (!a?.id || !a.page_content_type_id) return
   const base = config.public.apiBase || ''
   if (!base) return
-
-  // Track this page view (fire-and-forget)
   try {
     await $fetch(`${base}/cms-api/engagement/track-view/`, {
       method: 'POST',
@@ -202,20 +206,36 @@ onMounted(async () => {
   } catch { /* non-critical */ }
 })
 
-async function markHelpful(helpful: boolean) {
-  if (helpfulState.value !== 'idle') return
+// Star rating feedback
+const hoverRating    = ref(0)
+const selectedRating = ref(0)
+const feedbackState  = ref<'idle' | 'rating' | 'done'>('idle')
+const selectedTags   = ref<Set<string>>(new Set())
+const feedbackComment = ref('')
+const feedbackTags   = ['Very helpful', 'Easy to understand', 'Well-structured', 'Needs examples', 'Missing info', 'Too long']
+
+function selectRating(star: number) {
+  selectedRating.value = star
+  feedbackState.value  = 'rating'
+}
+function toggleTag(tag: string) {
+  const s = new Set(selectedTags.value)
+  s.has(tag) ? s.delete(tag) : s.add(tag)
+  selectedTags.value = s
+}
+async function submitFeedback() {
+  feedbackState.value = 'done'
   const a = article.value
   if (!a?.id || !a.page_content_type_id) return
   const base = config.public.apiBase || ''
   if (!base) return
-  helpfulState.value = helpful ? 'yes' : 'no'
   try {
     await $fetch(`${base}/cms-api/engagement/react/`, {
       method: 'POST',
       body: {
         content_type_id: a.page_content_type_id,
         object_id: a.id,
-        reaction_type: helpful ? 'thumbs_up' : 'thumbs_down',
+        reaction_type: selectedRating.value >= 3 ? 'thumbs_up' : 'thumbs_down',
       },
     })
   } catch { /* non-critical */ }
@@ -442,31 +462,72 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                 </button>
               </div>
 
-              <!-- Views + Was this helpful? -->
-              <div class="mt-8 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 flex flex-wrap items-center justify-between gap-4 print:hidden">
-                <p v-if="viewsDisplay" class="text-xs text-slate-400">
-                  <span class="font-semibold text-slate-600">{{ viewsDisplay.toLocaleString() }}</span> readers found this article
-                </p>
-                <div class="flex items-center gap-3 ml-auto">
-                  <span class="text-xs font-semibold text-slate-500">Was this helpful?</span>
-                  <button
-                    class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
-                    :class="helpfulState === 'yes' ? 'border-gc-400 bg-gc-50 text-gc-700' : 'border-slate-200 text-slate-500 hover:border-gc-300 hover:text-gc-600'"
-                    :disabled="helpfulState !== 'idle'"
-                    @click="markHelpful(true)"
-                  >
-                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
-                    {{ helpfulState === 'yes' ? 'Thanks!' : 'Yes' }}
-                  </button>
-                  <button
-                    class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
-                    :class="helpfulState === 'no' ? 'border-rose-300 bg-rose-50 text-rose-600' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'"
-                    :disabled="helpfulState !== 'idle'"
-                    @click="markHelpful(false)"
-                  >
-                    <svg class="size-3.5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
-                    No
-                  </button>
+              <!-- Star rating feedback -->
+              <div class="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white print:hidden">
+                <div class="border-b border-slate-100 px-5 py-4">
+                  <p class="text-sm font-semibold text-ink">Rate this article</p>
+                  <p class="mt-0.5 text-xs text-graphite">
+                    <template v-if="viewsDisplay">
+                      <span class="font-semibold text-slate-600">{{ viewsDisplay.toLocaleString() }}</span> students read this ·
+                    </template>
+                    Your feedback helps us improve
+                  </p>
+                </div>
+                <div class="p-5 space-y-4">
+                  <!-- Idle / rating state -->
+                  <template v-if="feedbackState !== 'done'">
+                    <!-- Stars -->
+                    <div class="flex items-center gap-1">
+                      <button
+                        v-for="star in 5" :key="star"
+                        class="text-3xl leading-none transition-all hover:scale-110 focus:outline-none"
+                        :class="(hoverRating || selectedRating) >= star ? 'text-amber-400' : 'text-slate-200'"
+                        @mouseenter="hoverRating = star"
+                        @mouseleave="hoverRating = 0"
+                        @click="selectRating(star)"
+                        :aria-label="`Rate ${star} out of 5`"
+                      >★</button>
+                      <span v-if="selectedRating" class="ml-2 text-xs text-slate-500">
+                        {{ ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'][selectedRating] }}
+                      </span>
+                    </div>
+                    <!-- Quick tags + comment after rating is selected -->
+                    <template v-if="feedbackState === 'rating'">
+                      <p class="text-xs font-medium text-graphite">What did you think? <span class="text-slate-400 font-normal">(optional)</span></p>
+                      <div class="flex flex-wrap gap-2">
+                        <button
+                          v-for="tag in feedbackTags" :key="tag"
+                          class="rounded-full border px-3 py-1 text-xs transition-colors"
+                          :class="selectedTags.has(tag)
+                            ? 'border-gc-400 bg-gc-50 text-gc-700 font-semibold'
+                            : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'"
+                          @click="toggleTag(tag)"
+                        >{{ tag }}</button>
+                      </div>
+                      <textarea
+                        v-model="feedbackComment"
+                        placeholder="Any other thoughts? (optional)"
+                        rows="2"
+                        class="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-xs text-ink placeholder:text-slate-400 focus:border-gc-300 focus:outline-none focus:ring-2 focus:ring-gc-100"
+                      />
+                      <button
+                        class="rounded-xl bg-gc-600 px-5 py-2 text-xs font-bold text-white hover:bg-gc-700 transition-colors"
+                        @click="submitFeedback"
+                      >Submit feedback</button>
+                    </template>
+                  </template>
+                  <!-- Done state -->
+                  <div v-else class="flex items-center gap-3 py-1">
+                    <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gc-100">
+                      <svg class="size-4 text-gc-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-ink">Thanks for your feedback!</p>
+                      <p class="text-xs text-graphite">It helps us write better guides for students like you.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -525,21 +586,54 @@ const tags             = computed(() => article.value?.tag_names ?? [])
             <aside class="hidden lg:block print:hidden">
               <div class="sticky top-24 space-y-5">
 
-                <!-- Sidebar TOC -->
-                <div v-if="toc.length >= 2" class="rounded-2xl border border-slate-200 bg-white p-5">
-                  <p class="text-xs font-bold uppercase tracking-widest text-graphite mb-3">In this article</p>
-                  <nav>
-                    <ol class="space-y-2 text-sm list-none">
+                <!-- Sidebar TOC: chapter progress -->
+                <div v-if="toc.length >= 2" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+                    <p class="text-xs font-bold uppercase tracking-widest text-graphite">In this article</p>
+                    <span v-if="activeTocIndex >= 0" class="text-xs tabular-nums text-slate-400">
+                      {{ activeTocIndex + 1 }}/{{ toc.length }}
+                    </span>
+                  </div>
+                  <nav class="p-4">
+                    <ol class="relative list-none space-y-0">
+                      <!-- Track line -->
+                      <div class="absolute left-[9px] top-2.5 bottom-2.5 w-px bg-slate-200" />
+                      <!-- Progress fill -->
+                      <div
+                        class="absolute left-[9px] top-2.5 w-px bg-gc-500 transition-all duration-500 ease-out"
+                        :style="{ height: `calc(${tocProgress}% * (100% - 20px) / 100 + 2px)` }"
+                      />
                       <li
-                        v-for="item in toc" :key="item.id"
-                        :class="item.level === 'h3' ? 'pl-3' : item.level === 'h4' ? 'pl-6' : ''"
+                        v-for="(item, i) in toc" :key="item.id"
+                        class="relative flex gap-3 pb-4 last:pb-0"
+                        :class="item.level === 'h3' ? 'pl-3' : item.level === 'h4' ? 'pl-5' : ''"
                       >
+                        <!-- Chapter dot -->
+                        <div
+                          class="relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300"
+                          :class="i < activeTocIndex
+                            ? 'border-gc-500 bg-gc-500'
+                            : activeTocId === item.id
+                              ? 'border-gc-600 bg-gc-600 scale-110 shadow-sm'
+                              : 'border-slate-300 bg-white'"
+                        >
+                          <svg v-if="i < activeTocIndex" class="size-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                          </svg>
+                          <span v-else class="text-[7px] font-bold tabular-nums"
+                            :class="activeTocId === item.id ? 'text-white' : 'text-slate-400'">
+                            {{ i + 1 }}
+                          </span>
+                        </div>
+                        <!-- Chapter link -->
                         <a
                           :href="`#${item.id}`"
-                          class="block leading-snug transition-colors py-0.5 border-l-2 pl-3 -ml-3"
+                          class="flex-1 pt-0.5 text-sm leading-snug transition-colors"
                           :class="activeTocId === item.id
-                            ? 'text-gc-600 font-semibold border-gc-500'
-                            : 'text-graphite hover:text-gc-600 border-transparent'"
+                            ? 'font-semibold text-gc-700'
+                            : i < activeTocIndex
+                              ? 'text-slate-400 hover:text-gc-600'
+                              : 'text-graphite hover:text-gc-600'"
                         >{{ item.text }}</a>
                       </li>
                     </ol>
@@ -563,6 +657,12 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                   <a href="/order" class="block rounded-xl bg-white text-gc-700 font-bold text-sm py-2.5 text-center hover:bg-gc-50 transition-colors">
                     Order now →
                   </a>
+                </div>
+
+                <!-- Social proof nudge -->
+                <div v-if="article.category_name" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
+                  <p class="text-xs font-semibold text-emerald-700">🎓 Popular this week</p>
+                  <p class="text-xs text-emerald-600 mt-0.5">Students are ordering expert help with <span class="font-semibold">{{ article.category_name }}</span></p>
                 </div>
 
                 <!-- Last updated -->

@@ -33,6 +33,7 @@ const navAfter = [
   { label: 'Reviews',  href: '/reviews' },
   { label: 'Contact',  href: '/contact' },
 ]
+const nav = [...navBefore, ...navAfter]
 
 const route = useRoute()
 const mobileOpen   = ref(false)

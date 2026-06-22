@@ -8,7 +8,6 @@ useSeoMeta({
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/blog' }] })
 
-// ── Shared shape used for both CMS and static posts ──────────────────────
 interface Post {
   slug: string
   title: string
@@ -20,7 +19,6 @@ interface Post {
   fromCms: boolean
 }
 
-// ── CMS types ─────────────────────────────────────────────────────────────
 interface CmsPost {
   id: number
   meta: { slug: string; first_published_at: string }
@@ -62,25 +60,14 @@ async function loadCmsPage(p: number) {
 
 await loadCmsPage(1)
 
-// ── Static fallback ────────────────────────────────────────────────────────
 const { getAll } = useBlog()
 const staticPosts = usingCms.value ? [] : getAll()
 
-// ── Normalise ──────────────────────────────────────────────────────────────
 function normCms(p: CmsPost): Post {
   return { slug: p.meta.slug, title: p.title, excerpt: p.excerpt, category: p.category_name || '', readingTime: p.reading_time_minutes || 1, publishedAt: p.meta.first_published_at, thumbnail: p.thumbnail?.url ?? null, fromCms: true }
 }
 function normStatic(p: ReturnType<typeof getAll>[0]): Post {
-  return {
-    slug: p.slug,
-    title: p.title,
-    excerpt: p.excerpt,
-    category: p.category,
-    readingTime: Number.parseInt(p.readTime, 10) || 1,
-    publishedAt: p.date,
-    thumbnail: null,
-    fromCms: false,
-  }
+  return { slug: p.slug, title: p.title, excerpt: p.excerpt, category: p.category, readingTime: Number.parseInt(p.readTime, 10) || 1, publishedAt: p.date, thumbnail: null, fromCms: false }
 }
 
 const allPosts = computed<Post[]>(() =>
@@ -89,14 +76,13 @@ const allPosts = computed<Post[]>(() =>
 
 const cmsTotalPages = computed(() => Math.ceil(cmsTotal.value / PAGE_SIZE))
 
-// ── Category filter (works for both sources) ──────────────────────────────
 const categories = computed(() => {
   const cats = new Set(allPosts.value.map(p => p.category).filter(Boolean))
   return ['All', ...cats]
 })
 const activeCategory = ref('All')
 const currentPage    = ref(1)
-const STATIC_PER_PAGE = 9
+const STATIC_PER_PAGE = 12
 
 const filtered = computed(() =>
   activeCategory.value === 'All' ? allPosts.value : allPosts.value.filter(p => p.category === activeCategory.value)
@@ -131,132 +117,173 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
 </script>
 
 <template>
-  <div>
+  <div class="min-h-screen bg-white">
 
-    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
-    <section class="relative overflow-hidden bg-brand-900 py-16 text-center">
-      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div class="relative mx-auto max-w-2xl px-4 sm:px-6">
-        <p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-300">Resources</p>
-        <h1 class="text-4xl font-bold text-white sm:text-5xl">Academic Writing Blog</h1>
-        <p class="mt-4 text-lg text-brand-200">Essays, dissertations, and study guides from our subject-specialist team.</p>
+    <!-- ── Header: editorial reading hub (no dark background) ───────────────── -->
+    <section class="border-b border-slate-100 bg-white pt-10">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between pb-6">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500 mb-1">EssayManiacs · Writing Hub</p>
+            <h1 class="text-3xl font-extrabold text-ink sm:text-4xl leading-tight">
+              Write Better.<span class="text-brand-600"> Grade Higher.</span>
+            </h1>
+            <p class="mt-2 text-sm text-graphite max-w-md">
+              Expert guides on essays, research papers, dissertations and more — from specialist writers across 100+ subjects.
+            </p>
+          </div>
+          <a :href="app.order"
+            class="shrink-0 self-start sm:self-end inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 transition-colors">
+            Get expert help →
+          </a>
+        </div>
+
+        <!-- Category tab bar -->
+        <div class="flex overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <button
+            v-for="cat in categories" :key="cat"
+            class="shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap"
+            :class="activeCategory === cat
+              ? 'border-brand-600 text-brand-700 font-semibold'
+              : 'border-transparent text-slate-500 hover:text-ink hover:border-slate-200'"
+            @click="setCategory(cat)"
+          >{{ cat }}</button>
+          <span class="ml-auto shrink-0 flex items-center pl-6 pb-3 text-xs text-slate-400 whitespace-nowrap">
+            {{ filtered.length }} articles
+          </span>
+        </div>
+
       </div>
     </section>
 
-    <!-- ── Content ────────────────────────────────────────────────────────── -->
-    <section class="bg-white py-14">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- ── Reading list ──────────────────────────────────────────────────────── -->
+    <section class="bg-white py-8">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
 
-        <div v-if="cmsLoading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="i in 6" :key="i" class="animate-pulse overflow-hidden rounded-2xl border border-slate-200">
-            <div class="h-44 bg-slate-100" />
-            <div class="space-y-3 p-5">
-              <div class="h-3 w-1/3 rounded bg-slate-100" />
-              <div class="h-4 w-3/4 rounded bg-slate-100" />
+        <!-- Loading skeleton -->
+        <div v-if="cmsLoading" class="divide-y divide-slate-100">
+          <div v-for="i in 5" :key="i" class="flex gap-5 py-7 animate-pulse">
+            <div class="flex-1 space-y-3">
+              <div class="h-3 w-24 rounded bg-slate-100" />
+              <div class="h-5 w-3/4 rounded bg-slate-100" />
               <div class="h-3 rounded bg-slate-100" />
+              <div class="h-3 w-1/2 rounded bg-slate-100" />
             </div>
+            <div class="h-24 w-36 shrink-0 rounded-xl bg-slate-100" />
           </div>
         </div>
 
+        <!-- Empty -->
+        <div v-else-if="!filtered.length" class="py-20 text-center space-y-4">
+          <p class="text-sm text-slate-500">No articles yet. Check back soon.</p>
+          <a :href="app.order"
+            class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700">
+            Place an order →
+          </a>
+        </div>
+
         <template v-else>
-          <!-- Category filter -->
-          <div v-if="categories.length > 1" class="mb-8 flex flex-wrap gap-2">
-            <button
-              v-for="cat in categories" :key="cat"
-              class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
-              :class="activeCategory === cat ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
-              @click="setCategory(cat)"
-            >{{ cat }}</button>
-          </div>
+          <div class="divide-y divide-slate-100">
 
-          <!-- Empty -->
-          <div v-if="!filtered.length" class="space-y-4 py-20 text-center">
-            <p class="text-sm text-slate-500">No articles yet — check back soon.</p>
-            <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700 transition-colors">
-              Place an order <Icon name="arrow-right" class="h-4 w-4" />
-            </a>
-          </div>
-
-          <template v-else>
-            <!-- Featured post -->
-            <NuxtLink
-              v-if="featured"
-              :to="`/blog/${featured.slug}`"
-              class="group mb-10 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:flex-row"
-            >
-              <div class="h-52 shrink-0 overflow-hidden bg-slate-100 sm:h-auto sm:w-2/5">
-                <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div v-else class="flex h-full items-center justify-center">
-                  <span class="select-none text-5xl font-extrabold text-slate-200">E</span>
+            <!-- Featured: Editor's Pick, larger treatment -->
+            <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
+              class="group flex flex-col gap-5 py-8 sm:flex-row sm:items-start sm:gap-8">
+              <div class="flex-1 min-w-0 space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wide">
+                    Editor's Pick
+                  </span>
+                  <span v-if="featured.category"
+                    :class="catColor(featured.category)"
+                    class="rounded-full px-2.5 py-0.5 text-[10px] font-bold">
+                    {{ featured.category }}
+                  </span>
+                </div>
+                <h2 class="text-2xl font-extrabold leading-snug text-ink group-hover:text-brand-700 transition-colors sm:text-3xl">
+                  {{ featured.title }}
+                </h2>
+                <p v-if="featured.excerpt" class="text-sm leading-relaxed text-graphite line-clamp-3">
+                  {{ featured.excerpt }}
+                </p>
+                <div class="flex items-center gap-3 pt-1 text-xs text-slate-400">
+                  <span>{{ featured.readingTime }} min read</span>
+                  <span>·</span>
+                  <span>{{ formatDate(featured.publishedAt) }}</span>
+                  <span class="ml-auto font-semibold text-brand-600 group-hover:underline">Read article →</span>
                 </div>
               </div>
-              <div class="flex flex-1 flex-col justify-center space-y-3 p-6 sm:p-8">
-                <div class="flex items-center gap-3 text-xs text-slate-500">
-                  <span v-if="featured.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(featured.category)">{{ featured.category }}</span>
-                  <span class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ featured.readingTime }} min read</span>
-                </div>
-                <h2 class="text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ featured.title }}</h2>
-                <p v-if="featured.excerpt" class="line-clamp-3 text-sm leading-relaxed text-slate-500">{{ featured.excerpt }}</p>
-                <div class="flex items-center gap-4 pt-1">
-                  <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(featured.publishedAt) }}</span>
-                  <span class="flex items-center gap-1 text-xs font-semibold text-brand-600 group-hover:underline">Read article <Icon name="arrow-right" class="h-3 w-3" /></span>
+              <div class="h-48 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-40 sm:w-60">
+                <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div v-else class="flex h-full items-center justify-center bg-brand-50">
+                  <span class="text-5xl font-extrabold text-brand-200 select-none">E</span>
                 </div>
               </div>
             </NuxtLink>
 
-            <!-- Post grid -->
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <NuxtLink
-                v-for="post in rest"
-                :key="post.slug"
-                :to="`/blog/${post.slug}`"
-                class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div class="h-44 overflow-hidden bg-slate-100">
-                  <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  <div v-else class="flex h-full items-center justify-center">
-                    <span class="select-none text-2xl font-extrabold text-slate-200">E</span>
-                  </div>
+            <!-- Compact reading list rows -->
+            <NuxtLink
+              v-for="post in rest" :key="post.slug"
+              :to="`/blog/${post.slug}`"
+              class="group flex items-start gap-4 py-6 transition-colors hover:bg-slate-50/70 -mx-4 px-4 sm:mx-0 sm:px-0"
+            >
+              <div class="flex-1 min-w-0 space-y-1.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span v-if="post.category"
+                    :class="catColor(post.category)"
+                    class="rounded-full px-2 py-0.5 text-[10px] font-bold">
+                    {{ post.category }}
+                  </span>
+                  <span class="text-xs text-slate-400">{{ post.readingTime }} min read</span>
                 </div>
-                <div class="flex flex-1 flex-col space-y-2.5 p-5">
-                  <div class="flex items-center gap-2.5 text-xs text-slate-500">
-                    <span v-if="post.category" class="rounded-full px-2.5 py-0.5 font-semibold" :class="catColor(post.category)">{{ post.category }}</span>
-                    <span v-if="post.readingTime" class="flex items-center gap-1"><Icon name="clock" class="h-3 w-3" />{{ post.readingTime }} min</span>
-                  </div>
-                  <h2 class="line-clamp-2 flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-700">{{ post.title }}</h2>
-                  <p v-if="post.excerpt" class="line-clamp-2 text-xs leading-relaxed text-slate-500">{{ post.excerpt }}</p>
-                  <div class="flex items-center justify-between border-t border-slate-100 pt-1.5">
-                    <span class="flex items-center gap-1 text-xs text-slate-400"><Icon name="calendar" class="h-3 w-3" />{{ formatDate(post.publishedAt) }}</span>
-                    <Icon name="arrow-right" class="h-3.5 w-3.5 text-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
-                  </div>
+                <h2 class="text-[1rem] font-bold leading-snug text-ink group-hover:text-brand-700 transition-colors line-clamp-2">
+                  {{ post.title }}
+                </h2>
+                <p v-if="post.excerpt"
+                  class="hidden text-xs leading-relaxed text-graphite line-clamp-2 sm:block">
+                  {{ post.excerpt }}
+                </p>
+                <p class="text-xs text-slate-400">{{ formatDate(post.publishedAt) }}</p>
+              </div>
+              <div class="h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-24 sm:w-36">
+                <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                <div v-else class="flex h-full items-center justify-center">
+                  <span class="text-2xl font-extrabold text-slate-200 select-none">E</span>
                 </div>
-              </NuxtLink>
-            </div>
+              </div>
+            </NuxtLink>
 
-            <!-- Pagination -->
-            <div v-if="totalPages > 1" class="mt-12 flex items-center justify-center gap-2">
-              <button :disabled="activePage === 1" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage - 1)">←</button>
-              <button
-                v-for="p in totalPages" :key="p"
-                class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
-                :class="p === activePage ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
-                @click="goPage(p)"
-              >{{ p }}</button>
-              <button :disabled="activePage === totalPages" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors" @click="goPage(activePage + 1)">→</button>
-            </div>
-          </template>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="mt-10 flex items-center justify-center gap-2">
+            <button :disabled="activePage === 1"
+              class="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-40 transition-colors"
+              @click="goPage(activePage - 1)">←</button>
+            <button v-for="p in totalPages" :key="p"
+              class="flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition-colors"
+              :class="p === activePage ? 'border-brand-600 bg-brand-600 text-white' : 'bg-white border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600'"
+              @click="goPage(p)">{{ p }}</button>
+            <button :disabled="activePage === totalPages"
+              class="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-40 transition-colors"
+              @click="goPage(activePage + 1)">→</button>
+          </div>
         </template>
 
       </div>
     </section>
 
-    <!-- ── CTA ───────────────────────────────────────────────────────────── -->
-    <section class="bg-slate-50 py-12 text-center">
+    <!-- ── CTA ────────────────────────────────────────────────────────────────── -->
+    <section class="border-t border-slate-100 bg-brand-50 py-14 text-center">
       <div class="mx-auto max-w-xl space-y-4 px-4">
-        <h2 class="text-xl font-bold text-slate-900">Need help with your essay or paper?</h2>
-        <p class="text-sm text-slate-500">Subject specialists across 100+ fields. Grade or money back.</p>
-        <a :href="app.order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-700">
-          Start my order <Icon name="arrow-right" class="h-4 w-4" />
+        <p class="text-xs font-bold uppercase tracking-widest text-brand-400">Deadline coming up?</p>
+        <h2 class="text-2xl font-extrabold text-ink">Your paper, handled.</h2>
+        <p class="text-sm text-graphite">Subject specialists across 100+ fields. Grade or money back. From $10/page.</p>
+        <a :href="app.order"
+          class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-8 py-3.5 text-sm font-bold text-white hover:bg-brand-700 transition-colors shadow-md">
+          Start my order →
         </a>
       </div>
     </section>
