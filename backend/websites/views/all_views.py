@@ -42,7 +42,12 @@ class WebsiteViewSet(viewsets.ModelViewSet):
         """Filter websites based on user's role and website assignment."""
         queryset = Website.objects.all().order_by('id')
 
-        # Superadmins see all websites
+        # Honour ?is_active=true/false query param
+        is_active_param = self.request.query_params.get("is_active")
+        if is_active_param is not None:
+            queryset = queryset.filter(is_active=is_active_param.lower() == "true")
+
+        # Superadmins see all (optionally filtered) websites
         if self.request.user.role == 'superadmin':
             return queryset
 

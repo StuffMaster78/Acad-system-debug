@@ -111,7 +111,11 @@ class ListPredefinedSpecialOrderConfigsView(APIView):
             if website is None:
                 raise NotFound("Website not found.")
             return website
-        return getattr(request, "website", None) or request.user.website
+        # For clients and writers always use the account's own website so that
+        # portal-proxied requests (Host: localhost) don't bleed through.
+        if role in {"client", "writer"}:
+            return getattr(request.user, "website", None)
+        return getattr(request, "website", None) or getattr(request.user, "website", None)
 
     def get(self, request):
         website = self._website(request)
@@ -279,7 +283,11 @@ class PredefinedSpecialOrderConfigDetailView(APIView):
             if website is None:
                 raise NotFound("Website not found.")
             return website
-        return getattr(request, "website", None) or request.user.website
+        # For clients and writers always use the account's own website so that
+        # portal-proxied requests (Host: localhost) don't bleed through.
+        if role in {"client", "writer"}:
+            return getattr(request.user, "website", None)
+        return getattr(request, "website", None) or getattr(request.user, "website", None)
 
     def _get_config(self, request, pk: int):
         website = self._website(request)
@@ -344,7 +352,11 @@ class SpecialOrderQuoteConfigView(APIView):
             if website is None:
                 raise NotFound("Website not found.")
             return website
-        return getattr(request, "website", None) or request.user.website
+        # For clients and writers always use the account's own website so that
+        # portal-proxied requests (Host: localhost) don't bleed through.
+        if role in {"client", "writer"}:
+            return getattr(request.user, "website", None)
+        return getattr(request, "website", None) or getattr(request.user, "website", None)
 
     def get(self, request):
         website = self._website(request)

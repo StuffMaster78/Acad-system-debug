@@ -359,7 +359,8 @@ async function delRule(type: "rush" | "level" | "tier", id: number) {
 
 onMounted(async () => {
   await websites.ensure();
-  selectedWebsiteId.value = portal.website?.id ?? websites.list[0]?.id ?? null;
+  const firstReal = websites.list.find(w => w.domain && !w.domain.includes('localhost'));
+  selectedWebsiteId.value = portal.website?.id ?? firstReal?.id ?? websites.list[0]?.id ?? null;
   await load();
   await loadTemplates();
 });
