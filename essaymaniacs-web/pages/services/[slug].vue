@@ -70,6 +70,8 @@ useSeoMeta({
   description:   displayMeta.value.description,
   ogTitle:       displayMeta.value.title || displayTitle.value,
   ogDescription: displayMeta.value.description,
+  ogImage:       cmsPage.value?.hero_image?.url ?? cmsPage.value?.thumbnail?.url ?? 'https://essaymaniacs.com/og-default.svg',
+  ogType:        'website',
 })
 
 const faqSchema = service ? {

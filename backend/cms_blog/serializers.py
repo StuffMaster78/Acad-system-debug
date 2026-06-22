@@ -47,8 +47,13 @@ class BlogPostListSerializer(serializers.Serializer):
         featured = getattr(page, "featured_image", None)
         if featured:
             try:
+                webp = featured.get_rendition("fill-800x450|format-webp")
+                fallback = featured.get_rendition("fill-800x450")
                 data["featured_image"] = {
-                    "url": featured.get_rendition("fill-800x450").url,
+                    "url": webp.url,
+                    "url_fallback": fallback.url,
+                    "width": 800,
+                    "height": 450,
                     "alt": featured.title,
                 }
             except Exception:
@@ -157,13 +162,16 @@ class BlogPostSchemaOrgSerializer(serializers.Serializer):
                 author
             )
 
-        # Featured image
+        # Featured image — use WebP for schema.org image property
         featured = getattr(page, "featured_image", None)
         if featured:
             try:
-                schema["image"] = featured.get_rendition("original").url
+                schema["image"] = featured.get_rendition("width-1200|format-webp").url
             except Exception:
-                pass
+                try:
+                    schema["image"] = featured.get_rendition("original").url
+                except Exception:
+                    pass
 
         # Word count
         if hasattr(page, "word_count"):

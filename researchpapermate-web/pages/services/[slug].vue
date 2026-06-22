@@ -78,6 +78,8 @@ useSeoMeta({
   description:   displayMeta.value.description,
   ogTitle:       displayMeta.value.title || displayTitle.value,
   ogDescription: displayMeta.value.description,
+  ogImage:       cmsPage.value?.hero_image?.url ?? cmsPage.value?.thumbnail?.url ?? 'https://researchpapermate.com/og-default.svg',
+  ogType:        'website',
 })
 
 const faqSchema = service ? {

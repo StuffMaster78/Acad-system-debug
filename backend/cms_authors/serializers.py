@@ -44,10 +44,15 @@ class AuthorSerializer(serializers.ModelSerializer):
     def get_same_as_links(self, obj: Author) -> list[str]:
         return obj.get_same_as_links()
 
-    def get_profile_photo_url(self, obj: Author) -> str | None:
+    def get_profile_photo_url(self, obj: Author) -> dict | None:
         if obj.profile_photo:
             try:
-                return obj.profile_photo.get_rendition("fill-200x200").url
+                return {
+                    "url": obj.profile_photo.get_rendition("fill-200x200|format-webp").url,
+                    "url_fallback": obj.profile_photo.get_rendition("fill-200x200").url,
+                    "width": 200,
+                    "height": 200,
+                }
             except Exception:
                 return None
         return None

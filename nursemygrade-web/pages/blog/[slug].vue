@@ -201,6 +201,10 @@ const ldScripts = computed(() => {
         url: 'https://nursemygrade.com',
         logo: { '@type': 'ImageObject', url: 'https://nursemygrade.com/favicon.svg' },
       },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['.post-excerpt', '.key-takeaways', 'h1'],
+      },
     }),
   })
   scripts.push({

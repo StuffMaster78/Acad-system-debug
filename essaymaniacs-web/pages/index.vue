@@ -19,18 +19,51 @@ useSeoMeta({
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/' }],
-  script: [{
-    type: 'application/ld+json',
-    innerHTML: JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'ProfessionalService',
-      name: 'EssayManiacs',
-      description: 'Academic essay writing service staffed by subject-specialist writers.',
-      url: 'https://essaymaniacs.com',
-      priceRange: '$10–$50 per page',
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '20000' },
-    }),
-  }],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        '@id': 'https://essaymaniacs.com/#org',
+        name: 'EssayManiacs',
+        url: 'https://essaymaniacs.com',
+        logo: 'https://essaymaniacs.com/favicon.svg',
+        contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'English' },
+        sameAs: ['https://www.trustpilot.com/review/essaymaniacs.com'],
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        '@id': 'https://essaymaniacs.com/#website',
+        url: 'https://essaymaniacs.com',
+        name: 'EssayManiacs',
+        description: 'Academic essay writing service staffed by subject-specialist writers.',
+        publisher: { '@id': 'https://essaymaniacs.com/#org' },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: 'https://essaymaniacs.com/services?q={search_term_string}' },
+          'query-input': 'required name=search_term_string',
+        },
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'ProfessionalService',
+        '@id': 'https://essaymaniacs.com/#service',
+        name: 'EssayManiacs',
+        description: 'Academic essay writing service staffed by subject-specialist writers.',
+        url: 'https://essaymaniacs.com',
+        priceRange: '$10–$50 per page',
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '20000' },
+      }),
+    },
+  ],
 })
 
 const stats = [

@@ -221,6 +221,10 @@ const ldScripts = computed(() => {
         url: 'https://essaymaniacs.com',
         logo: { '@type': 'ImageObject', url: 'https://essaymaniacs.com/favicon.svg' },
       },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['.post-excerpt', '.key-takeaways', 'h1'],
+      },
     }),
   })
 

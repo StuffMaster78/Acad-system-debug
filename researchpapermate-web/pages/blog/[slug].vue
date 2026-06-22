@@ -256,6 +256,10 @@ const ldScripts = computed(() => {
         url: 'https://researchpapermate.com',
         logo: { '@type': 'ImageObject', url: 'https://researchpapermate.com/favicon.svg' },
       },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['.post-excerpt', '.key-takeaways', 'h1'],
+      },
     }),
   })
   scripts.push({

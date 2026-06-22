@@ -528,12 +528,15 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     <div
       v-else-if="block.type === 'definition'"
       class="my-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4"
+      :itemscope="true"
+      itemtype="https://schema.org/DefinedTerm"
     >
       <p class="text-xs font-bold uppercase tracking-widest text-gc-600 mb-1">Definition</p>
-      <p class="font-semibold text-ink">{{ asStr(asObj(block.value).term) }}</p>
-      <div class="mt-1 text-sm text-ink leading-relaxed" v-html="asStr(asObj(block.value).definition)" />
+      <p class="font-semibold text-ink" itemprop="name">{{ asStr(asObj(block.value).term) }}</p>
+      <div class="mt-1 text-sm text-ink leading-relaxed" itemprop="description" v-html="asStr(asObj(block.value).definition)" />
       <p v-if="asStr(asObj(block.value).example)" class="mt-2 text-xs text-slate-500 italic">
-        <span class="font-semibold not-italic">Example:</span> {{ asStr(asObj(block.value).example) }}
+        <span class="font-semibold not-italic">Example:</span>
+        <span itemprop="disambiguatingDescription">{{ asStr(asObj(block.value).example) }}</span>
       </p>
     </div>
 
@@ -780,12 +783,22 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
       v-else-if="block.type === 'image' && asObj(asObj(block.value).image).url"
       class="my-6"
     >
-      <img
-        :src="asStr(asObj(asObj(block.value).image).url)"
-        :alt="asStr(asObj(block.value).alt_text)"
-        class="w-full rounded-xl"
-        loading="lazy"
-      />
+      <picture>
+        <source
+          v-if="asObj(asObj(block.value).image).url_fallback"
+          :srcset="asStr(asObj(asObj(block.value).image).url)"
+          type="image/webp"
+        />
+        <img
+          :src="asStr(asObj(asObj(block.value).image).url_fallback || asObj(asObj(block.value).image).url)"
+          :alt="asStr(asObj(block.value).alt_text)"
+          :width="asObj(asObj(block.value).image).width ? String(asObj(asObj(block.value).image).width) : '1200'"
+          height="auto"
+          class="w-full rounded-xl"
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
       <figcaption
         v-if="asStr(asObj(block.value).caption)"
         class="mt-2 text-center text-xs text-slate-400"

@@ -2,6 +2,7 @@
 const app = useAppUrl()
 
 useHead({ title: 'Sign In | GradeCrest' })
+useSeoMeta({ robots: 'noindex, nofollow' })
 
 onMounted(() => { window.location.replace(app.login) })
 </script>

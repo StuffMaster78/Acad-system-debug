@@ -15,18 +15,51 @@ useSeoMeta({
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/' }],
-  script: [{
-    type: 'application/ld+json',
-    innerHTML: JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'ProfessionalService',
-      name: 'NurseMyGrade',
-      description: 'Nursing paper writing service by BSN, MSN and DNP specialists.',
-      url: 'https://nursemygrade.com',
-      priceRange: '$24–$60 per page',
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.98', reviewCount: '9800' },
-    }),
-  }],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        '@id': 'https://nursemygrade.com/#org',
+        name: 'NurseMyGrade',
+        url: 'https://nursemygrade.com',
+        logo: 'https://nursemygrade.com/favicon.svg',
+        contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'English' },
+        sameAs: ['https://www.trustpilot.com/review/nursemygrade.com'],
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        '@id': 'https://nursemygrade.com/#website',
+        url: 'https://nursemygrade.com',
+        name: 'NurseMyGrade',
+        description: 'Nursing paper writing service by BSN, MSN and DNP specialists.',
+        publisher: { '@id': 'https://nursemygrade.com/#org' },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: 'https://nursemygrade.com/services?q={search_term_string}' },
+          'query-input': 'required name=search_term_string',
+        },
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'ProfessionalService',
+        '@id': 'https://nursemygrade.com/#service',
+        name: 'NurseMyGrade',
+        description: 'Nursing paper writing service by BSN, MSN and DNP specialists.',
+        url: 'https://nursemygrade.com',
+        priceRange: '$24–$60 per page',
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.98', reviewCount: '9800' },
+      }),
+    },
+  ],
 })
 
 const stats = [

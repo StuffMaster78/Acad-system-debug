@@ -9,18 +9,51 @@ useSeoMeta({
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://researchpapermate.com/' }],
-  script: [{
-    type: 'application/ld+json',
-    innerHTML: JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'ProfessionalService',
-      name: 'ResearchPaperMate',
-      description: 'Academic writing service providing research papers, essays, and assignments by verified human experts.',
-      url: 'https://researchpapermate.com',
-      priceRange: '$15–$50 per page',
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '14700' },
-    }),
-  }],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        '@id': 'https://researchpapermate.com/#org',
+        name: 'ResearchPaperMate',
+        url: 'https://researchpapermate.com',
+        logo: 'https://researchpapermate.com/favicon.svg',
+        contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'English' },
+        sameAs: ['https://www.trustpilot.com/review/researchpapermate.com'],
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        '@id': 'https://researchpapermate.com/#website',
+        url: 'https://researchpapermate.com',
+        name: 'ResearchPaperMate',
+        description: 'Research papers written by verified PhD and Master\'s specialists.',
+        publisher: { '@id': 'https://researchpapermate.com/#org' },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: 'https://researchpapermate.com/services?q={search_term_string}' },
+          'query-input': 'required name=search_term_string',
+        },
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'ProfessionalService',
+        '@id': 'https://researchpapermate.com/#service',
+        name: 'ResearchPaperMate',
+        description: 'Academic writing service providing research papers, essays, and assignments by verified human experts.',
+        url: 'https://researchpapermate.com',
+        priceRange: '$15–$50 per page',
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '14700' },
+      }),
+    },
+  ],
 })
 
 // ── Hero sentinel for sticky bar ──────────────────────────────────────────────

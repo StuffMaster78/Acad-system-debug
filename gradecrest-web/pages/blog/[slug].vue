@@ -121,6 +121,10 @@ if (article.value) {
       publisher: { '@type': 'Organization', name: 'GradeCrest', url: 'https://gradecrest.com' },
       image: article.value.thumbnail?.url,
       wordCount: article.value.word_count,
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['.post-excerpt', '.key-takeaways', 'h1'],
+      },
     }),
   }]
 

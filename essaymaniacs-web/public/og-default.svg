@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1e1b4b"/>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect x="80" y="80" width="72" height="72" rx="14" fill="#7c3aed"/>
+  <text x="116" y="136" font-family="system-ui, -apple-system, sans-serif" font-size="40" font-weight="800" fill="white" text-anchor="middle">E</text>
+  <text x="172" y="130" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="700" fill="white">EssayManiacs</text>
+  <text x="80" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="62" font-weight="800" fill="white">Essays by people who love</text>
+  <text x="80" y="375" font-family="system-ui, -apple-system, sans-serif" font-size="62" font-weight="800" fill="#c4b5fd">the subject.</text>
+  <text x="80" y="460" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="rgba(255,255,255,0.6)">From $10/page · Zero AI · Grade or money back · 20,000+ delivered</text>
+</svg>

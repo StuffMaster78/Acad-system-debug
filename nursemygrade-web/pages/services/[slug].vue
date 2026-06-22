@@ -53,6 +53,8 @@ useSeoMeta({
   description:   displayMeta.value.description,
   ogTitle:       displayMeta.value.title || displayTitle.value,
   ogDescription: displayMeta.value.description,
+  ogImage:       cmsPage.value?.hero_image?.url ?? cmsPage.value?.thumbnail?.url ?? 'https://nursemygrade.com/og-default.svg',
+  ogType:        'website',
 })
 
 const faqSchema = service ? {
@@ -66,9 +68,22 @@ const faqSchema = service ? {
   ],
 } : null
 
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://nursemygrade.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Services', item: 'https://nursemygrade.com/services' },
+    { '@type': 'ListItem', position: 3, name: displayTitle.value, item: canonicalUrl },
+  ],
+}
+
 useHead({
   link: [{ rel: 'canonical', href: canonicalUrl }],
-  script: faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : [],
+  script: [
+    { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbSchema) },
+    ...(faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : []),
+  ],
 })
 
 if (cmsPage.value?.schema) {

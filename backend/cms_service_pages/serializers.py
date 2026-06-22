@@ -26,8 +26,10 @@ def _image_payload(image) -> dict | None:
         return {
             "id": image.pk,
             "title": image.title,
-            "url": image.get_rendition("width-1600").url,
+            "url": image.get_rendition("width-1600|format-webp").url,
+            "url_fallback": image.get_rendition("width-1600").url,
             "full_url": image.get_rendition("original").url,
+            "width": 1600,
         }
     except Exception:
         return {

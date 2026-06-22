@@ -101,7 +101,11 @@ class ImageBlock(StructBlock):
         image = value.get("image") if value else None
         if image:
             try:
-                result["image"] = {"url": image.get_rendition("width-1200").url}
+                result["image"] = {
+                    "url": image.get_rendition("width-1200|format-webp").url,
+                    "url_fallback": image.get_rendition("width-1200").url,
+                    "width": 1200,
+                }
             except Exception:
                 result["image"] = {
                     "url": getattr(getattr(image, "file", None), "url", None)
