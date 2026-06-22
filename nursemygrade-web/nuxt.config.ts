@@ -3,6 +3,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-09',
 
+  devServer: { port: 3003 },
+
   nitro: {
     compressPublicAssets: { gzip: true, brotli: true },
     prerender: {

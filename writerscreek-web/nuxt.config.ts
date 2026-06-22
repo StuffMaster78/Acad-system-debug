@@ -3,6 +3,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-09',
 
+  devServer: { port: 3005 },
+
   nitro: {
     prerender: {
       crawlLinks: true,
@@ -25,15 +27,18 @@ export default defineNuxtConfig({
     devProxy: {
       '/api/v1': {
         target: 'http://localhost:8000/api/v1',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'writerscreek.com' },
       },
       '/api/v2': {
         target: 'http://localhost:8000/api/v2',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'writerscreek.com' },
       },
       '/cms-api': {
         target: 'http://localhost:8000/cms-api',
-        changeOrigin: false,
+        changeOrigin: true,
+        headers: { Host: 'writerscreek.com' },
       },
     },
   },

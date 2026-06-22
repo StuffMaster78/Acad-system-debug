@@ -11,6 +11,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-09',
 
+  devServer: { port: 3004 },
+
   hooks: {
     // RPM's static-generation stack externalizes this package into a fresh
     // generated scope after `predev`; repair its Nuxt private import map

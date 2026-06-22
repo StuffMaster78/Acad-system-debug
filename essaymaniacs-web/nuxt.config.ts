@@ -3,6 +3,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-09',
 
+  devServer: { port: 3002 },
+
   // SSG: pnpm build → .output/public/ → serve with nginx
   nitro: {
     compressPublicAssets: { gzip: true, brotli: true },

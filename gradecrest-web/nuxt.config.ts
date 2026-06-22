@@ -5,6 +5,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-10',
 
+  devServer: { port: 3001 },
+
   components: [
     { path: '~/components/layout',    prefix: '' },
     { path: '~/components/marketing', prefix: '' },
