@@ -37,6 +37,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Radio,
   Brain,
   Sparkles,
   Star,
@@ -84,6 +85,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Activity", to: "/superadmin/activity", icon: Activity },
     { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
     { label: "Trust Center", to: "/superadmin/trust-center", icon: ShieldCheck },
+    { label: "Event System", to: "/superadmin/event-system", icon: Radio },
     { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
     { label: "Adjustments", to: "/superadmin/adjustments", icon: AlertTriangle },
     { label: "Classes", to: "/superadmin/classes", icon: BookOpen },
@@ -172,6 +174,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Reputation", to: "/admin/reputation", icon: ShieldCheck },
     { label: "Audit Log", to: "/admin/audit", icon: ShieldAlert },
     { label: "Trust Center", to: "/admin/trust-center", icon: ShieldCheck },
+    { label: "Event System", to: "/admin/event-system", icon: Radio },
     { label: "Fin. Center", to: "/admin/financials", icon: Activity },
     { label: "Fin. Events", to: "/admin/financial-events", icon: Activity },
     { label: "Discounts", to: "/admin/discounts", icon: Percent },
@@ -285,6 +288,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Activity", to: "/superadmin/activity", icon: Activity },
       { label: "Audit Log", to: "/superadmin/audit", icon: ShieldAlert },
       { label: "Trust Center", to: "/superadmin/trust-center", icon: ShieldCheck },
+      { label: "Event System", to: "/superadmin/event-system", icon: Radio },
     ]},
     { label: "Work", items: [
       { label: "Orders", to: "/superadmin/orders", icon: ClipboardList },
@@ -400,6 +404,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Security", items: [
       { label: "Audit Log", to: "/admin/audit", icon: ShieldAlert },
       { label: "Trust Center", to: "/admin/trust-center", icon: ShieldCheck },
+      { label: "Event System", to: "/admin/event-system", icon: Radio },
     ]},
     { label: "Platform", items: [
       { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },

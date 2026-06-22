@@ -231,6 +231,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminTrustCenterView.vue"),
       },
       {
+        path: "event-system",
+        name: "admin-event-system",
+        component: () => import("@/views/admin/AdminEventSystemView.vue"),
+      },
+      {
         path: "files",
         name: "admin-files",
         component: () => import("@/views/admin/AdminFilesView.vue"),
@@ -788,6 +793,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "trust-center",
         name: "superadmin-trust-center",
         component: () => import("@/views/admin/AdminTrustCenterView.vue"),
+      },
+      {
+        path: "event-system",
+        name: "superadmin-event-system",
+        component: () => import("@/views/admin/AdminEventSystemView.vue"),
       },
       {
         path: "tenants",
