@@ -1,3 +1,34 @@
-# This __init__.py is for the views/ subdirectory
-# The main views are in the parent views.py file
-# Badge views are in this directory
+from .main_views import (
+    ClientProfileListView,
+    ClientProfileDetailView,
+    ClientProfileUpdateView,
+    ClientWalletView,
+    LoyaltyTierListView,
+    LoyaltyTierDetailView,
+    LoyaltyTransactionListView,
+    ClientActionView,
+    ProfileUpdateRequestCreateView,
+    ProfileUpdateRequestListView,
+    BlacklistEmailListView,
+    BlacklistEmailAddView,
+    BlacklistEmailRemoveView,
+)
+from .badge_views import ClientBadgeViewSet, ClientBadgeAnalyticsViewSet
+
+__all__ = [
+    'ClientProfileListView',
+    'ClientProfileDetailView',
+    'ClientProfileUpdateView',
+    'ClientWalletView',
+    'LoyaltyTierListView',
+    'LoyaltyTierDetailView',
+    'LoyaltyTransactionListView',
+    'ClientActionView',
+    'ProfileUpdateRequestCreateView',
+    'ProfileUpdateRequestListView',
+    'BlacklistEmailListView',
+    'BlacklistEmailAddView',
+    'BlacklistEmailRemoveView',
+    'ClientBadgeViewSet',
+    'ClientBadgeAnalyticsViewSet',
+]

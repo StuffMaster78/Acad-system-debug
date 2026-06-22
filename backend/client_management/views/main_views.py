@@ -11,19 +11,17 @@ from client_management.serializers import (
 )
 from loyalty_management.serializers import LoyaltyTierSerializer, LoyaltyTransactionSerializer
 from core.utils.location import get_geolocation_from_ip
-from .permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin
-from .pagination import StandardResultsSetPagination
+from ..permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin
+from ..pagination import StandardResultsSetPagination
 from wallets.api.serializers import WalletEntrySerializer
 from wallets.constants import WalletType
 from wallets.selectors import WalletEntrySelectors
 from wallets.services import ClientWalletService
-# from .tasks import update_loyalty_points
 
 from client_management.models import BlacklistedEmail
 from client_management.serializers import BlacklistedEmailSerializer
 
 
-# List and create client profiles (Admin/Superadmin only)
 class ClientProfileListView(generics.ListAPIView):
     """
     List all client profiles (Admin/Superadmin only).
@@ -34,7 +32,6 @@ class ClientProfileListView(generics.ListAPIView):
     permission_classes = [IsAdminOrSuperAdmin]
 
 
-# Retrieve, update, or delete a specific client profile
 class ClientProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific client profile.
@@ -45,7 +42,6 @@ class ClientProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsSelfOrAdmin]
 
 
-# Update client profile (Admins and clients themselves)
 class ClientProfileUpdateView(generics.UpdateAPIView):
     """
     Update a client profile, including geolocation updates.
@@ -71,7 +67,6 @@ class ClientProfileUpdateView(generics.UpdateAPIView):
             print(f"Geolocation error: {geo_data['error']}")
 
 
-# View wallet balance and transactions for a specific client
 class ClientWalletView(views.APIView):
     """
     Retrieve wallet balance and transactions for a specific client.
@@ -102,7 +97,6 @@ class ClientWalletView(views.APIView):
             return Response({"error": "Client not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
-# List and create loyalty tiers (Admin/Superadmin only)
 class LoyaltyTierListView(generics.ListCreateAPIView):
     """
     List or create loyalty tiers.
@@ -113,7 +107,6 @@ class LoyaltyTierListView(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrSuperAdmin]
 
 
-# Retrieve, update, or delete a specific loyalty tier
 class LoyaltyTierDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific loyalty tier.
@@ -124,7 +117,6 @@ class LoyaltyTierDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminOrSuperAdmin]
 
 
-# List loyalty transactions for a specific client
 class LoyaltyTransactionListView(generics.ListAPIView):
     """
     List all loyalty transactions for a specific client.
@@ -139,10 +131,10 @@ class LoyaltyTransactionListView(generics.ListAPIView):
         return LoyaltyTransaction.objects.filter(client_id=client_id).order_by("-timestamp")
 
 
-# Admin actions (suspend, activate, deactivate client accounts)
 from rest_framework.response import Response
-from .models import ClientAction
-from .serializers import ClientActionSerializer
+from ..models import ClientAction
+from ..serializers import ClientActionSerializer
+
 
 class ClientActionView(views.APIView):
     permission_classes = [IsAdminOrSuperAdmin]
@@ -156,7 +148,6 @@ class ClientActionView(views.APIView):
 
             action = serializer.validated_data.get("action")
 
-            # Perform the action and log it
             if action == "suspend":
                 client.suspend_account(admin=request.user)
             elif action == "activate":
@@ -164,7 +155,6 @@ class ClientActionView(views.APIView):
             elif action == "deactivate":
                 client.deactivate_account(admin=request.user)
 
-            # Create ClientAction record
             ClientAction.objects.create(
                 client=client,
                 action=action,
@@ -177,7 +167,7 @@ class ClientActionView(views.APIView):
         except ClientProfile.DoesNotExist:
             return Response({"error": "Client not found."}, status=status.HTTP_404_NOT_FOUND)
 
-# Create profile update requests
+
 class ProfileUpdateRequestCreateView(generics.CreateAPIView):
     """
     Allow clients to request changes to critical fields.
@@ -192,7 +182,6 @@ class ProfileUpdateRequestCreateView(generics.CreateAPIView):
         serializer.save(client=client_profile)
 
 
-# List profile update requests (Admin only)
 class ProfileUpdateRequestListView(generics.ListAPIView):
     """
     Allow admins to view all profile update requests.
@@ -207,12 +196,13 @@ class BlacklistEmailListView(generics.ListAPIView):
     """Get a list of all blacklisted emails"""
     queryset = BlacklistedEmail.objects.all()
     serializer_class = BlacklistedEmailSerializer
-    permission_classes = [IsAdminOrSuperAdmin] # Only admins can view
+    permission_classes = [IsAdminOrSuperAdmin]
+
 
 class BlacklistEmailAddView(generics.CreateAPIView):
     """Add an email to the blacklist"""
     serializer_class = BlacklistedEmailSerializer
-    permission_classes = [IsAdminOrSuperAdmin] # Only admins can add
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def create(self, request, *args, **kwargs):
         email = request.data.get("email")
@@ -223,9 +213,10 @@ class BlacklistEmailAddView(generics.CreateAPIView):
         BlacklistedEmail.add_to_blacklist(email, reason)
         return Response({"detail": f"{email} has been blacklisted."}, status=status.HTTP_201_CREATED)
 
+
 class BlacklistEmailRemoveView(generics.DestroyAPIView):
     """Remove an email from the blacklist"""
-    permission_classes = [IsAdminOrSuperAdmin] # Only admins can remove
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def delete(self, request, *args, **kwargs):
         email = request.data.get("email")

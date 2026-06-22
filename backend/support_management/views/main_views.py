@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from django.db.models import F, Q, Count
-from .models import (
+from ..models import (
     SupportProfile, SupportNotification, SupportOrderManagement,
     SupportMessage, SupportGlobalAccess, SupportPermission,
     DisputeResolutionLog, SupportActionLog, EscalationLog,
@@ -12,7 +12,7 @@ from .models import (
     SupportWorkloadTracker, OrderDisputeSLA, FAQCategory, FAQManagement,
     SupportDashboard
 )
-from .serializers import (
+from ..serializers import (
     SupportProfileSerializer, SupportNotificationSerializer,
     SupportOrderManagementSerializer, SupportMessageSerializer,
     SupportGlobalAccessSerializer, SupportPermissionSerializer,
@@ -24,7 +24,7 @@ from .serializers import (
     FAQCategorySerializer, FAQManagementSerializer,
     SupportDashboardSerializer
 )
-from .permissions import (
+from ..permissions import (
     IsSupportAgent, IsAdminOrSuperAdmin, CanManageOrders,
     CanHandleDisputes, CanRecommendBlacklist, CanModerateMessages,
     CanManageWriterPerformance, CanEscalateIssues, CanAccessSupportDashboard
@@ -176,31 +176,24 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get query parameters
         limit = int(request.query_params.get('limit', 20))
         status_filter = request.query_params.get('status', None)
         priority_filter = request.query_params.get('priority', None)
 
-        # Get tickets
         if request.user.role == "support":
-            # Support can see assigned tickets and unassigned tickets
             tickets = Ticket.objects.filter(
                 Q(assigned_to=request.user) | Q(assigned_to__isnull=True)
             ).select_related('created_by', 'assigned_to', 'website').order_by('-created_at')
         else:
-            # Admins can see all tickets
             tickets = Ticket.objects.all().select_related(
                 'created_by', 'assigned_to', 'website').order_by('-created_at')
 
-        # Filter by status if provided
         if status_filter:
             tickets = tickets.filter(status=status_filter)
 
-        # Filter by priority if provided
         if priority_filter:
             tickets = tickets.filter(priority=priority_filter)
 
-        # Limit results
         tickets = tickets[:limit]
 
         serializer = TicketSerializer(tickets, many=True)
@@ -224,7 +217,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get unassigned tickets
         unassigned = Ticket.objects.filter(
             assigned_to__isnull=True,
             status__in=[
@@ -235,7 +227,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 '-priority',
             '-created_at')
 
-        # Get my assigned tickets
         my_assigned = Ticket.objects.filter(
             assigned_to=request.user,
             status__in=[
@@ -246,7 +237,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 '-priority',
             '-created_at')
 
-        # Get high priority tickets
         high_priority = Ticket.objects.filter(
             priority__in=[
                 'high',
@@ -260,7 +250,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                     '-priority',
             '-created_at')
 
-        # Get overdue tickets (open for more than 24 hours)
         from django.utils import timezone
         from datetime import timedelta
         overdue_threshold = timezone.now() - timedelta(hours=24)
@@ -300,18 +289,15 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get or create workload tracker
         workload_tracker, _ = SupportWorkloadTracker.objects.get_or_create(
             support_staff=request.user
         )
 
-        # Get current ticket load
         current_tickets = Ticket.objects.filter(
             assigned_to=request.user,
             status__in=['open', 'in_progress']
         )
 
-        # Calculate average response time (time to first response)
         today = timezone.now().date()
         week_ago = today - timedelta(days=7)
 
@@ -320,7 +306,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
             created_at__gte=week_ago
         )
 
-        # Get tickets with messages to calculate response time
         tickets_with_messages = recent_tickets.filter(
             messages__isnull=False).distinct()
 
@@ -330,13 +315,12 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 sender=request.user).order_by('created_at').first()
             if first_message and ticket.created_at:
                 response_time = (
-                    first_message.created_at - ticket.created_at).total_seconds() / 3600 # hours
+                    first_message.created_at - ticket.created_at).total_seconds() / 3600
                 response_times.append(response_time)
 
         avg_response_time = sum(response_times) / \
             len(response_times) if response_times else None
 
-        # Resolution rate (last 30 days)
         month_ago = timezone.now() - timedelta(days=30)
         resolved_tickets = Ticket.objects.filter(
             assigned_to=request.user,
@@ -354,7 +338,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
             total_tickets *
             100) if total_tickets > 0 else 0
 
-        # Tickets resolved today
         today_start = timezone.now().replace(
             hour=0, minute=0, second=0, microsecond=0)
         resolved_today = Ticket.objects.filter(
@@ -363,7 +346,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
             updated_at__gte=today_start
         ).count()
 
-        # SLA compliance (tickets resolved within 24 hours)
         sla_compliant = Ticket.objects.filter(
             assigned_to=request.user,
             status='closed',
@@ -402,7 +384,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="analytics/performance")
     def analytics_performance(self, request):
         """Get performance analytics for support team or individual agent."""
-        from .services.analytics_service import SupportAnalyticsService
+        from ..services.analytics_service import SupportAnalyticsService
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -422,7 +404,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="analytics/trends")
     def analytics_trends(self, request):
         """Get trend analytics (weekly breakdown)."""
-        from .services.analytics_service import SupportAnalyticsService
+        from ..services.analytics_service import SupportAnalyticsService
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -442,7 +424,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="analytics/comparison")
     def analytics_comparison(self, request):
         """Compare performance across all support agents."""
-        from .services.analytics_service import SupportAnalyticsService
+        from ..services.analytics_service import SupportAnalyticsService
 
         if request.user.role not in ["admin", "superadmin"]:
             return Response(
@@ -459,7 +441,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="analytics/sla")
     def analytics_sla(self, request):
         """Get SLA compliance analytics."""
-        from .services.analytics_service import SupportAnalyticsService
+        from ..services.analytics_service import SupportAnalyticsService
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -479,7 +461,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="analytics/workload")
     def analytics_workload(self, request):
         """Get workload distribution across support team."""
-        from .services.analytics_service import SupportAnalyticsService
+        from ..services.analytics_service import SupportAnalyticsService
 
         if request.user.role not in ["admin", "superadmin"]:
             return Response(
@@ -496,7 +478,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="performance/metrics")
     def performance_metrics(self, request):
         """Get performance metrics for current support agent."""
-        from .services.performance_service import SupportPerformanceService
+        from ..services.performance_service import SupportPerformanceService
 
         if request.user.role != "support":
             return Response(
@@ -514,7 +496,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="performance/trends")
     def performance_trends(self, request):
         """Get performance trends for current support agent."""
-        from .services.performance_service import SupportPerformanceService
+        from ..services.performance_service import SupportPerformanceService
 
         if request.user.role != "support":
             return Response(
@@ -532,8 +514,8 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="sla/breaches")
     def sla_breaches(self, request):
         """Get all SLA breaches."""
-        from .models import OrderDisputeSLA
-        from .serializers import OrderDisputeSLASerializer
+        from ..models import OrderDisputeSLA
+        from ..serializers import OrderDisputeSLASerializer
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -541,7 +523,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Filter by assigned agent if support, show all if admin
         if request.user.role == "support":
             breaches = OrderDisputeSLA.objects.filter(
                 assigned_to=request.user,
@@ -563,9 +544,9 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="sla/dashboard")
     def sla_dashboard(self, request):
         """Get comprehensive SLA dashboard data."""
-        from .services.sla_service import SLAService
-        from .models import OrderDisputeSLA
-        from .serializers import OrderDisputeSLASerializer
+        from ..services.sla_service import SLAService
+        from ..models import OrderDisputeSLA
+        from ..serializers import OrderDisputeSLASerializer
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -576,11 +557,9 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
         days = int(request.query_params.get('days', 30))
         assigned_to = request.user if request.user.role == "support" else None
 
-        # Get metrics
         metrics = SLAService.get_sla_metrics(
             assigned_to=assigned_to, days=days)
 
-        # Get active SLAs by status
         active_queryset = OrderDisputeSLA.objects.filter(
             actual_resolution_time__isnull=True)
         if assigned_to:
@@ -590,7 +569,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
         warnings = active_queryset.filter(status="warning").count()
         breached = active_queryset.filter(status="breached").count()
 
-        # Get upcoming deadlines (next 24 hours)
         upcoming = SLAService.get_upcoming_deadlines(hours_ahead=24)
         if assigned_to:
             upcoming = upcoming.filter(assigned_to=assigned_to)
@@ -598,7 +576,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
         upcoming_serializer = OrderDisputeSLASerializer(
             upcoming[:10], many=True)
 
-        # Get recent breaches
         recent_breaches = OrderDisputeSLA.objects.filter(
             sla_breached=True,
             actual_resolution_time__isnull=True
@@ -625,7 +602,7 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="sla/metrics")
     def sla_metrics(self, request):
         """Get SLA metrics."""
-        from .services.sla_service import SLAService
+        from ..services.sla_service import SLAService
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -648,8 +625,8 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="sla/upcoming")
     def sla_upcoming(self, request):
         """Get upcoming SLA deadlines."""
-        from .services.sla_service import SLAService
-        from .serializers import OrderDisputeSLASerializer
+        from ..services.sla_service import SLAService
+        from ..serializers import OrderDisputeSLASerializer
 
         if request.user.role not in ["support", "admin", "superadmin"]:
             return Response(
@@ -684,23 +661,19 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Orders requiring support attention
         disputed_orders = Order.objects.filter(
             status=OrderStatus.DISPUTED.value
         ).select_related('client', 'writer', 'website')
 
-        # Payment issues
         payment_issue_orders = Order.objects.filter(
             Q(payment_status='failed') | Q(payment_status='pending'),
             status__in=[OrderStatus.PENDING_PAYMENT.value, OrderStatus.PAYMENT_FAILED.value]
         ).select_related('client', 'writer', 'website')
 
-        # Refund requests
         pending_refunds = Refund.objects.filter(
             status='pending'
         ).select_related('order', 'order__client')
 
-        # Orders with support tickets
         from tickets.models import Ticket
         orders_with_tickets = Order.objects.filter(
             tickets__isnull=False
@@ -745,8 +718,8 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="escalations")
     def dashboard_escalations(self, request):
         """Get escalation management for support dashboard."""
-        from .models import EscalationLog
-        from .serializers import EscalationLogSerializer
+        from ..models import EscalationLog
+        from ..serializers import EscalationLogSerializer
         from django.db.models import Q
 
         if request.user.role not in ["support", "admin", "superadmin"]:
@@ -755,7 +728,6 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get escalated tickets
         if request.user.role == "support":
             escalations = EscalationLog.objects.filter(
                 Q(escalated_to=request.user) | Q(escalated_by=request.user)
@@ -765,18 +737,13 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 'ticket', 'escalated_by', 'escalated_to', 'resolved_by'
             )
 
-        # Filter by status
         status_filter = request.query_params.get('status', None)
         if status_filter:
             escalations = escalations.filter(status=status_filter)
 
-        # Get unresolved escalations
         unresolved = escalations.filter(status='pending')
-
-        # Get resolved escalations
         resolved = escalations.filter(status='resolved')
 
-        # Get escalation reasons breakdown
         reasons_breakdown = escalations.values('escalation_reason').annotate(
             count=Count('id')
         )
