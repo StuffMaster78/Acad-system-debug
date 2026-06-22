@@ -570,14 +570,28 @@ async function submitResolve() {
                 {{ active.countered_quantity }} {{ active.unit_type ?? "" }}
               </p>
             </div>
-            <div v-if="active.request_total_amount">
-              <p class="text-xs font-medium text-graphite">Quoted price</p>
-              <p class="mt-0.5 font-semibold text-ink">{{ fmt(active.request_total_amount) }}</p>
-            </div>
-            <div v-if="active.counter_total_amount">
-              <p class="text-xs font-medium text-graphite">Counter price</p>
-              <p class="mt-0.5 font-semibold text-signal">{{ fmt(active.counter_total_amount) }}</p>
-            </div>
+            <!-- Client/admin: show full order totals -->
+            <template v-if="role !== 'writer'">
+              <div v-if="active.request_total_amount">
+                <p class="text-xs font-medium text-graphite">Quoted price</p>
+                <p class="mt-0.5 font-semibold text-ink">{{ fmt(active.request_total_amount) }}</p>
+              </div>
+              <div v-if="active.counter_total_amount">
+                <p class="text-xs font-medium text-graphite">Counter price</p>
+                <p class="mt-0.5 font-semibold text-signal">{{ fmt(active.counter_total_amount) }}</p>
+              </div>
+            </template>
+            <!-- Writer: show only writer compensation -->
+            <template v-else>
+              <div v-if="active.request_writer_compensation_amount">
+                <p class="text-xs font-medium text-graphite">Your compensation</p>
+                <p class="mt-0.5 font-semibold text-ink">{{ fmt(active.request_writer_compensation_amount) }}</p>
+              </div>
+              <div v-if="active.counter_writer_compensation_amount">
+                <p class="text-xs font-medium text-graphite">Counter compensation</p>
+                <p class="mt-0.5 font-semibold text-signal">{{ fmt(active.counter_writer_compensation_amount) }}</p>
+              </div>
+            </template>
           </div>
 
           <p v-if="active.description" class="mt-3 text-sm text-graphite">{{ active.description }}</p>
@@ -598,7 +612,7 @@ async function submitResolve() {
                   <span class="font-medium text-ink">{{ proposalRoleLabel(p.proposal_role) }}</span>
                   <span class="text-xs text-graphite">{{ dateLabel(p.created_at) }}</span>
                 </div>
-                <p v-if="p.amount" class="mt-0.5 text-graphite">
+                <p v-if="p.amount && role !== 'writer'" class="mt-0.5 text-graphite">
                   Amount: <span class="font-semibold text-ink">{{ fmt(p.amount) }}</span>
                 </p>
               </div>
