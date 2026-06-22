@@ -58,6 +58,8 @@ class FileAttachmentDetailSerializer(serializers.ModelSerializer):
     managed_file = ManagedFileListSerializer(read_only=True)
     external_link = ExternalFileLinkListSerializer(read_only=True)
     is_new_for_user = serializers.SerializerMethodField()
+    attached_by_name = serializers.SerializerMethodField()
+    attached_by_role = serializers.SerializerMethodField()
 
     class Meta:
         model = FileAttachment
@@ -73,6 +75,16 @@ class FileAttachmentDetailSerializer(serializers.ModelSerializer):
             "metadata",
             "attached_at",
             "is_new_for_user",
+            # uploader
+            "attached_by_name",
+            "attached_by_role",
+            # delivery tracking
+            "is_submitted",
+            "delivery_status",
+            "submitted_at",
+            "first_downloaded_at",
+            # revision tracking
+            "revision_cycle",
         ]
 
     def get_is_new_for_user(self, obj) -> bool:
@@ -80,6 +92,17 @@ class FileAttachmentDetailSerializer(serializers.ModelSerializer):
         if downloaded_ids is None:
             return False
         return obj.id not in downloaded_ids
+
+    def get_attached_by_name(self, obj) -> str | None:
+        user = obj.attached_by
+        if not user:
+            return None
+        full = (getattr(user, "get_full_name", None) or (lambda: ""))()
+        return full or getattr(user, "email", None) or str(user)
+
+    def get_attached_by_role(self, obj) -> str | None:
+        user = obj.attached_by
+        return getattr(user, "role", None) if user else None
 
 
 class FileDownloadLogSerializer(serializers.ModelSerializer):

@@ -266,6 +266,110 @@ class OrderFileService:
 
     @classmethod
     @transaction.atomic
+    def client_upload_material(
+        cls,
+        *,
+        order,
+        uploaded_by,
+        uploaded_file: UploadedFile,
+        purpose: str,
+    ) -> FileAttachment:
+        """
+        Let the order client upload a typed material (sample, outline,
+        questionnaire, notes, or class material).
+        """
+        cls._ensure_same_website(order=order, user=uploaded_by)
+        cls._ensure_order_client_or_staff(order=order, user=uploaded_by)
+
+        attachment = OrderFileIntegrationService.upload_client_material(
+            order=order,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            purpose=purpose,
+        )
+
+        cls._record_file_event(
+            order=order,
+            actor=uploaded_by,
+            event_type="client_material_uploaded",
+            attachment=attachment,
+        )
+        cls._notify_order_file_uploaded(
+            order=order,
+            actor=uploaded_by,
+            attachment=attachment,
+            recipient=cls._resolve_writer_user(order),
+        )
+
+        return attachment
+
+    @classmethod
+    @transaction.atomic
+    def staff_upload_internal(
+        cls,
+        *,
+        order,
+        uploaded_by,
+        uploaded_file: UploadedFile,
+        notes: str = "",
+    ) -> FileAttachment:
+        """Let staff upload an internal file not visible to clients/writers."""
+        cls._ensure_same_website(order=order, user=uploaded_by)
+        if not cls._is_staff(user=uploaded_by):
+            raise PermissionDenied("Only staff can upload internal files.")
+
+        attachment = OrderFileIntegrationService.upload_internal_file(
+            order=order,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            notes=notes,
+        )
+
+        cls._record_file_event(
+            order=order,
+            actor=uploaded_by,
+            event_type="internal_file_uploaded",
+            attachment=attachment,
+        )
+
+        return attachment
+
+    @classmethod
+    @transaction.atomic
+    def submit_final(
+        cls,
+        *,
+        order,
+        attachment: FileAttachment,
+        submitted_by,
+    ) -> FileAttachment:
+        """
+        Submit a final file for delivery. The writer or staff can call this.
+        Sets revision_cycle from the order's current revision count.
+        """
+        from files_management.integrations.orders import OrderFileIntegrationService as OFIS
+
+        is_writer = cls._is_assigned_writer(order=order, user=submitted_by)
+        is_staff = cls._is_staff(user=submitted_by)
+        if not (is_writer or is_staff):
+            raise PermissionDenied("Only the assigned writer or staff can submit the final file.")
+
+        result = OFIS.submit_final_file(
+            attachment=attachment,
+            submitted_by=submitted_by,
+        )
+
+        cls._record_file_event(
+            order=order,
+            actor=submitted_by,
+            event_type="final_file_submitted",
+            attachment=result,
+        )
+
+        return result
+
+    @classmethod
+    @transaction.atomic
     def submit_external_link(
         cls,
         *,

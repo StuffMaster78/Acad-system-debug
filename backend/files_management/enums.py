@@ -88,6 +88,11 @@ class FilePurpose(models.TextChoices):
 
     ORDER_INSTRUCTION = "order_instruction", "Order Instruction"
     ORDER_REFERENCE = "order_reference", "Order Reference"
+    ORDER_SAMPLE = "order_sample", "Sample / Example"
+    ORDER_OUTLINE = "order_outline", "Outline"
+    ORDER_QUESTIONNAIRE = "order_questionnaire", "Questionnaire"
+    ORDER_NOTES = "order_notes", "Notes"
+    ORDER_CLASS_MATERIAL = "order_class_material", "Class Material"
     ORDER_DRAFT = "order_draft", "Order Draft"
     ORDER_FINAL = "order_final", "Order Final"
     ORDER_REVISION = "order_revision", "Order Revision"

@@ -352,6 +352,73 @@ class OrderFileIntegrationService:
             },
         )
 
+    # ------------------------------------------------------------------
+    # Generic client material upload (sample, outline, questionnaire,
+    # notes, class_material — all visible to order participants)
+    # ------------------------------------------------------------------
+
+    _CLIENT_MATERIAL_PURPOSES = {
+        FilePurpose.ORDER_SAMPLE,
+        FilePurpose.ORDER_OUTLINE,
+        FilePurpose.ORDER_QUESTIONNAIRE,
+        FilePurpose.ORDER_NOTES,
+        FilePurpose.ORDER_CLASS_MATERIAL,
+    }
+
+    @classmethod
+    @transaction.atomic
+    def upload_client_material(
+        cls,
+        *,
+        order,
+        uploaded_by,
+        uploaded_file: UploadedFile,
+        purpose: str,
+    ) -> FileAttachment:
+        """
+        Upload a client-side order material (sample, outline,
+        questionnaire, notes, or class material).
+        """
+        if purpose not in cls._CLIENT_MATERIAL_PURPOSES:
+            raise ValueError(f"Invalid client material purpose: {purpose}")
+
+        return cls._upload_and_attach(
+            order=order,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            purpose=purpose,
+            visibility=FileVisibility.ORDER_PARTICIPANTS,
+            metadata={
+                "order_file_status": purpose.replace("order_", ""),
+                "source_domain": "orders",
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Admin / staff internal file upload
+    # ------------------------------------------------------------------
+
+    @classmethod
+    @transaction.atomic
+    def upload_internal_file(
+        cls,
+        *,
+        order,
+        uploaded_by,
+        uploaded_file: UploadedFile,
+        notes: str = "",
+    ) -> FileAttachment:
+        """Upload a staff-internal file not visible to clients or writers."""
+        return cls._upload_and_attach(
+            order=order,
+            uploaded_by=uploaded_by,
+            uploaded_file=uploaded_file,
+            purpose=FilePurpose.ADMIN_INTERNAL,
+            visibility=FileVisibility.STAFF_ONLY,
+            notes=notes,
+            metadata={"order_file_status": "internal", "source_domain": "orders"},
+        )
+
     @classmethod
     def _upload_and_attach(
         cls,

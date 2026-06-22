@@ -531,3 +531,110 @@ class OrderFileDeletionRequestView(OrderFileBaseView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+# ── New client material types ─────────────────────────────────────────────────
+
+_CLIENT_MATERIAL_PURPOSE_MAP = {
+    "samples":        FilePurpose.ORDER_SAMPLE,
+    "outlines":       FilePurpose.ORDER_OUTLINE,
+    "questionnaires": FilePurpose.ORDER_QUESTIONNAIRE,
+    "notes":          FilePurpose.ORDER_NOTES,
+    "class-materials": FilePurpose.ORDER_CLASS_MATERIAL,
+}
+
+
+class OrderClientMaterialFileUploadView(OrderFileBaseView):
+    """
+    Generic upload endpoint for typed client materials.
+    Resolves purpose from the URL ``material_type`` kwarg.
+
+    POST /orders/<id>/files/<material_type>/
+    """
+
+    def post(self, request, order_id: int, material_type: str):
+        purpose = _CLIENT_MATERIAL_PURPOSE_MAP.get(material_type)
+        if purpose is None:
+            raise ValidationError({"material_type": f"Unknown material type: {material_type}"})
+
+        order = self.get_order(request, order_id)
+        self.ensure_client_or_staff(order=order, user=request.user)
+
+        serializer = OrderFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            attachment = OrderFileService.client_upload_material(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+                purpose=purpose,
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
+
+        return Response(
+            OrderFileAttachmentSerializer(attachment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OrderInternalFileUploadView(OrderFileBaseView):
+    """
+    POST /orders/<id>/files/internal/
+    Staff-only internal file upload (not visible to clients or writers).
+    """
+
+    def post(self, request, order_id: int):
+        order = self.get_order(request, order_id)
+
+        if not self.is_staff(user=request.user):
+            raise PermissionDenied("Only staff can upload internal files.")
+
+        serializer = OrderFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            attachment = OrderFileService.staff_upload_internal(
+                order=order,
+                uploaded_by=request.user,
+                uploaded_file=serializer.validated_data["file"],
+                notes=serializer.validated_data.get("description", ""),
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
+
+        return Response(
+            OrderFileAttachmentSerializer(attachment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OrderSubmitFinalView(OrderFileBaseView):
+    """
+    POST /orders/<id>/files/<attachment_id>/submit-final/
+    Marks an uploaded ORDER_FINAL attachment as the delivery candidate.
+    """
+
+    def post(self, request, order_id: int, attachment_id: int):
+        order = self.get_order(request, order_id)
+
+        attachment = get_object_or_404(
+            FileAttachmentSelector.for_object(
+                website=order.website,
+                obj=order,
+            ),
+            id=attachment_id,
+            purpose=FilePurpose.ORDER_FINAL,
+        )
+
+        try:
+            result = OrderFileService.submit_final(
+                order=order,
+                attachment=attachment,
+                submitted_by=request.user,
+            )
+        except FileManagementError as exc:
+            raise self.handle_file_error(exc) from exc
+
+        return Response(OrderFileAttachmentSerializer(result).data)

@@ -3,6 +3,11 @@ import { api, apiPath, ordersApiPath } from "./client";
 export type FilePurpose =
   | "order_instruction"
   | "order_reference"
+  | "order_sample"
+  | "order_outline"
+  | "order_questionnaire"
+  | "order_notes"
+  | "order_class_material"
   | "order_draft"
   | "order_final"
   | "order_revision"
@@ -68,6 +73,11 @@ export interface FileAttachment {
   external_link?: ExternalFileLink | null;
   metadata?: Record<string, unknown>;
   attached_at: string;
+  // uploader attribution
+  attached_by_name?: string | null;
+  attached_by_role?: string | null;
+  // revision tracking
+  revision_cycle?: number;
 }
 
 export interface FileDownloadResponse {
@@ -123,15 +133,20 @@ export interface AdminActionResponse {
 }
 
 const PURPOSE_ENDPOINT: Record<string, string> = {
-  order_instruction: "instructions",
-  order_reference: "references",
-  style_reference: "style-references",
-  order_draft: "drafts",
-  order_final: "final",
-  order_revision: "revisions",
-  writer_guide: "writer-guides",
-  extra_service_file: "extra-services",
-  admin_internal: "internal",
+  order_instruction:    "instructions",
+  order_reference:      "references",
+  order_sample:         "samples",
+  order_outline:        "outlines",
+  order_questionnaire:  "questionnaires",
+  order_notes:          "notes",
+  order_class_material: "class-materials",
+  style_reference:      "style-references",
+  order_draft:          "drafts",
+  order_final:          "final",
+  order_revision:       "revisions",
+  writer_guide:         "writer-guides",
+  extra_service_file:   "extra-services",
+  admin_internal:       "internal",
 };
 
 function orderFilePath(orderId: number | string, sub = "") {

@@ -175,6 +175,15 @@ class FileAttachment(models.Model):
         help_text="Timestamp of the client's first successful download.",
     )
 
+    revision_cycle = models.PositiveSmallIntegerField(
+        default=0,
+        db_index=True,
+        help_text=(
+            "Which revision round this file belongs to. "
+            "0 = original delivery; 1 = first revision; 2 = second revision, etc."
+        ),
+    )
+
     attached_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
