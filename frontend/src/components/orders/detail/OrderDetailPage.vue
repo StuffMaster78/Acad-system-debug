@@ -24,6 +24,12 @@
       <!-- Summary cards -->
       <OrderSummaryCards :order="order" :lifecycle="lifecycle" :role="role" />
 
+      <!-- Writer pool actions — bid / take for orders still in the pool -->
+      <WriterPoolActionsPanel
+        v-if="role === 'writer'"
+        :order-id="orderId"
+      />
+
       <WriterOrderBriefing
         v-if="role === 'writer'"
         :order-id="orderId"
@@ -173,6 +179,7 @@ import OrderPaymentsTab from "./tabs/OrderPaymentsTab.vue";
 import OrderStaffingTab from "./tabs/OrderStaffingTab.vue";
 import WriterActionsBar from "./WriterActionsBar.vue";
 import WriterOrderBriefing from "./WriterOrderBriefing.vue";
+import WriterPoolActionsPanel from "./WriterPoolActionsPanel.vue";
 import ClientCancelRequestPanel from "./ClientCancelRequestPanel.vue";
 import OrderRevisionsTab from "./tabs/OrderRevisionsTab.vue";
 import OrderAdjustmentsTab from "./tabs/OrderAdjustmentsTab.vue";

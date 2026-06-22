@@ -1,55 +1,32 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import {
   BookOpen,
-  CheckCircle2,
   Clock3,
-  DollarSign,
+  ExternalLink,
   FileText,
   GraduationCap,
   Loader2,
   Quote,
   RefreshCw,
   Search,
-  Send,
   Tag,
   Zap,
 } from "@lucide/vue";
 import Pagination from "@/components/ui/Pagination.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
-import { useBidsStore } from "@/stores/bids";
-import { writerApi } from "@/api/writer";
 import type { OrderSummary } from "@/types/orders";
 
+const router = useRouter();
 const workspace = useWriterWorkspaceStore();
-const bids = useBidsStore();
 
 const searchQuery = ref("");
 const urgentOnly = ref(false);
-const expandedOrderId = ref<number | null>(null);
-const interestMessage = ref("");
 
-// — Eligibility cache (fetched when bid form opens) ——————————————
-type EligibilityResult = Awaited<ReturnType<typeof writerApi.orderEligibility>>["data"];
-const eligibilityCache = ref<Record<number, EligibilityResult>>({});
-const eligibilityLoading = ref<Record<number, boolean>>({});
-
-async function fetchEligibility(orderId: number) {
-  if (eligibilityCache.value[orderId]) return;
-  eligibilityLoading.value[orderId] = true;
-  try {
-    const { data } = await writerApi.orderEligibility(orderId);
-    eligibilityCache.value[orderId] = data;
-    // Pre-populate bid price from level-based suggestion
-    if (data.suggested_bid_price && !bids.bidForm.price) {
-      bids.bidForm.price = data.suggested_bid_price;
-    }
-  } catch {
-    // non-critical — writer can still enter price manually
-  } finally {
-    eligibilityLoading.value[orderId] = false;
-  }
+function openOrderDetail(orderId: number) {
+  router.push(`/writer/orders/${orderId}`);
 }
 
 const filteredOrders = computed(() => {
@@ -96,42 +73,6 @@ function compensationLabel(order: OrderSummary): string {
   const n = Number(order.writer_compensation);
   if (Number.isNaN(n)) return String(order.writer_compensation);
   return new Intl.NumberFormat("en-US", { style: "currency", currency: order.currency ?? "USD" }).format(n);
-}
-
-function toggleInterestForm(orderId: number) {
-  if (expandedOrderId.value === orderId) {
-    expandedOrderId.value = null;
-    interestMessage.value = "";
-    bids.closeBidForm();
-  } else {
-    expandedOrderId.value = orderId;
-    interestMessage.value = "";
-    bids.openBidForm(orderId);
-    void fetchEligibility(orderId);
-  }
-}
-
-async function submitBid(order: OrderSummary) {
-  await bids.submitBid();
-  if (!bids.error) {
-    expandedOrderId.value = null;
-    interestMessage.value = "";
-  }
-}
-
-async function submitInterest(order: OrderSummary) {
-  await workspace.expressInterest(order.id, interestMessage.value);
-  if (!workspace.error) {
-    expandedOrderId.value = null;
-    interestMessage.value = "";
-  }
-}
-
-async function handleTakeOrder(order: OrderSummary) {
-  await workspace.takeOrder(order.id);
-  if (!workspace.error) {
-    workspace.removePoolOrder(order.id);
-  }
 }
 
 function goToPoolPage(page: number) {
@@ -228,15 +169,16 @@ onMounted(() => {
       <article
         v-for="order in filteredOrders"
         :key="order.id"
-        class="rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md"
+        class="rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md cursor-pointer"
+        @click="openOrderDetail(order.id)"
       >
         <div class="p-5">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
-                <h2 class="truncate text-base font-semibold text-ink">
+                <span class="truncate text-base font-semibold text-ink group-hover:text-signal">
                   #{{ order.id }} {{ order.topic }}
-                </h2>
+                </span>
                 <span
                   v-if="order.is_urgent"
                   class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700"
@@ -303,149 +245,12 @@ onMounted(() => {
           </dl>
         </div>
 
-        <div class="border-t border-slate-100 px-5 py-3">
-          <!-- Collapsed: action buttons -->
-          <div v-if="expandedOrderId !== order.id" class="flex flex-wrap gap-2">
-            <button
-              class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              type="button"
-              :disabled="workspace.isMutating || bids.isSaving"
-              @click="toggleInterestForm(order.id)"
-            >
-              <DollarSign class="h-3.5 w-3.5" />
-              Submit a bid
-            </button>
-            <!-- "Take order" only shown when server confirms can_take.
-                 Defaults to visible until eligibility is resolved. -->
-            <button
-              v-if="eligibilityCache[order.id]?.can_take !== false"
-              class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
-              type="button"
-              :disabled="workspace.isMutating"
-              @click="handleTakeOrder(order)"
-            >
-              <Loader2 v-if="workspace.isMutating" class="h-3.5 w-3.5 animate-spin" />
-              <CheckCircle2 v-else class="h-3.5 w-3.5" />
-              Take order directly
-            </button>
-          </div>
-
-          <!-- Expanded: full spec summary + bid form -->
-          <div v-else class="space-y-3">
-            <!-- Full order spec recap so writers have all info before pricing -->
-            <div class="rounded-md border border-slate-100 bg-slate-50 p-3 text-sm">
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-graphite">Order specifications</p>
-              <dl class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
-                <div v-if="order.paper_type_name ?? order.paper_type">
-                  <dt class="text-graphite">Paper type</dt>
-                  <dd class="font-medium text-ink">{{ order.paper_type_name ?? order.paper_type }}</dd>
-                </div>
-                <div v-if="order.subject_name ?? order.subject">
-                  <dt class="text-graphite">Subject</dt>
-                  <dd class="font-medium text-ink">{{ order.subject_name ?? order.subject }}</dd>
-                </div>
-                <div v-if="order.academic_level">
-                  <dt class="text-graphite">Academic level</dt>
-                  <dd class="font-medium text-ink">{{ order.academic_level }}</dd>
-                </div>
-                <div>
-                  <dt class="text-graphite">Pages / qty</dt>
-                  <dd class="font-medium text-ink">{{ pagesLabel(order) }}</dd>
-                </div>
-                <div v-if="order.formatting_style_name ?? order.formatting_style">
-                  <dt class="text-graphite">Citation</dt>
-                  <dd class="font-medium text-ink">{{ order.formatting_style_name ?? order.formatting_style }}</dd>
-                </div>
-                <div v-if="order.number_of_refereces">
-                  <dt class="text-graphite">Sources</dt>
-                  <dd class="font-medium text-ink">{{ order.number_of_refereces }}</dd>
-                </div>
-              </dl>
-              <div v-if="order.order_instructions ?? order.instructions" class="mt-2 border-t border-slate-200 pt-2">
-                <dt class="mb-1 text-xs text-graphite">Instructions</dt>
-                <dd class="line-clamp-3 text-xs leading-5 text-ink">{{ order.order_instructions ?? order.instructions }}</dd>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <p class="text-xs font-semibold uppercase tracking-wide text-graphite">Your Bid</p>
-              <span
-                v-if="eligibilityCache[order.id]?.rate_breakdown?.per_page"
-                class="text-xs text-graphite"
-              >
-                Your rate: ${{ eligibilityCache[order.id].rate_breakdown.per_page }}/page
-                <template v-if="parseFloat(eligibilityCache[order.id].rate_breakdown.per_slide ?? '0') > 0">
-                  · ${{ eligibilityCache[order.id].rate_breakdown.per_slide }}/slide
-                </template>
-              </span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <label class="block">
-                <span class="text-xs font-medium text-graphite">Your price ($) *</span>
-                <div class="relative mt-1">
-                  <DollarSign class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    v-model="bids.bidForm.price"
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    placeholder="e.g. 45.00"
-                    class="focus-ring h-9 w-full rounded-md border border-slate-300 pl-8 pr-3 text-sm"
-                  />
-                </div>
-                <p
-                  v-if="eligibilityCache[order.id]?.suggested_bid_price"
-                  class="mt-1 text-xs text-graphite"
-                >
-                  Suggested: ${{ eligibilityCache[order.id].suggested_bid_price }}
-                </p>
-              </label>
-              <label class="block">
-                <span class="text-xs font-medium text-graphite">Delivery time *</span>
-                <select v-model.number="bids.bidForm.delivery_hours" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-300 px-3 text-sm">
-                  <option :value="6">6 hours</option>
-                  <option :value="12">12 hours</option>
-                  <option :value="24">24 hours</option>
-                  <option :value="48">48 hours</option>
-                  <option :value="72">3 days</option>
-                  <option :value="120">5 days</option>
-                </select>
-              </label>
-            </div>
-
-            <label class="block">
-              <span class="text-xs font-medium text-graphite">Pitch message (optional)</span>
-              <textarea
-                v-model="bids.bidForm.pitch"
-                class="focus-ring mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                rows="2"
-                placeholder="Why are you the best fit for this order? Keep it brief."
-              />
-            </label>
-
-            <p v-if="bids.error" class="text-xs text-rose-600">{{ bids.error }}</p>
-
-            <div class="flex gap-2">
-              <button
-                class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                type="button"
-                :disabled="bids.isSaving || !bids.bidForm.price"
-                @click="submitBid(order)"
-              >
-                <Loader2 v-if="bids.isSaving" class="h-3.5 w-3.5 animate-spin" />
-                <Send v-else class="h-3.5 w-3.5" />
-                Submit bid
-              </button>
-              <button
-                class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-ink"
-                type="button"
-                @click="toggleInterestForm(order.id)"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+        <div class="border-t border-slate-100 px-5 py-3 flex items-center justify-between gap-3">
+          <p class="text-xs text-graphite">Open the order to review full details before bidding.</p>
+          <span class="inline-flex items-center gap-1.5 text-xs font-medium text-signal">
+            <ExternalLink class="h-3.5 w-3.5" />
+            View &amp; bid
+          </span>
         </div>
       </article>
     </div>
