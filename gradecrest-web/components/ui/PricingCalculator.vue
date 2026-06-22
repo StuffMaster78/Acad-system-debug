@@ -16,8 +16,8 @@ import {
 const SERVICE_TYPES = [
   { id: 'writing',      label: 'Writing' },
   { id: 'editing',      label: 'Editing' },
-  { id: 'proofreading', label: 'Proofread' },
-  { id: 'rewriting',    label: 'Rewrite' },
+  { id: 'proofreading', label: 'Proofreading' },
+  { id: 'rewriting',    label: 'Rewriting' },
 ]
 
 const FREE_INCLUSIONS = [
@@ -154,62 +154,41 @@ const orderUrl = computed(() => {
   if (spacing.value === 'single') p.set('spacing', 'single')
   if (subjectName.value) p.set('subject', subjectName.value)
   if (selectedAddonCodes.value.length) p.set('addons', selectedAddonCodes.value.join(','))
-  // Point to GradeCrest's own full order form, not the external portal
   return `/order?${p.toString()}`
 })
-
-
 </script>
 
 <template>
   <div class="overflow-hidden rounded-2xl bg-forest-950 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
 
-    <!-- Gold header -->
-    <div class="border-b border-white/10 px-5 py-3.5">
-      <p class="text-[10px] font-bold uppercase tracking-widest text-gold-400">Instant price calculator</p>
-    </div>
-
-    <!-- Service tab strip -->
-    <div class="flex border-b border-white/10">
-      <button
-        v-for="s in SERVICE_TYPES"
-        :key="s.id"
-        type="button"
-        class="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-all"
-        :class="serviceType === s.id
-          ? 'border-b-2 border-gold-400 text-gold-300'
-          : 'border-b-2 border-transparent text-white/35 hover:text-white/65'"
-        @click="serviceType = s.id"
-      >
-        {{ s.label }}
-      </button>
+    <!-- Header -->
+    <div class="border-b border-white/10 px-5 py-4">
+      <p class="text-xs font-bold uppercase tracking-widest text-gold-400">Instant price estimate</p>
+      <p class="mt-0.5 text-[11px] text-white/45">Adjust options — price updates live</p>
     </div>
 
     <div class="space-y-4 p-5">
 
-      <!-- Paper type + Subject -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Paper type</label>
-          <select v-model="paperCode" class="sel">
-            <option :value="null">Any type</option>
-            <option v-for="pt in paperTypes" :key="pt.code" :value="pt.code">{{ pt.label }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Subject</label>
-          <select v-model="subjectName" class="sel">
-            <option value="">— Any —</option>
-            <optgroup v-for="(names, category) in subjectGroups" :key="category" :label="String(category)">
-              <option v-for="name in names" :key="name" :value="name">{{ name }}</option>
-            </optgroup>
-          </select>
-        </div>
+      <!-- ── Service type ──────────────────────────────────────────────────── -->
+      <div>
+        <label class="field-label">Service type</label>
+        <select v-model="serviceType" class="sel">
+          <option v-for="s in SERVICE_TYPES" :key="s.id" :value="s.id">{{ s.label }}</option>
+        </select>
       </div>
 
-      <!-- Academic level — dropdown -->
+      <!-- ── Paper type ────────────────────────────────────────────────────── -->
       <div>
-        <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Academic level</label>
+        <label class="field-label">Paper type</label>
+        <select v-model="paperCode" class="sel">
+          <option :value="null">— Select paper type —</option>
+          <option v-for="pt in paperTypes" :key="pt.code" :value="pt.code">{{ pt.label }}</option>
+        </select>
+      </div>
+
+      <!-- ── Academic level ────────────────────────────────────────────────── -->
+      <div>
+        <label class="field-label">Academic level</label>
         <select v-model="levelCode" class="sel">
           <option v-for="lvl in levels" :key="lvl.code" :value="lvl.code">
             {{ lvl.label }}{{ lvl.price_per_page ? ` — from $${lvl.price_per_page}/pg` : '' }}
@@ -217,123 +196,155 @@ const orderUrl = computed(() => {
         </select>
       </div>
 
-      <!-- Deadline + Pages + Spacing -->
-      <div class="grid grid-cols-[1fr_auto_auto] items-end gap-3">
-        <div>
-          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Deadline</label>
-          <select v-model.number="deadlineHrs" class="sel">
-            <optgroup v-if="standardDeadlines.length" label="Standard">
-              <option v-for="dl in standardDeadlines" :key="dl.max_hours" :value="dl.max_hours">
-                {{ dl.label }}{{ dl.multiplier === 1 ? ' — best price' : ` (+${Math.round((dl.multiplier - 1) * 100)}%)` }}
-              </option>
-            </optgroup>
-            <optgroup v-if="expressDeadlines.length" label="Express">
-              <option v-for="dl in expressDeadlines" :key="dl.max_hours" :value="dl.max_hours">
-                {{ dl.label }} (+{{ Math.round((dl.multiplier - 1) * 100) }}%)
-              </option>
-            </optgroup>
-          </select>
-        </div>
+      <!-- ── Subject area ──────────────────────────────────────────────────── -->
+      <div>
+        <label class="field-label">Subject area <span class="text-white/30 font-normal normal-case tracking-normal">(optional)</span></label>
+        <select v-model="subjectName" class="sel">
+          <option value="">— Any subject —</option>
+          <optgroup v-for="(names, category) in subjectGroups" :key="category" :label="String(category)">
+            <option v-for="name in names" :key="name" :value="name">{{ name }}</option>
+          </optgroup>
+        </select>
+      </div>
 
+      <!-- ── Deadline ──────────────────────────────────────────────────────── -->
+      <div>
+        <label class="field-label">Deadline</label>
+        <select v-model.number="deadlineHrs" class="sel">
+          <optgroup v-if="standardDeadlines.length" label="Standard">
+            <option v-for="dl in standardDeadlines" :key="dl.max_hours" :value="dl.max_hours">
+              {{ dl.label }}{{ dl.multiplier === 1 ? ' — best price' : ` (+${Math.round((dl.multiplier - 1) * 100)}%)` }}
+            </option>
+          </optgroup>
+          <optgroup v-if="expressDeadlines.length" label="Express">
+            <option v-for="dl in expressDeadlines" :key="dl.max_hours" :value="dl.max_hours">
+              {{ dl.label }} (+{{ Math.round((dl.multiplier - 1) * 100) }}%)
+            </option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- ── Pages + Spacing ──────────────────────────────────────────────── -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Pages stepper -->
         <div>
-          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Pages</label>
-          <div class="flex h-10 items-center gap-1.5 rounded-lg border border-white/10 bg-forest-900/60 px-2">
-            <button type="button" class="flex h-6 w-6 items-center justify-center rounded text-white/40 hover:bg-white/10 hover:text-white disabled:opacity-20" :disabled="pages <= 1" @click="pages--">−</button>
-            <span class="w-6 text-center text-sm font-bold tabular-nums text-white">{{ pages }}</span>
-            <button type="button" class="flex h-6 w-6 items-center justify-center rounded text-white/40 hover:bg-white/10 hover:text-white disabled:opacity-20" :disabled="pages >= 100" @click="pages++">+</button>
+          <label class="field-label">Pages</label>
+          <div class="flex h-10 items-center justify-between gap-2 rounded-lg border border-white/15 bg-forest-900 px-3">
+            <button
+              type="button"
+              class="flex size-6 shrink-0 items-center justify-center rounded text-base font-bold text-white/50 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+              :disabled="pages <= 1"
+              @click="pages--"
+            >−</button>
+            <span class="flex-1 text-center text-sm font-bold tabular-nums text-white">{{ pages }}</span>
+            <button
+              type="button"
+              class="flex size-6 shrink-0 items-center justify-center rounded text-base font-bold text-white/50 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+              :disabled="pages >= 100"
+              @click="pages++"
+            >+</button>
           </div>
-          <p class="mt-0.5 text-center text-[9px] text-white/25">{{ words.toLocaleString() }} w</p>
+          <p class="mt-1 text-center text-[11px] text-white/40">≈ {{ words.toLocaleString() }} words</p>
         </div>
 
+        <!-- Spacing -->
         <div>
-          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-white/40">Spacing</label>
+          <label class="field-label">Spacing</label>
           <select v-model="spacing" class="sel">
-            <option value="double">Double · 275 w/pg</option>
-            <option value="single">Single · 550 w/pg</option>
+            <option value="double">Double (275 w/pg)</option>
+            <option value="single">Single (550 w/pg)</option>
           </select>
         </div>
       </div>
 
-      <!-- Add-ons -->
-      <div v-if="addons.length" class="rounded-lg border border-white/10 bg-white/5 p-3">
-        <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-white/40">Optional add-ons</p>
-        <div class="grid grid-cols-2 gap-2">
+      <!-- ── Add-ons ───────────────────────────────────────────────────────── -->
+      <div v-if="addons.length" class="space-y-2">
+        <p class="field-label">Optional add-ons</p>
+        <div class="space-y-1.5">
           <label
             v-for="addon in addons"
             :key="addon.addon_code"
-            class="flex cursor-pointer items-start gap-2 rounded-lg border p-2 transition-colors"
-            :class="selectedAddonCodes.includes(addon.addon_code) ? 'border-gold-600/40 bg-gold-900/20' : 'border-white/10 hover:border-white/20'"
+            class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
+            :class="selectedAddonCodes.includes(addon.addon_code)
+              ? 'border-gold-600/40 bg-gold-900/20'
+              : 'border-white/10 hover:border-white/20 hover:bg-white/5'"
           >
             <input
               type="checkbox"
-              class="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-white/30 accent-gold-400"
+              class="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 accent-gold-400"
               :checked="selectedAddonCodes.includes(addon.addon_code)"
               @change="toggleAddon(addon.addon_code)"
             />
-            <div class="min-w-0">
-              <p class="text-[11px] font-medium leading-tight text-white/80">{{ addon.name }}</p>
-              <p class="text-[10px] font-semibold text-gold-400">+${{ addon.flat_amount.toFixed(2) }}</p>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-semibold leading-tight text-white/90">{{ addon.name }}</p>
+              <p class="mt-0.5 text-[11px] text-gold-400">+${{ addon.flat_amount.toFixed(2) }}</p>
             </div>
           </label>
         </div>
       </div>
 
-      <!-- Free inclusions — writing only, gold-themed (not emerald like other sites) -->
+      <!-- ── Free inclusions (writing only) ───────────────────────────────── -->
       <Transition name="slide">
-        <div v-if="serviceType === 'writing'" class="rounded-lg border border-gold-700/30 bg-gold-500/10 px-4 py-3">
-          <div class="mb-2 flex items-center gap-2">
-            <svg class="h-4 w-4 shrink-0 text-gold-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <line x1="10" y1="9" x2="8" y2="9"/>
-            </svg>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-gold-400">Included free with writing</p>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-            <p v-for="item in FREE_INCLUSIONS" :key="item" class="flex items-center gap-1.5 text-[10px] font-medium text-gold-200/70">
-              <svg class="h-2.5 w-2.5 shrink-0 text-gold-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2 6 5 9 10 3"/></svg>
+        <div v-if="serviceType === 'writing'" class="rounded-lg border border-gold-700/30 bg-gold-500/10 p-4">
+          <p class="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-gold-400">Included free</p>
+          <ul class="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            <li
+              v-for="item in FREE_INCLUSIONS" :key="item"
+              class="flex items-center gap-1.5 text-[11px] text-gold-200/80"
+            >
+              <svg class="size-3 shrink-0 text-gold-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="2 6 5 9 10 3"/>
+              </svg>
               {{ item }}
-            </p>
-          </div>
+            </li>
+          </ul>
         </div>
       </Transition>
 
-      <!-- Price + CTA -->
-      <div class="rounded-xl border border-white/10 bg-forest-900/60 px-4 py-4">
-        <div class="mb-3 flex items-end justify-between">
+      <!-- ── Price + CTA ───────────────────────────────────────────────────── -->
+      <div class="rounded-xl border border-white/10 bg-forest-900 p-4">
+
+        <!-- Price row -->
+        <div class="flex items-end justify-between gap-2">
           <div>
-            <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">
-              {{ hasLivePrice ? 'Live price' : 'Estimated' }}
-              <Loader2 v-if="isPricing" class="size-3 animate-spin" />
+            <p class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/45">
+              {{ hasLivePrice ? 'Live price' : 'Est. price' }}
+              <Loader2 v-if="isPricing" class="size-3 animate-spin text-gold-400" />
             </p>
-            <p class="text-3xl font-extrabold tabular-nums leading-none text-gold-300">
+            <p class="mt-0.5 text-3xl font-extrabold tabular-nums leading-none text-gold-300">
               ${{ displayPrice.toFixed(2) }}
             </p>
-            <p class="mt-1 text-[10px] text-white/35">
-              ${{ (displayPrice / Math.max(pages, 1)).toFixed(2) }}/page · {{ selectedLevel?.label }} · {{ selectedDeadline?.label }}
-            </p>
           </div>
-          <div class="text-right text-[10px] leading-relaxed text-white/35">
-            <p>✓ No payment until approved</p>
-            <p>✓ Free revisions</p>
+          <div class="text-right text-[11px] leading-relaxed text-white/45">
+            <p>${{ (displayPrice / Math.max(pages, 1)).toFixed(2) }}/page</p>
+            <p>{{ selectedDeadline?.label }}</p>
           </div>
         </div>
+
+        <!-- Trust bullets -->
+        <div class="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/10 pt-3 text-[11px] text-white/40">
+          <span>✓ Pay after approval</span>
+          <span>✓ Free revisions</span>
+          <span>✓ No AI content</span>
+        </div>
+
+        <!-- CTA -->
         <a
           :href="orderUrl"
-          class="flex h-11 w-full items-center justify-center rounded-xl bg-gc-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gc-700"
+          class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-gc-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gc-500"
         >
-          Get started with GradeCrest →
+          Order now — {{ selectedLevel?.label }}
         </a>
-        <p class="mt-2 text-center text-[10px] text-white/25">
-          Price confirmed at checkout — no card needed
+
+        <p class="mt-2 text-center text-[11px] text-white/30">
+          Exact price confirmed at checkout · no card needed
         </p>
       </div>
 
-      <p class="text-center text-[10px] text-white/25">
+      <!-- Custom quote link -->
+      <p class="text-center text-xs text-white/30">
         Complex scope?
-        <NuxtLink to="/contact" class="font-semibold text-gold-400/60 transition-colors hover:text-gold-300">Request a custom quote →</NuxtLink>
+        <NuxtLink to="/contact" class="font-semibold text-gold-400/70 transition-colors hover:text-gold-300">Request a custom quote →</NuxtLink>
       </p>
 
     </div>
@@ -341,10 +352,14 @@ const orderUrl = computed(() => {
 </template>
 
 <style scoped>
-.sel {
-  @apply h-10 w-full rounded-lg border border-white/10 bg-forest-900/60 px-3 text-sm text-white/80 focus:border-gold-500/50 focus:outline-none focus:ring-1 focus:ring-gold-500/30;
+.field-label {
+  @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-white/55;
 }
-.sel option { background: #052e16; color: white; }
+.sel {
+  @apply h-10 w-full rounded-lg border border-white/15 bg-forest-900 px-3 text-sm text-white focus:border-gold-500/50 focus:outline-none focus:ring-1 focus:ring-gold-500/30 transition-colors;
+}
+.sel option,
+.sel optgroup { background: #052e16; color: #f1f5f9; }
 .slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>
