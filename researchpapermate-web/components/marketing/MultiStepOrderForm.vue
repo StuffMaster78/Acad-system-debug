@@ -56,7 +56,7 @@ const paperCode          = ref<string | null>(null)
 const levelCode          = ref(FALLBACK_LEVELS[1]?.code ?? FALLBACK_LEVELS[0]?.code ?? 'undergrad')
 const deadlineHrs        = ref(FALLBACK_DEADLINES[0]?.max_hours ?? 336)
 const pages              = ref(1)
-const spacing            = ref<'double' | 'single'>('double')
+const spacing            = ref<'' | 'double' | 'single'>('')
 const subjectName        = ref('')
 const selectedAddonCodes = ref<string[]>([])
 
@@ -65,7 +65,8 @@ watch(deadlines, (dls)  => { if (dls.length) deadlineHrs.value = dls[0].max_hour
 
 const selectedLevel    = computed(() => levels.value.find(l => l.code === levelCode.value) ?? levels.value[0])
 const selectedDeadline = computed(() => deadlines.value.find(d => d.max_hours === deadlineHrs.value) ?? deadlines.value[0])
-const words            = computed(() => pages.value * (spacing.value === 'double' ? 275 : 550))
+const effectiveSpacing = computed(() => spacing.value === 'single' ? 'single' : 'double')
+const words            = computed(() => pages.value * (effectiveSpacing.value === 'single' ? 550 : 275))
 
 const estimate     = ref<EstimateResponse | null>(null)
 const isPricing    = ref(false)
@@ -73,7 +74,7 @@ const hasLivePrice = ref(false)
 let   priceTimer: ReturnType<typeof setTimeout> | null = null
 
 const spacingMult = computed(() =>
-  spacing.value === 'single'
+  effectiveSpacing.value === 'single'
     ? (pricingConfig.value?.spacing_multipliers?.single ?? 2)
     : (pricingConfig.value?.spacing_multipliers?.double ?? 1)
 )
@@ -112,7 +113,7 @@ async function refreshEstimate() {
           academic_level_code: levelCode.value,
           pages:               pages.value,
           deadline_hours:      deadlineHrs.value,
-          spacing:             spacing.value,
+          spacing:             effectiveSpacing.value,
         },
         credentials: 'include',
       },
@@ -245,7 +246,8 @@ const orderUrl = computed(() => {
         <!-- Spacing dropdown -->
         <div>
           <label class="field-label">Spacing</label>
-          <select v-model="spacing" class="sel">
+          <select v-model="spacing" class="sel" :class="!spacing ? 'text-slate-400' : ''">
+            <option value="" disabled>— Choose spacing —</option>
             <option value="double">Double (275 w/pg)</option>
             <option value="single">Single (550 w/pg)</option>
           </select>
