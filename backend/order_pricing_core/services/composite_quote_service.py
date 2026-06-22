@@ -3,34 +3,24 @@ Composite quote service for the order_pricing_core app.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
 
-from decimal import Decimal
-from decimal import ROUND_HALF_UP
-from typing import Any
-from typing import cast
+from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Any, cast
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
 RelatedManager = Any
 
-from order_pricing_core.models import CompositePricingQuote
-from order_pricing_core.models import CompositePricingQuoteItem
-from order_pricing_core.models import PricingQuote
-from order_pricing_core.models import PricingSnapshot
-from order_pricing_core.selectors.composite_quote_selectors import (
-    get_composite_quote_by_session_id,
-)
+from order_pricing_core.models import (CompositePricingQuote,
+                                       CompositePricingQuoteItem, PricingQuote,
+                                       PricingSnapshot)
+from order_pricing_core.selectors.composite_quote_selectors import \
+    get_composite_quote_by_session_id
+from order_pricing_core.services.snapshot_service import PricingSnapshotService
 from order_pricing_core.validators.composite_quote_validators import (
-    validate_component_quotes,
-)
-from order_pricing_core.validators.composite_quote_validators import (
-    validate_composite_not_final,
-)
-from order_pricing_core.services.snapshot_service import (
-    PricingSnapshotService,
-)
+    validate_component_quotes, validate_composite_not_final)
 
 TWOPLACES = Decimal("0.01")
 

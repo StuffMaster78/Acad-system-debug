@@ -264,22 +264,18 @@ class OrderService:
             return result
 
     @staticmethod
-    def get_critical_threshold():
-        """ Retrieves the critical deadline threshold in hours.
-        Defaults to 24 hours if no setting is found.
-        """
-        setting = CriticalDeadlineSetting.objects.first()
-        return setting.threshold_hours if setting else 6
+    def get_critical_threshold(website=None):
+        """Retrieve the critical deadline threshold in hours for the given website."""
+        return CriticalDeadlineSetting.get_threshold_for_website(website=website, default=6)
 
     @staticmethod
     def update_order_status_based_on_deadline(order):
-        """ Updates the order status to CRITICAL if the deadline is approaching.
-        If the deadline is not set, it does nothing.
-        """
+        """Update order status to CRITICAL if the deadline is approaching."""
         from orders.models.orders import OrderStatus
         if not order.deadline:
             return
-        threshold = OrderService.get_critical_threshold()
+        website = getattr(order, "website", None)
+        threshold = OrderService.get_critical_threshold(website=website)
         now = datetime.utcnow()
         remaining = order.deadline - now
         if remaining <= timedelta(hours=threshold):

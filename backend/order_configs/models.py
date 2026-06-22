@@ -7,18 +7,59 @@ class CriticalDeadlineSetting(models.Model):
     """
     Stores the threshold (in hours) before the deadline when an order
     is considered CRITICAL (urgent).
+
+    Tenant-scoped: rows with website=NULL act as a platform-wide fallback.
+    Per-tenant rows take precedence when a website is provided to
+    get_threshold_for_website().
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="critical_deadline_settings",
+        help_text=(
+            "Leave blank for a platform-wide fallback. "
+            "A per-tenant row overrides the fallback for that site."
+        ),
+    )
     critical_deadline_threshold_hours = models.PositiveIntegerField(
         default=8,
-        help_text="Hours before deadline when order becomes critical"
+        help_text="Hours before deadline when order becomes critical",
     )
 
     class Meta:
         verbose_name = "Critical Deadline Setting"
         verbose_name_plural = "Critical Deadline Settings"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["website"],
+                condition=models.Q(website__isnull=False),
+                name="unique_critical_deadline_per_website",
+            ),
+        ]
 
     def __str__(self):
-        return f"CriticalDeadlineSetting: {self.critical_deadline_threshold_hours} hours"
+        site = self.website.name if self.website_id else "global"
+        return f"CriticalDeadlineSetting({site}): {self.critical_deadline_threshold_hours}h"
+
+    @classmethod
+    def get_threshold_for_website(cls, website=None, default: int = 8) -> int:
+        """
+        Return the critical-deadline threshold (hours) for the given website.
+
+        Lookup order:
+          1. Per-tenant row matching `website`
+          2. Platform-wide fallback row (website=NULL)
+          3. Hard-coded `default`
+        """
+        if website is not None:
+            row = cls.objects.filter(website=website).first()
+            if row is not None:
+                return row.critical_deadline_threshold_hours
+
+        fallback = cls.objects.filter(website__isnull=True).first()
+        return fallback.critical_deadline_threshold_hours if fallback else default
 
 
 class EditingRequirementConfig(models.Model):

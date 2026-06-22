@@ -36,12 +36,8 @@ class MarkCriticalOrderService:
 
 
     @staticmethod
-    def get_critical_threshold():
-        # Grab the first config or default to 24 if none exists
-        config = CriticalDeadlineSetting.objects.first()
-        if config:
-            return config.critical_deadline_threshold_hours
-        return 8 # hard fallback
+    def get_critical_threshold(website=None):
+        return CriticalDeadlineSetting.get_threshold_for_website(website=website)
 
     @staticmethod
     def update_order_status_based_on_deadline(order):
@@ -49,7 +45,8 @@ class MarkCriticalOrderService:
         if not order.deadline:
             return
 
-        threshold_hours = MarkCriticalOrderService.get_critical_threshold()
+        website = getattr(order, "website", None)
+        threshold_hours = MarkCriticalOrderService.get_critical_threshold(website=website)
         now = datetime.utcnow()
         time_left = order.deadline - now
 

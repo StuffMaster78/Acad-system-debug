@@ -1,9 +1,28 @@
 from django.contrib import admin
 from .models import (
+    CriticalDeadlineSetting,
     PaperType, FormattingandCitationStyle, Subject, TypeOfWork,
     EnglishType, WriterDeadlineConfig, EditingRequirementConfig,
     SubjectTemplate, PaperTypeTemplate, TypeOfWorkTemplate
 )
+
+
+@admin.register(CriticalDeadlineSetting)
+class CriticalDeadlineSettingAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'website', 'critical_deadline_threshold_hours']
+    list_filter = ['website']
+    fieldsets = (
+        ('Scope', {
+            'fields': ('website',),
+            'description': (
+                'Leave blank for the platform-wide fallback. '
+                'A per-tenant row overrides the fallback for that site.'
+            ),
+        }),
+        ('Threshold', {
+            'fields': ('critical_deadline_threshold_hours',),
+        }),
+    )
 
 
 @admin.register(PaperType)

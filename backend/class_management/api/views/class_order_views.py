@@ -111,14 +111,20 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Create a draft class order.
+
+        Website resolution for writes:
+          1. Middleware-resolved request.website (Host header → tenant lookup).
+          2. Inferred from the chosen ClassServiceConfig (superadmin path).
+          3. Explicit website_id in request data (last resort).
         """
         serializer = ClassOrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         data = cast(dict[str, Any], serializer.validated_data)
-        website = self.get_website()
-        if website is None:
-            website = getattr(request.user, "website", None)
+
+        # For writes we always want a concrete website — not the None that
+        # get_website() returns for superadmins (which signals cross-site reads).
+        website = getattr(request, "website", None)
 
         class_config = None
         pricing_snapshot: dict[str, Any] = {}
@@ -126,11 +132,23 @@ class ClassOrderViewSet(ClassTenantViewMixin, viewsets.ModelViewSet):
 
         config_id = data.get("class_config_id")
         if config_id:
-            class_config = ClassServiceConfig.objects.filter(
-                id=int(config_id),
-                website=website,
-                is_active=True,
-            ).first()
+            if website is not None:
+                # Normal path: scope config lookup to the resolved tenant.
+                class_config = ClassServiceConfig.objects.filter(
+                    id=int(config_id),
+                    website=website,
+                    is_active=True,
+                ).first()
+            else:
+                # Superadmin with no host-resolved website: look up by ID only
+                # and derive the target website from the config itself.
+                class_config = ClassServiceConfig.objects.filter(
+                    id=int(config_id),
+                    is_active=True,
+                ).first()
+                if class_config is not None:
+                    website = class_config.website
+
             if class_config is None:
                 raise NotFound("Class service config not found.")
             pricing_snapshot = self._build_config_snapshot(
