@@ -56,12 +56,9 @@
           <StatusRow label="Plagiarism check" :value="plagiarismLabel" :tone="plagiarismTone" />
           <StatusRow label="AI detection" :value="aiDetectionLabel" :tone="aiDetectionTone" />
           <StatusRow label="Formatting review" :value="formattingReviewLabel" :tone="formattingReviewTone" />
-          <div v-if="order.qa_review_note" class="col-span-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs">
+          <div class="col-span-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs">
             <span class="font-semibold text-graphite">Editor notes: </span>
-            <span class="text-ink">{{ order.qa_review_note }}</span>
-          </div>
-          <div v-else class="col-span-full text-xs text-graphite">
-            <span class="font-semibold">Editor notes: </span>None
+            <span class="text-ink">{{ order.editor_notes || order.qa_review_note || "None" }}</span>
           </div>
         </div>
 
@@ -462,45 +459,26 @@ const qaStatusTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
   return "warn";
 });
 
-// Plagiarism/AI detection/formatting review — derived from flags/addons or "Pending"
-const allFlags = computed(() => [
-  ...(props.order.flags ?? []),
-  ...(props.order.addon_names ?? []),
-  ...(props.order.selected_addon_codes ?? []),
-].map((f) => String(f).toLowerCase()));
-
-const plagiarismLabel = computed(() => {
-  if (allFlags.value.some((f) => f.includes("plag") && f.includes("pass"))) return "Passed";
-  if (allFlags.value.some((f) => f.includes("plag") && f.includes("fail"))) return "Failed";
+function checkLabel(status: string | null | undefined): string {
+  if (!status || status === "pending") return "Pending";
+  if (status === "passed") return "Passed";
+  if (status === "failed") return "Failed";
+  if (status === "not_required") return "N/A";
   return "Pending";
-});
-const plagiarismTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
-  if (plagiarismLabel.value === "Passed") return "pass";
-  if (plagiarismLabel.value === "Failed") return "fail";
+}
+function checkTone(status: string | null | undefined): "pass" | "fail" | "warn" | "neutral" {
+  if (status === "passed") return "pass";
+  if (status === "failed") return "fail";
+  if (status === "not_required") return "neutral";
   return "warn";
-});
+}
 
-const aiDetectionLabel = computed(() => {
-  if (allFlags.value.some((f) => f.includes("ai") && f.includes("pass"))) return "Passed";
-  if (allFlags.value.some((f) => f.includes("ai") && f.includes("fail"))) return "Failed";
-  return "Pending";
-});
-const aiDetectionTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
-  if (aiDetectionLabel.value === "Passed") return "pass";
-  if (aiDetectionLabel.value === "Failed") return "fail";
-  return "warn";
-});
-
-const formattingReviewLabel = computed(() => {
-  if (props.order.qa_approved_at) return "Passed";
-  if (props.order.qa_returned_at) return "Returned";
-  return "Pending";
-});
-const formattingReviewTone = computed((): "pass" | "fail" | "warn" | "neutral" => {
-  if (formattingReviewLabel.value === "Passed") return "pass";
-  if (formattingReviewLabel.value === "Returned") return "fail";
-  return "warn";
-});
+const plagiarismLabel = computed(() => checkLabel(props.order.plagiarism_check_status));
+const plagiarismTone = computed(() => checkTone(props.order.plagiarism_check_status));
+const aiDetectionLabel = computed(() => checkLabel(props.order.ai_detection_status));
+const aiDetectionTone = computed(() => checkTone(props.order.ai_detection_status));
+const formattingReviewLabel = computed(() => checkLabel(props.order.formatting_review_status));
+const formattingReviewTone = computed(() => checkTone(props.order.formatting_review_status));
 
 const addonLabels = computed(() => {
   const raw = [

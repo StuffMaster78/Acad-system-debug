@@ -77,6 +77,10 @@ export interface OrderSummary {
   qa_review_note?: string;
   qa_approved_at?: string | null;
   qa_returned_at?: string | null;
+  plagiarism_check_status?: "pending" | "passed" | "failed" | "not_required";
+  ai_detection_status?: "pending" | "passed" | "failed" | "not_required";
+  formatting_review_status?: "pending" | "passed" | "failed" | "not_required";
+  editor_notes?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -109,6 +113,10 @@ export interface UpdateOrderPayload {
   flags?: string[];
   completion_notes?: string;
   qa_review_note?: string;
+  plagiarism_check_status?: "pending" | "passed" | "failed" | "not_required";
+  ai_detection_status?: "pending" | "passed" | "failed" | "not_required";
+  formatting_review_status?: "pending" | "passed" | "failed" | "not_required";
+  editor_notes?: string;
 }
 
 export interface OrderLifecycle {

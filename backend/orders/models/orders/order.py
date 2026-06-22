@@ -358,6 +358,37 @@ class Order(models.Model):
         blank=True,
         related_name="qa_reviewed_orders",
     )
+
+    CHECK_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("passed", "Passed"),
+        ("failed", "Failed"),
+        ("not_required", "Not required"),
+    ]
+    plagiarism_check_status = models.CharField(
+        max_length=20,
+        choices=CHECK_STATUS_CHOICES,
+        default="pending",
+        help_text="Result of the plagiarism check before delivery.",
+    )
+    ai_detection_status = models.CharField(
+        max_length=20,
+        choices=CHECK_STATUS_CHOICES,
+        default="pending",
+        help_text="Result of the AI-content detection check before delivery.",
+    )
+    formatting_review_status = models.CharField(
+        max_length=20,
+        choices=CHECK_STATUS_CHOICES,
+        default="pending",
+        help_text="Result of the formatting/style review before delivery.",
+    )
+    editor_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="Internal notes from the editor/QA reviewer visible to the assigned writer.",
+    )
+
     completed_at = models.DateTimeField(
         null=True,
         blank=True,

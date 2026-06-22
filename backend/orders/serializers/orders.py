@@ -327,6 +327,7 @@ class OrderSerializer(OrderBriefingFieldsMixin, serializers.ModelSerializer):
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
             'allow_unpaid_access', 'revision_eligibility', 'style_reference_files',
             'qa_review_note', 'qa_approved_at', 'qa_returned_at',
+            'plagiarism_check_status', 'ai_detection_status', 'formatting_review_status', 'editor_notes',
             'service_family', 'service_code', 'is_composite',
             'number_of_pages', 'number_of_slides', 'number_of_designs', 'number_of_diagrams',
             'order_items', 'addon_names', 'selected_addon_codes',

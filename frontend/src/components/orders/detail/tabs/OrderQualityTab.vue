@@ -155,6 +155,62 @@
       </p>
     </div>
 
+    <!-- Quality check statuses (staff only) -->
+    <div v-if="isReviewer" class="rounded-xl border border-slate-200 bg-white p-5">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-sm font-semibold text-ink">Quality checks</h3>
+        <button
+          v-if="checksDirty"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-signal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          :disabled="checksSaving"
+          @click="saveChecks"
+        >
+          <Loader2 v-if="checksSaving" class="size-3 animate-spin" />
+          <span v-else>Save</span>
+        </button>
+      </div>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <label class="block">
+          <span class="text-xs font-bold text-graphite">Plagiarism check</span>
+          <select v-model="checksForm.plagiarism_check_status" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+            <option value="pending">Pending</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="not_required">N/A</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-bold text-graphite">AI detection</span>
+          <select v-model="checksForm.ai_detection_status" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+            <option value="pending">Pending</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="not_required">N/A</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-bold text-graphite">Formatting review</span>
+          <select v-model="checksForm.formatting_review_status" class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+            <option value="pending">Pending</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="not_required">N/A</option>
+          </select>
+        </label>
+      </div>
+      <label class="mt-3 block">
+        <span class="text-xs font-bold text-graphite">Editor notes for writer</span>
+        <textarea
+          v-model="checksForm.editor_notes"
+          rows="2"
+          class="focus-ring mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+          placeholder="Visible to the assigned writer on their brief…"
+        />
+      </label>
+      <p v-if="checksSaveError" class="mt-2 text-xs text-rose-600">{{ checksSaveError }}</p>
+      <p v-if="checksSaveNotice" class="mt-2 text-xs text-emerald-700">{{ checksSaveNotice }}</p>
+    </div>
+
     <!-- QA Checklist (staff only) -->
     <div v-if="isReviewer && qaTemplates.length" class="rounded-xl border border-slate-200 bg-white p-5">
       <div class="flex items-center justify-between">
@@ -223,7 +279,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { CheckCircle2, Loader2, RotateCcw, Send } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
 import type { OrderLifecycle, OrderSummary } from "@/types/orders";
@@ -251,6 +307,44 @@ const returnNotes = ref("");
 const STATUS = computed(() => props.order.status ?? "");
 
 const isReviewer = computed(() => props.role === "admin" || props.role === "superadmin" || props.role === "editor");
+
+// ── Quality check statuses ────────────────────────────────────────────────────
+const checksForm = reactive({
+  plagiarism_check_status: (props.order.plagiarism_check_status ?? "pending") as string,
+  ai_detection_status: (props.order.ai_detection_status ?? "pending") as string,
+  formatting_review_status: (props.order.formatting_review_status ?? "pending") as string,
+  editor_notes: props.order.editor_notes ?? "",
+});
+const checksSaving = ref(false);
+const checksSaveError = ref("");
+const checksSaveNotice = ref("");
+
+const checksDirty = computed(() =>
+  checksForm.plagiarism_check_status !== (props.order.plagiarism_check_status ?? "pending") ||
+  checksForm.ai_detection_status !== (props.order.ai_detection_status ?? "pending") ||
+  checksForm.formatting_review_status !== (props.order.formatting_review_status ?? "pending") ||
+  checksForm.editor_notes !== (props.order.editor_notes ?? ""),
+);
+
+async function saveChecks() {
+  checksSaving.value = true;
+  checksSaveError.value = "";
+  checksSaveNotice.value = "";
+  try {
+    await ordersApi.update(props.orderId, {
+      plagiarism_check_status: checksForm.plagiarism_check_status as "pending" | "passed" | "failed" | "not_required",
+      ai_detection_status: checksForm.ai_detection_status as "pending" | "passed" | "failed" | "not_required",
+      formatting_review_status: checksForm.formatting_review_status as "pending" | "passed" | "failed" | "not_required",
+      editor_notes: checksForm.editor_notes,
+    });
+    checksSaveNotice.value = "Checks saved.";
+    emit("refresh");
+  } catch {
+    checksSaveError.value = "Could not save check statuses.";
+  } finally {
+    checksSaving.value = false;
+  }
+}
 const canAct = computed(() => isReviewer.value || props.role === "writer");
 
 // ── QA Checklist ──────────────────────────────────────────────────────────────

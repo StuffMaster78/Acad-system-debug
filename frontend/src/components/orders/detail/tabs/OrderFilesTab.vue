@@ -30,7 +30,7 @@
           :order-id="orderId"
           :uploading="files.isUploading"
           @pick="(files_) => files.addToQueue(files_, 'order_final')"
-          @upload="files.flushQueue(orderId)"
+          @upload="files.uploadFiles(orderId)"
         />
         <!-- Upload queue -->
         <UploadQueue v-if="files.uploadQueue.length" :queue="files.uploadQueue" class="mt-3" />
@@ -188,7 +188,7 @@
           :order-id="orderId"
           :uploading="files.isUploading"
           @pick="(f) => files.addToQueue(f, 'order_draft')"
-          @upload="files.flushQueue(orderId)"
+          @upload="files.uploadFiles(orderId)"
         />
         <UploadQueue v-if="files.uploadQueue.filter(q => q.purpose === 'order_draft').length"
           :queue="files.uploadQueue.filter(q => q.purpose === 'order_draft')" class="mt-3" />
@@ -247,7 +247,7 @@
           :order-id="orderId"
           :uploading="files.isUploading"
           @pick="(f) => files.addToQueue(f, 'order_revision')"
-          @upload="files.flushQueue(orderId)"
+          @upload="files.uploadFiles(orderId)"
         />
       </div>
 
