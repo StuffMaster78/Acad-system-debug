@@ -13,7 +13,7 @@ from core.utils.cache_helpers import cache_view_result
 from writer_management.models.writer_profile import WriterProfile
 from writer_management.models.writer_performance import WriterPerformanceSnapshot
 # WriterOrderRequest imported inside functions to avoid circular import
-from writer_management.models.old_models.payout import WriterPayment, WriterEarningsHistory
+from writer_management.models.writer_payment import WriterPayment, WriterEarningsHistory
 from writer_management.models.badges import WriterBadge, Badge
 from orders.models.orders import Order
 # WriterRequest imported inside functions to avoid circular import
@@ -107,7 +107,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         total_special_order_earnings = sum(Decimal(str(e.get('total', e.get('amount', 0)))) for e in special_order_earnings_list)
 
         # Get bonuses and tips (excluding installments)
-        from writer_management.models.old_models.payout import WriterPayment
+        from writer_management.models.writer_payment import WriterPayment
         from special_orders.models import WriterBonus
 
         payments = WriterPayment.objects.filter(
@@ -2111,7 +2111,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         date_from = timezone.now() - timedelta(days=days)
 
         # Import required models
-        from writer_management.models.old_models.payout import WriterPayment
+        from writer_management.models.writer_payment import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
         from orders.models.orders import Order
 
@@ -2390,7 +2390,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         format_type = request.query_params.get('format', 'csv')
 
         # Import required models
-        from writer_management.models.old_models.payout import WriterPayment
+        from writer_management.models.writer_payment import WriterPayment
         from special_orders.models import WriterBonus, SpecialOrder
         from orders.models.orders import Order
 
