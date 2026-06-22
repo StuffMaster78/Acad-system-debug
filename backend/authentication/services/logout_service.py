@@ -32,23 +32,20 @@ class LogoutService:
         if user is None or not user.is_authenticated:
             raise ValidationError("Authenticated user is required.")
 
-        if website is None:
-            raise ValidationError("Website context is required.")
-
         if session is None:
             raise ValidationError("Current session could not be resolved.")
 
         success = LoginSessionService.revoke_session(
             user=user,
             session_id=session.pk,
-            website=website,
+            website=website,  # None is fine — revoke_session handles cross-tenant sessions
             revoked_by=user,
         )
 
         if success:
             SecurityEventService.log(
                 user=user,
-                website=website,
+                website=website,  # May be None for portal/staff sessions
                 event_type=SecurityEvent.EventType.LOGOUT,
                 severity=SecurityEvent.Severity.LOW,
                 ip_address=request.META.get("REMOTE_ADDR"),
@@ -79,9 +76,6 @@ class LogoutService:
 
         if user is None or not user.is_authenticated:
             raise ValidationError("Authenticated user is required.")
-
-        if website is None:
-            raise ValidationError("Website context is required.")
 
         if session is None:
             raise ValidationError("Current session could not be resolved.")

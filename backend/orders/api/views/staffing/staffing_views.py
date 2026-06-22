@@ -314,10 +314,10 @@ class TakeOrderView(GenericAPIView):
         )
 
         assignment = OrderStaffingService.take_order(
-            order=order,
-            writer=request.user,
-            triggered_by=request.user,
-        )
+                order=order,
+                writer=request.user,
+                triggered_by=request.user,
+            )
 
         return Response(
             {

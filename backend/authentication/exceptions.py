@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.views import exception_handler
 from rest_framework.exceptions import Throttled
 from rest_framework.response import Response
@@ -7,6 +8,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 def custom_exception_handler(exc, context):
+    # Convert django.core.exceptions.ValidationError to DRF 400
+    # so service-layer guards (e.g. in OrderStaffingService, LogoutService)
+    # return a proper JSON error instead of an unhandled 500.
+    if isinstance(exc, DjangoValidationError):
+        messages = exc.messages if hasattr(exc, "messages") else [str(exc)]
+        return Response(
+            {"detail": " ".join(messages)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     response = exception_handler(exc, context)
 
     if isinstance(exc, Throttled):
