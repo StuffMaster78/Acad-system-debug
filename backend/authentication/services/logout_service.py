@@ -33,7 +33,10 @@ class LogoutService:
             raise ValidationError("Authenticated user is required.")
 
         if session is None:
-            raise ValidationError("Current session could not be resolved.")
+            # No LoginSession record — user logged in via a path that doesn't
+            # create sessions (e.g. seed accounts, legacy tokens). Nothing to
+            # revoke server-side; client-side cleanup is sufficient.
+            return False
 
         success = LoginSessionService.revoke_session(
             user=user,
@@ -78,7 +81,13 @@ class LogoutService:
             raise ValidationError("Authenticated user is required.")
 
         if session is None:
-            raise ValidationError("Current session could not be resolved.")
+            # No LoginSession — revoke all sessions for this user without exclusion.
+            return LoginSessionService.revoke_all_sessions(
+                user=user,
+                website=website,
+                exclude_session_id=None,
+                revoked_by=user,
+            )
 
         revoked_count = LoginSessionService.revoke_all_sessions(
             user=user,

@@ -126,6 +126,9 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       await authApi.logout();
+    } catch {
+      // Backend may return 400 if no LoginSession exists (seed accounts, expired
+      // sessions). Swallow it — client-side cleanup always runs regardless.
     } finally {
       clearSession();
       window.location.replace("/auth/login");
