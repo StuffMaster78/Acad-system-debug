@@ -5,6 +5,14 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-10',
 
+  components: [
+    { path: '~/components/layout',    prefix: '' },
+    { path: '~/components/marketing', prefix: '' },
+    { path: '~/components/ui',        prefix: '' },
+    { path: '~/components/cms',       prefix: '' },
+    { path: '~/components',           prefix: '' },
+  ],
+
   alias: {
     '@lucide/vue': fileURLToPath(new URL('./utils/lucide-icons.ts', import.meta.url)),
   },
