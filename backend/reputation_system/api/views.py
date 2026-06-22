@@ -5,20 +5,12 @@ from authentication.permissions import IsAdminOrSuperAdmin
 
 from reputation_system.services.reputation_query_service import ReputationQueryService
 from reputation_system.services.writer_leaderboard_service import WriterLeaderboardService
-
-
-def _snap_to_dict(snap):
-    if snap is None:
-        return None
-    return {
-        "writer_id": str(snap.writer_id),
-        "rating": str(snap.rating),
-        "review_count": snap.review_count,
-        "verified_review_count": snap.verified_review_count,
-        "trust_score": str(snap.trust_score),
-        "metadata": snap.metadata,
-        "updated_at": snap.updated_at.isoformat() if snap.updated_at else None,
-    }
+from reputation_system.api.serializers import (
+    WriterReputationSnapshotSerializer,
+    WebsiteReputationSnapshotSerializer,
+    LeaderboardEntrySerializer,
+    WriterRankSerializer,
+)
 
 
 class WriterReputationView(APIView):
@@ -29,7 +21,7 @@ class WriterReputationView(APIView):
         snap = ReputationQueryService.get_writer_reputation(writer_id)
         if snap is None:
             return Response({"detail": "No reputation record found."}, status=status.HTTP_404_NOT_FOUND)
-        return Response(_snap_to_dict(snap))
+        return Response(WriterReputationSnapshotSerializer(snap).data)
 
 
 class WebsiteReputationView(APIView):
@@ -40,12 +32,7 @@ class WebsiteReputationView(APIView):
         snap = ReputationQueryService.get_website_reputation(website_id)
         if snap is None:
             return Response({"detail": "No reputation record found."}, status=status.HTTP_404_NOT_FOUND)
-        return Response({
-            "website_id": website_id,
-            "rating": str(snap.rating),
-            "review_count": snap.review_count,
-            "updated_at": snap.updated_at.isoformat() if snap.updated_at else None,
-        })
+        return Response(WebsiteReputationSnapshotSerializer(snap).data)
 
 
 class LeaderboardView(APIView):
@@ -54,20 +41,10 @@ class LeaderboardView(APIView):
 
     def get(self, request):
         limit = min(int(request.query_params.get("limit", 50)), 200)
-        website_id = request.query_params.get("website_id")
-
         entries = WriterLeaderboardService.global_leaderboard(limit=limit)
+        serializer = LeaderboardEntrySerializer(entries, many=True)
         return Response({
-            "results": [
-                {
-                    "rank": e.rank,
-                    "writer_id": str(e.writer_id),
-                    "rating": str(e.rating),
-                    "review_count": e.review_count,
-                    "trust_score": str(e.trust_score),
-                }
-                for e in entries
-            ],
+            "results": serializer.data,
             "count": len(entries),
         })
 
@@ -79,8 +56,9 @@ class WriterRankView(APIView):
     def get(self, request, writer_id):
         rank = WriterLeaderboardService.writer_rank(writer_id=writer_id)
         percentile = WriterLeaderboardService.percentile_rank(writer_id=writer_id)
-        return Response({
-            "writer_id": str(writer_id),
+        serializer = WriterRankSerializer({
+            "writer_id": writer_id,
             "rank": rank,
-            "percentile": str(percentile) if percentile is not None else None,
+            "percentile": percentile,
         })
+        return Response(serializer.data)
