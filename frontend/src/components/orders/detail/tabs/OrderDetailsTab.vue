@@ -205,70 +205,70 @@
       <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-if="serviceFamilyLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Service type</dt>
-          <dd class="mt-1 text-sm text-ink">
+          <dd class="mt-1 text-sm font-bold text-ink">
             {{ serviceFamilyLabel }}
             <span v-if="order.service_code" class="ml-1 text-xs text-graphite">({{ order.service_code.replace(/_/g, ' ') }})</span>
           </dd>
         </div>
         <div v-if="order.topic">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Topic</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.topic }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ order.topic }}</dd>
         </div>
         <div v-if="academicLevelLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Academic level</dt>
-          <dd class="mt-1 text-sm text-ink">{{ academicLevelLabel }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ academicLevelLabel }}</dd>
         </div>
         <div v-if="paperTypeLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Paper type</dt>
-          <dd class="mt-1 text-sm text-ink">{{ paperTypeLabel }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ paperTypeLabel }}</dd>
         </div>
         <div v-if="typeOfWorkLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Type of work</dt>
-          <dd class="mt-1 text-sm text-ink">{{ typeOfWorkLabel }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ typeOfWorkLabel }}</dd>
         </div>
         <div v-if="subjectLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Subject</dt>
-          <dd class="mt-1 text-sm text-ink">{{ subjectLabel }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ subjectLabel }}</dd>
         </div>
         <div v-if="formattingStyleLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Citation style</dt>
-          <dd class="mt-1 text-sm text-ink">{{ formattingStyleLabel }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ formattingStyleLabel }}</dd>
         </div>
         <div v-if="order.base_quantity ?? order.number_of_pages">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Pages / Qty</dt>
-          <dd class="mt-1 text-sm text-ink">
+          <dd class="mt-1 text-sm font-bold text-ink">
             {{ order.base_quantity ?? order.number_of_pages }}
             <span v-if="order.spacing" class="text-graphite">({{ order.spacing }})</span>
           </dd>
         </div>
         <div v-if="order.number_of_slides">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Slides</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.number_of_slides }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ order.number_of_slides }}</dd>
         </div>
         <div v-if="order.number_of_refereces">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Sources</dt>
-          <dd class="mt-1 text-sm text-ink">{{ order.number_of_refereces }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ order.number_of_refereces }}</dd>
         </div>
         <div v-if="englishTypeLabel">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">English type</dt>
-          <dd class="mt-1 text-sm text-ink">{{ englishTypeLabel }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ englishTypeLabel }}</dd>
         </div>
         <div v-if="role !== 'writer' && order.client_deadline">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Client deadline</dt>
-          <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.client_deadline) }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ dateLabel(order.client_deadline) }}</dd>
         </div>
         <!-- Writer sees their own deadline; staff also see it separately -->
         <div v-if="(role === 'writer' || isStaffRole) && order.writer_deadline">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">{{ role === 'writer' ? 'Your deadline' : 'Writer deadline' }}</dt>
-          <dd class="mt-1 text-sm text-ink">{{ dateLabel(order.writer_deadline) }}</dd>
+          <dd class="mt-1 text-sm font-bold text-ink">{{ dateLabel(order.writer_deadline) }}</dd>
         </div>
         <div v-if="isStaffRole && order.website">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Website ID</dt>
-          <dd class="mt-1 font-mono text-sm text-ink">#{{ order.website }}</dd>
+          <dd class="mt-1 font-mono text-sm font-bold text-ink">#{{ order.website }}</dd>
         </div>
         <div v-if="isStaffRole && order.discount_code_used">
           <dt class="text-xs font-semibold uppercase tracking-wide text-graphite">Discount code</dt>
-          <dd class="mt-1 font-mono text-sm text-ink">{{ order.discount_code_used }}</dd>
+          <dd class="mt-1 font-mono text-sm font-bold text-ink">{{ order.discount_code_used }}</dd>
         </div>
       </dl>
 
@@ -301,19 +301,19 @@
         </div>
         <div class="rounded-md border border-slate-100 p-3">
           <p class="text-xs font-semibold text-graphite">Hold</p>
-          <p class="mt-1 text-sm text-ink">
+          <p class="mt-1 text-sm font-bold text-ink">
             {{ lifecycle?.has_active_hold ? `Hold #${lifecycle.active_hold_id}` : "No active hold" }}
           </p>
         </div>
         <div class="rounded-md border border-slate-100 p-3">
           <p class="text-xs font-semibold text-graphite">Dispute</p>
-          <p class="mt-1 text-sm text-ink">
+          <p class="mt-1 text-sm font-bold text-ink">
             {{ lifecycle?.has_active_dispute ? `Dispute #${lifecycle.active_dispute_id} active` : "No active dispute" }}
           </p>
         </div>
         <div class="rounded-md border border-slate-100 p-3">
           <p class="text-xs font-semibold text-graphite">Latest revision</p>
-          <p class="mt-1 text-sm text-ink">{{ lifecycle?.latest_revision_status ?? "None" }}</p>
+          <p class="mt-1 text-sm font-bold text-ink">{{ lifecycle?.latest_revision_status ?? "None" }}</p>
         </div>
       </div>
     </div>
