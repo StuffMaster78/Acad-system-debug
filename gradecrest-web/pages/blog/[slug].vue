@@ -265,11 +265,12 @@ function formatDateShort(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
-const authorInitial    = computed(() => (article.value?.author_name || 'G').charAt(0).toUpperCase())
-const authorName       = computed(() => article.value?.author_name || 'GradeCrest Editorial Team')
-const authorCredentials = computed(() => article.value?.author_credentials || '')
+const displayTitle     = computed(() => article.value?.title || staticPost?.title || '')
+const authorInitial    = computed(() => (article.value?.author_name || staticPost?.author || 'G').charAt(0).toUpperCase())
+const authorName       = computed(() => article.value?.author_name || staticPost?.author || 'GradeCrest Editorial Team')
+const authorCredentials = computed(() => article.value?.author_credentials || staticPost?.authorCredentials || '')
 const authorBio        = computed(() => article.value?.author_bio || '')
-const publishedDate    = computed(() => article.value?.canonical_published_at || article.value?.meta?.first_published_at)
+const publishedDate    = computed(() => article.value?.canonical_published_at || article.value?.meta?.first_published_at || staticPost?.date)
 const updatedDate      = computed(() => article.value?.last_substantive_update)
 const wordCount        = computed(() => article.value?.word_count || 0)
 const tags             = computed(() => article.value?.tag_names ?? [])
@@ -352,7 +353,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
             </div>
             <!-- Reviewer badge -->
             <div
-              v-if="article.reviewer"
+              v-if="article?.reviewer"
               class="flex items-center gap-1.5 rounded-full border border-gc-500/30 bg-gc-500/10 px-3 py-1 text-xs text-gc-300"
             >
               <svg class="size-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
@@ -432,7 +433,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
               <div class="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center gap-2 print:hidden">
                 <span class="text-xs font-semibold text-graphite uppercase tracking-widest mr-1">Share</span>
                 <a
-                  :href="`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(pageUrl)}`"
+                  :href="`https://twitter.com/intent/tweet?text=${encodeURIComponent(displayTitle)}&url=${encodeURIComponent(pageUrl)}`"
                   target="_blank" rel="noopener"
                   class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-graphite hover:border-slate-300 hover:text-ink transition-colors"
                 >
@@ -448,7 +449,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                   LinkedIn
                 </a>
                 <a
-                  :href="`https://wa.me/?text=${encodeURIComponent(article.title + ' ' + pageUrl)}`"
+                  :href="`https://wa.me/?text=${encodeURIComponent(displayTitle + ' ' + pageUrl)}`"
                   target="_blank" rel="noopener"
                   class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-graphite hover:border-green-300 hover:text-green-700 transition-colors"
                 >
@@ -670,16 +671,16 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                 </div>
 
                 <!-- Social proof nudge -->
-                <div v-if="article.category_name" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
+                <div v-if="article?.category_name || staticPost?.category" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
                   <p class="text-xs font-semibold text-emerald-700">🎓 Popular this week</p>
-                  <p class="text-xs text-emerald-600 mt-0.5">Students are ordering expert help with <span class="font-semibold">{{ article.category_name }}</span></p>
+                  <p class="text-xs text-emerald-600 mt-0.5">Students are ordering expert help with <span class="font-semibold">{{ article?.category_name ?? staticPost?.category }}</span></p>
                 </div>
 
                 <!-- Last updated -->
-                <div v-if="updatedDate || publishedDate" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-graphite space-y-1">
-                  <p v-if="publishedDate"><span class="font-medium text-ink">Published:</span> {{ formatDate(publishedDate) }}</p>
+                <div v-if="updatedDate || publishedDate || staticPost?.date" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-graphite space-y-1">
+                  <p v-if="publishedDate || staticPost?.date"><span class="font-medium text-ink">Published:</span> {{ formatDate(publishedDate ?? staticPost?.date ?? '') }}</p>
                   <p v-if="updatedDate"><span class="font-medium text-ink">Last updated:</span> {{ formatDate(updatedDate) }}</p>
-                  <p v-if="article.reviewer"><span class="font-medium text-ink">Reviewed by:</span> {{ article.reviewer.name }}</p>
+                  <p v-if="article?.reviewer"><span class="font-medium text-ink">Reviewed by:</span> {{ article?.reviewer?.name }}</p>
                 </div>
 
               </div>
