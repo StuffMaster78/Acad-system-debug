@@ -42,7 +42,7 @@ function buildPreviewAudit(sectionKey: string): AuditEntry[] {
   return [
     { id: 1, key: "deadline_min_hours", label: "Minimum deadline (hours)", section: sectionKey, oldValue: 6, newValue: 8, changedBy: "Eva Admin", changedAt: new Date(now - 3600000 * 2).toISOString(), website: null },
     { id: 2, key: "deadline_min_hours", label: "Minimum deadline (hours)", section: sectionKey, oldValue: 12, newValue: 6, changedBy: "Super Admin", changedAt: new Date(now - 86400000 * 3).toISOString(), website: null },
-    { id: 3, key: "order_auto_complete_days", label: "Auto-complete after (days)", section: sectionKey, oldValue: 3, newValue: 5, changedBy: "Eva Admin", changedAt: new Date(now - 86400000 * 7).toISOString(), website: "WritePro" },
+    { id: 3, key: "order_auto_complete_days", label: "Auto-complete after (days)", section: sectionKey, oldValue: 3, newValue: 5, changedBy: "Eva Admin", changedAt: new Date(now - 86400000 * 7).toISOString(), website: "NurseMyGrade" },
   ];
 }
 
@@ -62,7 +62,7 @@ export const useAdminMasterConfigStore = defineStore("admin-master-config", () =
   }
 
   // ── Website scope ───────────────────────────────────────────────────────────
-  const websites = ref<string[]>(["WritePro", "EssayMasters"]);
+  const websites = ref<string[]>(["NurseMyGrade", "EssayManiacs"]);
   const selectedWebsite = ref<string | null>(null); // null = Global
 
   // ── Search ──────────────────────────────────────────────────────────────────

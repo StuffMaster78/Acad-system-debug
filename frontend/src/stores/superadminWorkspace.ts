@@ -36,9 +36,9 @@ function money(value: unknown): string {
 function previewTenants(): TenantSummary[] {
   return [
     {
-      id: 1,
-      name: "WritePro Global",
-      domain: "writepro.test",
+      id: 14,
+      name: "NurseMyGrade",
+      domain: "nursemygrade.com",
       is_active: true,
       user_count: 1840,
       order_count: 12620,
@@ -55,9 +55,9 @@ function previewTenants(): TenantSummary[] {
       },
     },
     {
-      id: 2,
-      name: "EssayDesk",
-      domain: "essaydesk.test",
+      id: 15,
+      name: "EssayManiacs",
+      domain: "essaymaniacs.com",
       is_active: true,
       user_count: 930,
       order_count: 6940,
@@ -74,16 +74,42 @@ function previewTenants(): TenantSummary[] {
       },
     },
     {
-      id: 3,
-      name: "CampusAssist",
-      domain: "campusassist.test",
-      is_active: false,
-      user_count: 214,
-      order_count: 1020,
-      total_revenue: 59200,
-      recent_orders_30d: 18,
-      new_users_30d: 9,
-      avg_order_value: 94,
+      id: 10,
+      name: "GradeCrest",
+      domain: "gradecrest.com",
+      is_active: true,
+      user_count: 760,
+      order_count: 4810,
+      total_revenue: 298700,
+      recent_orders_30d: 214,
+      new_users_30d: 53,
+      avg_order_value: 112,
+      metrics: {
+        users: { total: 760, new_this_period: 53 },
+        orders: { total: 214, completed: 191, completion_rate: 89.3 },
+        revenue: { total: 298700, avg_per_order: 112 },
+        disputes: { total: 3, resolution_rate: 100 },
+        support: { total_tickets: 18, resolution_rate: 94.4 },
+      },
+    },
+    {
+      id: 7,
+      name: "ResearchPaperMate",
+      domain: "researchpapermate.com",
+      is_active: true,
+      user_count: 410,
+      order_count: 2340,
+      total_revenue: 159600,
+      recent_orders_30d: 98,
+      new_users_30d: 27,
+      avg_order_value: 134,
+      metrics: {
+        users: { total: 410, new_this_period: 27 },
+        orders: { total: 98, completed: 86, completion_rate: 87.8 },
+        revenue: { total: 159600, avg_per_order: 134 },
+        disputes: { total: 2, resolution_rate: 100 },
+        support: { total_tickets: 11, resolution_rate: 90.9 },
+      },
     },
   ];
 }
@@ -202,17 +228,17 @@ export const useSuperadminWorkspaceStore = defineStore("superadmin-workspace", (
             unassigned_orders: 31,
           },
           recent_orders: [
-            { id: 10001, topic: "Nursing leadership reflection", website: "WritePro Global", status: "in_progress", total_price: 188 },
-            { id: 10012, topic: "Marketing analytics case study", website: "EssayDesk", status: "disputed", total_price: 240 },
+            { id: 10001, topic: "Nursing leadership reflection", website: "NurseMyGrade", status: "in_progress", total_price: 188 },
+            { id: 10012, topic: "Marketing analytics case study", website: "EssayManiacs", status: "disputed", total_price: 240 },
           ],
         };
         users.value = [
-          { id: 11, username: "site.admin", email: "admin@writepro.test", role: "admin", is_suspended: false, is_on_probation: false },
+          { id: 11, username: "site.admin", email: "admin@nursemygrade.com", role: "admin", is_suspended: false, is_on_probation: false },
           { id: 102, username: "writer.risk", email: "writer-risk@example.com", role: "writer", is_suspended: true, is_on_probation: true },
           { id: 209, username: "support.lead", email: "support@example.com", role: "support", is_suspended: false, is_on_probation: false },
         ];
         logs.value = [
-          { id: 1, action_type: "Tenant Updated", action_details: "Updated SEO settings for WritePro Global", formatted_timestamp: "2026-05-26 05:42:00" },
+          { id: 1, action_type: "Tenant Updated", action_details: "Updated SEO settings for NurseMyGrade", formatted_timestamp: "2026-05-26 05:42:00" },
           { id: 2, action_type: "Appeal Approved", action_details: "Approved suspension appeal for writer.risk", formatted_timestamp: "2026-05-25 18:20:00" },
         ];
         appeals.value = [

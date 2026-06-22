@@ -49,7 +49,7 @@ class Command(BaseCommand):
     }
 
     BRANDING = {
-        "brand_name": "WritePro Dev",
+        "brand_name": "NurseMyGrade Dev",
         "tagline": "Expert writing assistance across every subject.",
         "primary_color": "#4f46e5",
         "secondary_color": "#0f172a",

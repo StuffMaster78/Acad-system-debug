@@ -590,8 +590,8 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     try {
       if (auth.isPreviewSession) {
         pricingConfigs.value = [
-          { id: 1, name: "Standard — WritePro", website: "WritePro", is_active: true, updated_at: new Date().toISOString() },
-          { id: 2, name: "Premium — EssayMasters", website: "EssayMasters", is_active: true, updated_at: new Date().toISOString() },
+          { id: 1, name: "Standard — NurseMyGrade", website: "NurseMyGrade", is_active: true, updated_at: new Date().toISOString() },
+          { id: 2, name: "Premium — EssayManiacs", website: "EssayManiacs", is_active: true, updated_at: new Date().toISOString() },
         ];
         return;
       }

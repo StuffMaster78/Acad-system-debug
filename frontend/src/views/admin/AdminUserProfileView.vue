@@ -170,7 +170,7 @@ async function loadUser() {
           is_suspended: false,
           is_blacklisted: false,
           is_on_probation: false,
-          website: { id: 1, name: "WritePro Global", domain: "writepro.test" },
+          website: { id: 1, name: "NurseMyGrade", domain: "nursemygrade.com" },
           date_joined: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
           last_login: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         };

@@ -204,7 +204,7 @@ function domainAutoSlug(form: TenantCreatePayload) {
               <input
                 v-model="tenants.createForm.name"
                 type="text"
-                placeholder="WritePro Global"
+                placeholder="NurseMyGrade"
                 class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal/30"
               />
             </label>

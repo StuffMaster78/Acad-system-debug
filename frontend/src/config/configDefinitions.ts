@@ -275,9 +275,9 @@ export const ALL_SETTINGS: ConfigDefinition[] = [
   // ══════════════════════════════════════════════════════════════
 
   // Section: marketing-email
-  { key: "email_from_name", label: "From name", description: "Name shown in the email 'From' field.", domain: "marketing", section: "marketing-email", dataType: "text", defaultValue: "WritePro", requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "email_from_address", label: "From address", description: "Sending email address for all marketing emails.", domain: "marketing", section: "marketing-email", dataType: "text", defaultValue: "noreply@writepro.com",requiredScope: "admin", websiteOverrideAllowed: true },
-  { key: "email_reply_to", label: "Reply-to address", description: "Where replies are routed when a recipient replies to a marketing email.", domain: "marketing", section: "marketing-email", dataType: "text", defaultValue: "support@writepro.com",requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "email_from_name", label: "From name", description: "Name shown in the email 'From' field.", domain: "marketing", section: "marketing-email", dataType: "text", defaultValue: "", requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "email_from_address", label: "From address", description: "Sending email address for all marketing emails.", domain: "marketing", section: "marketing-email", dataType: "text", defaultValue: "",requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "email_reply_to", label: "Reply-to address", description: "Where replies are routed when a recipient replies to a marketing email.", domain: "marketing", section: "marketing-email", dataType: "text", defaultValue: "",requiredScope: "admin", websiteOverrideAllowed: true },
   { key: "email_max_per_week", label: "Max marketing emails/week",description: "Rate cap on marketing emails per client per week.", domain: "marketing", section: "marketing-email", dataType: "number", defaultValue: 2, requiredScope: "admin", websiteOverrideAllowed: true },
   { key: "email_marketing_enabled", label: "Marketing email enabled", description: "Global toggle for all outbound marketing emails.", domain: "marketing", section: "marketing-email", dataType: "boolean", defaultValue: true, requiredScope: "admin", websiteOverrideAllowed: true },
 
@@ -401,7 +401,7 @@ export const ALL_SETTINGS: ConfigDefinition[] = [
   { key: "blog_author_bio", label: "Default author bio", description: "Short bio shown under blog posts from the default author.", domain: "cms-seo", section: "blog-persona", dataType: "textarea", defaultValue: "", requiredScope: "editor", websiteOverrideAllowed: true },
 
   // Section: seo-defaults
-  { key: "seo_title_suffix", label: "Title suffix", description: "Appended to every page title (e.g. ' | WritePro').", domain: "cms-seo", section: "seo-defaults", dataType: "text", defaultValue: "| WritePro", requiredScope: "admin", websiteOverrideAllowed: true },
+  { key: "seo_title_suffix", label: "Title suffix", description: "Appended to every page title (e.g. ' | NurseMyGrade').", domain: "cms-seo", section: "seo-defaults", dataType: "text", defaultValue: "", requiredScope: "admin", websiteOverrideAllowed: true },
   { key: "seo_meta_desc_max_length", label: "Meta description max length", description: "Warn editors when meta descriptions exceed this character count.", domain: "cms-seo", section: "seo-defaults", dataType: "number", defaultValue: 160, requiredScope: "admin", websiteOverrideAllowed: true },
   { key: "seo_canonical_enabled", label: "Canonical tags enabled", description: "Add canonical link elements to all published pages.", domain: "cms-seo", section: "seo-defaults", dataType: "boolean", defaultValue: true, requiredScope: "admin", websiteOverrideAllowed: true },
   { key: "seo_noindex_draft_pages", label: "No-index draft pages", description: "Prevent draft/unpublished pages from being indexed.", domain: "cms-seo", section: "seo-defaults", dataType: "boolean", defaultValue: true, requiredScope: "editor", websiteOverrideAllowed: true },

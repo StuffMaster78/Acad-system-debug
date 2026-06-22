@@ -28,7 +28,7 @@ function previewConfig(name: string, active = true): ConfigItem {
     id: Math.floor(Math.random() * 10000),
     name,
     is_active: active,
-    website: "WritePro Global",
+    website: "NurseMyGrade",
     updated_at: new Date().toISOString(),
   };
 }

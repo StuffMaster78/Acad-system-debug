@@ -74,7 +74,7 @@ function previewRecord(
     status,
     category,
     value,
-    owner: "WritePro Global",
+    owner: "NurseMyGrade",
     startsAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     endsAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 12).toISOString(),
   };

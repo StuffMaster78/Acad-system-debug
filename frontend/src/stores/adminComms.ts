@@ -96,7 +96,7 @@ function previewCampaigns(): EmailCampaignRecord[] {
       status: "scheduled",
       email_type: "marketing",
       scheduled_time: new Date(Date.now() + 1000 * 60 * 60 * 7).toISOString(),
-      website: "WritePro Global",
+      website: "NurseMyGrade",
       created_by: "admin preview",
       created_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
     },

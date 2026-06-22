@@ -28,14 +28,14 @@ function previewDuplicates(): DuplicateGroup[] {
       match_count: 3,
       detection_types: ["email_pattern", "device_overlap", "payment_fingerprint"],
       signals: { shared_ip: "3 sessions", matching_device: true, email_similarity: "84%" },
-      websites: [{ id: 1, name: "WritePro Global" }, { id: 2, name: "EssayDesk" }],
+      websites: [{ id: 14, name: "NurseMyGrade" }, { id: 15, name: "EssayManiacs" }],
       users: [
         {
           id: 101,
           username: "nadia.m",
           email: "nadia@example.com",
           role: "client",
-          website: { id: 1, name: "WritePro Global" },
+          website: { id: 14, name: "NurseMyGrade" },
           is_active: true,
         },
         {
@@ -43,7 +43,7 @@ function previewDuplicates(): DuplicateGroup[] {
           username: "risk.client",
           email: "risk@example.com",
           role: "client",
-          website: { id: 2, name: "EssayDesk" },
+          website: { id: 15, name: "EssayManiacs" },
           is_active: false,
           is_suspended: true,
         },
