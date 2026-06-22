@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from privacy.models import CookieConsentRecord, ExitIntentPopupConfig
+from privacy.models import CookieConsentRecord, ExitIntentPopupConfig, WebsiteCookieConfig
 
 
 @admin.register(CookieConsentRecord)
@@ -55,3 +55,42 @@ class ExitIntentPopupConfigAdmin(admin.ModelAdmin):
     list_filter = ("is_enabled", "trigger", "requires_marketing_consent", "website")
     search_fields = ("website__name", "title", "body", "primary_cta_label")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(WebsiteCookieConfig)
+class WebsiteCookieConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "website",
+        "consent_version",
+        "policy_version",
+        "marketing_available",
+        "updated_at",
+    )
+    list_filter = ("marketing_available", "website")
+    search_fields = ("website__name", "consent_version", "policy_version")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Tenant", {"fields": ("website",)}),
+        (
+            "Consent versions",
+            {
+                "description": (
+                    "Bumping either version string forces all visitors to re-consent "
+                    "the next time they visit the site."
+                ),
+                "fields": ("consent_version", "policy_version"),
+            },
+        ),
+        (
+            "Policy URLs",
+            {
+                "description": "Relative or absolute links used in the cookie banner.",
+                "fields": ("privacy_policy_url", "cookie_policy_url"),
+            },
+        ),
+        (
+            "Feature flags",
+            {"fields": ("marketing_available",)},
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )

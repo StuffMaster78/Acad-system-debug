@@ -471,8 +471,6 @@ class SubjectTemplate(models.Model):
         Returns:
             dict with counts of created/updated/skipped subjects
         """
-        from .models import Subject
-
         counts = {
             'created': 0,
             'updated': 0,
@@ -598,8 +596,6 @@ class PaperTypeTemplate(models.Model):
         Returns:
             dict with counts of created/updated/skipped paper types
         """
-        from .models import PaperType
-
         counts = {
             'created': 0,
             'updated': 0,
@@ -713,8 +709,6 @@ class TypeOfWorkTemplate(models.Model):
         Returns:
             dict with counts of created/updated/skipped types
         """
-        from .models import TypeOfWork
-
         counts = {
             'created': 0,
             'updated': 0,

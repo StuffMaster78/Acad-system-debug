@@ -13,12 +13,13 @@ from privacy.api.serializers.cookie_consent import (
     CookieConsentRecordSerializer,
     CookieConsentWriteSerializer,
 )
-from privacy.models import CookieConsentRecord
+from privacy.models import CookieConsentRecord, WebsiteCookieConfig
 
 
 CONSENT_COOKIE_NAME = "writing_system.cookie_consent_id"
-CONSENT_VERSION = "2026-06-15"
-POLICY_VERSION = "2026-06-15"
+# Fallback versions used when no per-tenant WebsiteCookieConfig row exists.
+_DEFAULT__DEFAULT_CONSENT_VERSION = "2026-06-15"
+_DEFAULT__DEFAULT_POLICY_VERSION  = "2026-06-15"
 CONSENT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 
@@ -101,50 +102,64 @@ class CookieConfigView(APIView):
 
     def get(self, request):
         website = getattr(request, "website", None)
-        ga4_id = getattr(website, "google_analytics_id", None) if website else None
+        ga4_id  = getattr(website, "google_analytics_id", None) if website else None
+
+        # Per-tenant config with fallback to platform defaults
+        cfg = None
+        if website is not None:
+            try:
+                cfg = WebsiteCookieConfig.objects.get(website=website)
+            except WebsiteCookieConfig.DoesNotExist:
+                pass
+
+        consent_version    = cfg.consent_version    if cfg else _DEFAULT_CONSENT_VERSION
+        policy_version     = cfg.policy_version     if cfg else _DEFAULT_POLICY_VERSION
+        privacy_policy_url = cfg.privacy_policy_url if cfg else "/privacy"
+        cookie_policy_url  = cfg.cookie_policy_url  if cfg else "/privacy#cookies"
+        marketing_available = cfg.marketing_available if cfg else False
 
         return Response(
             {
-                "consent_version": CONSENT_VERSION,
-                "policy_version": POLICY_VERSION,
-                "cookie_name": CONSENT_COOKIE_NAME,
-                "website": _website_payload(request),
+                "consent_version": consent_version,
+                "policy_version":  policy_version,
+                "cookie_name":     CONSENT_COOKIE_NAME,
+                "website":         _website_payload(request),
                 "categories": [
                     {
-                        "key": "necessary",
-                        "label": "Necessary",
-                        "required": True,
-                        "default": True,
+                        "key":         "necessary",
+                        "label":       "Necessary",
+                        "required":    True,
+                        "default":     True,
                         "description": (
                             "Required for login, security, checkout, order flow, "
                             "and remembering this consent choice."
                         ),
                     },
                     {
-                        "key": "preferences",
-                        "label": "Preferences",
-                        "required": False,
-                        "default": False,
+                        "key":         "preferences",
+                        "label":       "Preferences",
+                        "required":    False,
+                        "default":     False,
                         "description": (
                             "Stores convenience choices such as saved form state, "
                             "bookmarks, reactions, and display preferences."
                         ),
                     },
                     {
-                        "key": "analytics",
-                        "label": "Analytics",
-                        "required": False,
-                        "default": False,
+                        "key":         "analytics",
+                        "label":       "Analytics",
+                        "required":    False,
+                        "default":     False,
                         "description": (
                             "Helps us understand page usage, funnels, and content "
                             "performance through aggregated analytics."
                         ),
                     },
                     {
-                        "key": "marketing",
-                        "label": "Marketing",
-                        "required": False,
-                        "default": False,
+                        "key":         "marketing",
+                        "label":       "Marketing",
+                        "required":    False,
+                        "default":     False,
                         "description": (
                             "Allows campaign attribution, promotional measurement, "
                             "and advertising integrations where enabled."
@@ -152,13 +167,13 @@ class CookieConfigView(APIView):
                     },
                 ],
                 "integrations": {
-                    "ga4_measurement_id": ga4_id or None,
+                    "ga4_measurement_id":  ga4_id or None,
                     "analytics_available": bool(ga4_id),
-                    "marketing_available": False,
+                    "marketing_available": marketing_available,
                 },
                 "links": {
-                    "privacy_policy": "/privacy",
-                    "cookie_policy": "/privacy#cookies",
+                    "privacy_policy": privacy_policy_url,
+                    "cookie_policy":  cookie_policy_url,
                 },
             }
         )
@@ -208,8 +223,8 @@ class CookieConsentView(APIView):
             website=website,
             user=user,
             anonymous_id=anonymous_id,
-            consent_version=data.get("consent_version", CONSENT_VERSION),
-            policy_version=data.get("policy_version", POLICY_VERSION),
+            consent_version=data.get("consent_version", _DEFAULT_CONSENT_VERSION),
+            policy_version=data.get("policy_version", _DEFAULT_POLICY_VERSION),
             necessary=True,
             preferences=data["preferences"],
             analytics=data["analytics"],
@@ -265,8 +280,8 @@ class CookieConsentRevokeView(APIView):
             website=website,
             user=user,
             anonymous_id=anonymous_id,
-            consent_version=CONSENT_VERSION,
-            policy_version=POLICY_VERSION,
+            consent_version=_DEFAULT_CONSENT_VERSION,
+            policy_version=_DEFAULT_POLICY_VERSION,
             necessary=True,
             preferences=False,
             analytics=False,

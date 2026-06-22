@@ -145,7 +145,7 @@ class WebsiteSettings(models.Model):
     """
     A model to store general website settings like domain URL and sender details.
     """
-    website = models.ForeignKey(
+    website = models.OneToOneField(
         Website,
         on_delete=models.CASCADE,
         related_name='website_settings'
