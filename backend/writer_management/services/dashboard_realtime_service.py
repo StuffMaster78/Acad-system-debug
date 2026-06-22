@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db.models import Q
 
 from orders.models.orders import Order
-from orders.models.legacy_models.requests import WriterRequest
+from orders.models.requests import WriterRequest
 from orders.selectors.order_visibility_selector import OrderVisibilitySelector
 from writer_management.models.configs import WriterLevelConfig
 from writer_management.models.metrics import WriterPerformanceMetrics

@@ -13,7 +13,7 @@ from files_management.enums import FilePurpose, FileVisibility
 from files_management.services import FileAttachmentService, FileUploadService
 
 from tickets.models import Ticket, TicketMessage
-from orders.models.legacy_models.order_disputes import Dispute
+from orders.models.order_disputes import Dispute
 from orders.models.orders import Order
 from communications.models import CommunicationMessage
 

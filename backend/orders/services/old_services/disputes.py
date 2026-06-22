@@ -5,7 +5,7 @@ from typing import Optional
 from django.utils import timezone
 
 from websites.models.websites import Website
-from orders.models.legacy_models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.order_disputes import Dispute, DisputeWriterResponse
 from orders.models.orders import Order
 from users.models import User
 from orders.services.dispute_enums import DisputeStatus, ResolutionOutcome

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db.models import QuerySet
 
-from orders.models.legacy_models.unpaid_order_message import UnpaidOrderMessage
+from orders.models.unpaid_order_message import UnpaidOrderMessage
 from websites.models.websites import Website
 
 

@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from orders.models.legacy_models.requests import DraftRequest
+from orders.models.requests import DraftRequest
 from orders.order_enums import (
     OrderRequestStatus
 )

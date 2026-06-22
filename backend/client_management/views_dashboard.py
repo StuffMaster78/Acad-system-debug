@@ -12,7 +12,7 @@ from core.utils.cache_helpers import cache_view_result
 from client_management.models import ClientProfile
 from payments_processor.models import PaymentIntent
 from orders.models.orders import Order
-from orders.models.legacy_models.writer_progress import WriterProgress
+from orders.models.writer_progress import WriterProgress
 from payments_processor.models import PaymentIntent
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, ClientBadge
 from wallets.constants import WalletEntryDirection, WalletEntryType, WalletType
@@ -866,7 +866,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
 
         try:
-            from orders.models.legacy_models.unpaid_order_payment_reminders import (
+            from orders.models.unpaid_order_payment_reminders import (
                 PaymentReminderSent, PaymentReminderConfig
             )
         except ImportError:
@@ -999,7 +999,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
 
         try:
-            from orders.models.legacy_models.unpaid_order_payment_reminders import (
+            from orders.models.unpaid_order_payment_reminders import (
                 PaymentReminderConfig, PaymentReminderSent
             )
         except ImportError:
@@ -1075,7 +1075,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             )
 
         try:
-            from orders.models.legacy_models.unpaid_order_payment_reminders import (
+            from orders.models.unpaid_order_payment_reminders import (
                 PaymentReminderSent
             )
         except ImportError:
@@ -1097,7 +1097,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         # Update preferences if provided
         if 'reminder_config_id' in request.data:
             try:
-                from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderConfig
+                from orders.models.unpaid_order_payment_reminders import PaymentReminderConfig
                 new_config = PaymentReminderConfig.objects.get(
                     id=request.data['reminder_config_id'],
                     website=request.user.website,

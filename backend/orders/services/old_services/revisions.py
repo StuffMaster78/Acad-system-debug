@@ -50,7 +50,7 @@ class OrderRevisionService:
 
         # For completed orders, check if within revision period
         # Get completion time from transition log since Order model doesn't have completed_at
-        from orders.models.legacy_models.logs import OrderTransitionLog
+        from orders.models.logs import OrderTransitionLog
         completed_transition = OrderTransitionLog.objects.filter(
             order=self.order,
             new_status=OrderStatus.COMPLETED.value

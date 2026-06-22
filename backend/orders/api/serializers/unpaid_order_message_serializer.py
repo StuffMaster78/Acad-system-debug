@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from orders.models.legacy_models.unpaid_order_message import UnpaidOrderMessage
+from orders.models.unpaid_order_message import UnpaidOrderMessage
 
 
 class UnpaidOrderMessageSerializer(serializers.ModelSerializer):

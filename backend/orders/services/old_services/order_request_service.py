@@ -2,7 +2,7 @@ from urllib import request
 from django.core.exceptions import ValidationError
 
 from orders.models.orders import Order
-from orders.models.legacy_models.requests import OrderRequest
+from orders.models.requests import OrderRequest
 from audit_logging.services.audit_log_service import AuditLogService
 from orders.exceptions import (
     OrderTransitionError,

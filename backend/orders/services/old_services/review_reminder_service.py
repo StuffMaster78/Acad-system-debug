@@ -3,7 +3,7 @@ Service for managing review reminders.
 """
 from django.utils import timezone
 from datetime import timedelta
-from orders.models.legacy_models.review_reminders import ReviewReminder
+from orders.models.review_reminders import ReviewReminder
 from orders.models.orders import Order
 from websites.models import ExternalReviewLink
 

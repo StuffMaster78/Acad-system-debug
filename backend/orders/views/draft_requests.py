@@ -11,8 +11,8 @@ from files_management.api.serializers.response_serializers import (
 )
 from files_management.exceptions import FileManagementError
 from orders.models.orders import Order
-from orders.models.legacy_models.requests import DraftRequest
-from orders.models.legacy_models.drafts import DraftFile
+from orders.models.requests import DraftRequest
+from orders.models.drafts import DraftFile
 from orders.serializers.draft_requests import (
     DraftRequestSerializer, DraftRequestCreateSerializer, DraftFileSerializer
 )

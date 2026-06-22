@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from order_pricing_core.models import AdditionalService
 from orders.models.orders import Order
-from orders.models.legacy_models.drafts import DraftRequest
+from orders.models.drafts import DraftRequest
 from orders.services.order_file_service import OrderFileService
 
 

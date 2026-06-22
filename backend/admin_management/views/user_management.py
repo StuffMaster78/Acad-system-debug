@@ -849,7 +849,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
 
         # Orders as client
         try:
-            from orders.models.legacy_models.orders import Order
+            from orders.models.orders import Order
             client_orders = Order.objects.filter(client=user)
             orders_as_client = {
                 'total': client_orders.count(),
@@ -867,8 +867,11 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
 
         # Orders as writer
         try:
-            from orders.models.legacy_models.orders import Order
-            writer_orders = Order.objects.filter(assigned_writer=user)
+            from orders.models.orders import Order, OrderAssignment
+            writer_order_ids = OrderAssignment.objects.filter(
+                writer__account_profile__user=user
+            ).values_list('order_id', flat=True)
+            writer_orders = Order.objects.filter(id__in=writer_order_ids)
             orders_as_writer = {
                 'total': writer_orders.count(),
                 'active': writer_orders.filter(status__in=['in_progress', 'revision']).count(),

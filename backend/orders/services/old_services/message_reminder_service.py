@@ -4,7 +4,7 @@ Service for managing message reminders.
 from django.utils import timezone
 from datetime import timedelta
 from conftest import website
-from orders.models.legacy_models.message_reminders import MessageReminder
+from orders.models.message_reminders import MessageReminder
 from orders.models.orders import Order
 
 class MessageReminderService:

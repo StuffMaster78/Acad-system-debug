@@ -16,7 +16,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from orders.models.orders import Order, OrderStatus
-from orders.models.legacy_models.requests import OrderRequest, OrderRequestStatus
+from orders.models.requests import OrderRequest, OrderRequestStatus
 from writer_management.models.writer_profile import WriterProfile
 from writer_management.models.levels import WriterLevel
 

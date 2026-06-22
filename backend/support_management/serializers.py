@@ -10,7 +10,7 @@ from .models import (
     SupportDashboard
 )
 from orders.models.orders import Order
-from orders.models.legacy_models.order_disputes import Dispute
+from orders.models.order_disputes import Dispute
 from tickets.models import Ticket
 
 User = settings.AUTH_USER_MODEL

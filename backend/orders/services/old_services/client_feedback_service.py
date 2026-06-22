@@ -1,6 +1,6 @@
 # services/client_feedback_service.py
 
-from orders.models.legacy_models.client_feedback import ClientFeedback
+from orders.models.client_feedback import ClientFeedback
 from audit_logging.services.audit_log_service import AuditLogService
 
 class ClientFeedbackService:

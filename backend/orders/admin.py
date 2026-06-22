@@ -7,9 +7,9 @@ from django.db import models
 from django.utils.html import format_html
 from django.contrib import admin
 from orders.models.orders import Order
-from orders.models.legacy_models.writer_progress import WriterProgress
-from orders.models.legacy_models.order_disputes import Dispute, DisputeWriterResponse
-from orders.models.legacy_models.requests import WriterRequest
+from orders.models.writer_progress import WriterProgress
+from orders.models.order_disputes import Dispute, DisputeWriterResponse
+from orders.models.requests import WriterRequest
 from orders.models.orders import OrderPricingSnapshot
 from orders.admin_filters import (
     StatusGroupFilter,
@@ -18,10 +18,10 @@ from orders.admin_filters import (
     NeedsAttentionFilter,
     TransitionCountFilter,
 )
-from orders.models.legacy_models.unpaid_order_message import (
+from orders.models.unpaid_order_message import (
     UnpaidOrderMessage,
 )
-from orders.models.legacy_models.unpaid_order_message_dispatch import (
+from orders.models.unpaid_order_message_dispatch import (
     UnpaidOrderMessageDispatch,
 )
 

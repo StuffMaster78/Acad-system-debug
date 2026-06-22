@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from audit_logging.services.audit_log_service import AuditLogService
-from orders.models.legacy_models.requests import WriterRequest
+from orders.models.requests import WriterRequest
 from orders.services.old_services.writer_request_pricing_service import WriterRequestPricingService
 
 

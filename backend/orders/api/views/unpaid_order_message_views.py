@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from orders.api.serializers.unpaid_order_message_serializer import (
     UnpaidOrderMessageSerializer,
 )
-from orders.models.legacy_models.unpaid_order_message import UnpaidOrderMessage
+from orders.models.unpaid_order_message import UnpaidOrderMessage
 from users.models import User
 
 

@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db.models import QuerySet
 
 from orders.models.orders.order import Order
-from orders.models.legacy_models.unpaid_order_payment_reminders import (
+from orders.models.unpaid_order_payment_reminders import (
     PaymentReminderConfig,
     PaymentReminderDeletionMessage,
     PaymentReminderSent,

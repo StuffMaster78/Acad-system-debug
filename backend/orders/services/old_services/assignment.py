@@ -7,7 +7,7 @@ from orders.order_enums import OrderStatus
 from notifications_system.services.notification_service import NotificationService
 from orders.services.order_access_service import OrderAccessService
 from django.core.exceptions import PermissionDenied
-from orders.models.legacy_models.logs import WriterReassignmentLog
+from orders.models.logs import WriterReassignmentLog
 
 User = settings.AUTH_USER_MODEL
 
@@ -120,7 +120,7 @@ class OrderAssignmentService:
 
         # If reassigning, handle the old assignment acceptance record
         if is_reassignment:
-            from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
+            from orders.models.writer_acceptance import WriterAssignmentAcceptance
             # Mark any pending acceptance as rejected (if exists)
             try:
                 old_acceptance = WriterAssignmentAcceptance.objects.get(
@@ -188,7 +188,7 @@ class OrderAssignmentService:
         # Create or update assignment acceptance record
         # Only create acceptance record if we're going to pending_writer_assignment
         # For reassigned orders, we still create the record so writer can accept
-        from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
+        from orders.models.writer_acceptance import WriterAssignmentAcceptance
 
         # If reassigning, mark old acceptance as rejected
         if is_reassignment:

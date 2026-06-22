@@ -8,7 +8,7 @@ from files_management.api.serializers.response_serializers import (
 from files_management.enums import FilePurpose
 from files_management.selectors import FileAttachmentSelector
 from orders.models.orders import Order
-from orders.models.legacy_models.drafts import DraftRequest, DraftFile
+from orders.models.drafts import DraftRequest, DraftFile
 from websites.models.websites import Website
 
 

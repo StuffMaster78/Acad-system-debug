@@ -6,7 +6,7 @@ from django.utils import timezone
 from orders.constants import (
     UnpaidOrderDispatchStatus,
 )
-from orders.models.legacy_models.unpaid_order_message_dispatch import (
+from orders.models.unpaid_order_message_dispatch import (
     UnpaidOrderMessageDispatch,
 )
 from websites.models.websites import Website

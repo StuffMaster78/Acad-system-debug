@@ -13,7 +13,7 @@ from django.db.models import Count, Avg, Q, F, ExpressionWrapper, DurationField,
 from django.db.models.functions import TruncDate, TruncHour
 from django.utils import timezone
 from django.conf import settings
-from orders.models.legacy_models.writer_acceptance import WriterAssignmentAcceptance
+from orders.models.writer_acceptance import WriterAssignmentAcceptance
 
 from writer_management.models.writer_profile import WriterProfile
 

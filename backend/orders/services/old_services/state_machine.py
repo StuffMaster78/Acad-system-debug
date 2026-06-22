@@ -1,7 +1,7 @@
 # orders/services/state_machine.py (inside GenericStateMachineService)
 
 from orders.models.orders import Order
-from orders.models.legacy_models.logs import OrderTransitionLog
+from orders.models.logs import OrderTransitionLog
 
 def transition_to(
         self, new_state: str, actor=None, action="manual",

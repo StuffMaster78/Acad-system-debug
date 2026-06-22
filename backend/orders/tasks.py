@@ -14,7 +14,7 @@ from django.conf import settings
 from orders.services.order_archival_service import OrderArchivalService
 from orders.services.status_transition_service import StatusTransitionService
 
-from orders.models.legacy_models.requests import OrderRequest
+from orders.models.requests import OrderRequest
 from orders.order_enums import OrderRequestStatus
 from orders.models.orders import Order
 from orders.order_enums import OrderStatus
@@ -23,7 +23,7 @@ from orders.workflow.state_machine import GenericStateMachineService
 from users.models import User
 from websites.models.websites import Website
 from audit_logging.services.audit_log_service import AuditLogEntry
-from orders.models.legacy_models.requests import WriterRequest
+from orders.models.requests import WriterRequest
 from audit_logging.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)

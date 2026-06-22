@@ -74,7 +74,7 @@ class UnpaidOrderMessageService:
         now = timezone.now()
         created_count = 0
 
-        from orders.models.legacy_models.unpaid_order_message_dispatch import (
+        from orders.models.unpaid_order_message_dispatch import (
             UnpaidOrderMessageDispatch,
         )
 

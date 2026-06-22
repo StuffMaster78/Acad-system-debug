@@ -19,7 +19,7 @@ class PaymentReminderConfigSerializer(serializers.ModelSerializer):
     website_name = serializers.CharField(source='website.name', read_only=True)
 
     class Meta:
-        from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderConfig
+        from orders.models.unpaid_order_payment_reminders import PaymentReminderConfig
         model = PaymentReminderConfig
         fields = [
             'id', 'website', 'website_name', 'name', 'deadline_percentage',
@@ -33,7 +33,7 @@ class PaymentReminderDeletionMessageSerializer(serializers.ModelSerializer):
     website_name = serializers.CharField(source='website.name', read_only=True)
 
     class Meta:
-        from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderDeletionMessage
+        from orders.models.unpaid_order_payment_reminders import PaymentReminderDeletionMessage
         model = PaymentReminderDeletionMessage
         fields = [
             'id', 'website', 'website_name', 'message',
@@ -52,7 +52,7 @@ class PaymentReminderSentSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderSent
+        from orders.models.unpaid_order_payment_reminders import PaymentReminderSent
         model = PaymentReminderSent
         fields = [
             'id', 'reminder_name', 'deadline_percentage', 'client_email',
@@ -71,7 +71,7 @@ class PaymentReminderConfigViewSet(WebsiteFilteredMixin, viewsets.ModelViewSet):
     serializer_class = PaymentReminderConfigSerializer
 
     def get_queryset(self):
-        from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderConfig
+        from orders.models.unpaid_order_payment_reminders import PaymentReminderConfig
         return self.get_website_filtered_queryset(
             PaymentReminderConfig.objects.select_related('website').order_by('display_order', 'deadline_percentage')
         )
@@ -85,7 +85,7 @@ class PaymentReminderConfigViewSet(WebsiteFilteredMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, _request):
         """Summary counts: total, active, sent in last 7 days."""
-        from orders.models.legacy_models.unpaid_order_payment_reminders import (
+        from orders.models.unpaid_order_payment_reminders import (
             PaymentReminderConfig, PaymentReminderSent,
         )
         from django.utils import timezone
@@ -105,7 +105,7 @@ class PaymentReminderDeletionMessageViewSet(WebsiteFilteredMixin, viewsets.Model
     serializer_class = PaymentReminderDeletionMessageSerializer
 
     def get_queryset(self):
-        from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderDeletionMessage
+        from orders.models.unpaid_order_payment_reminders import PaymentReminderDeletionMessage
         return self.get_website_filtered_queryset(
             PaymentReminderDeletionMessage.objects.select_related('website')
         )
@@ -123,7 +123,7 @@ class PaymentReminderSentViewSet(WebsiteFilteredMixin, viewsets.ReadOnlyModelVie
     serializer_class = PaymentReminderSentSerializer
 
     def get_queryset(self):
-        from orders.models.legacy_models.unpaid_order_payment_reminders import PaymentReminderSent
+        from orders.models.unpaid_order_payment_reminders import PaymentReminderSent
         qs = PaymentReminderSent.objects.select_related(
             'reminder_config__website', 'client', 'order',
         ).order_by('-sent_at')

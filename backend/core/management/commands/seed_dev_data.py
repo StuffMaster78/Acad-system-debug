@@ -547,7 +547,7 @@ class Command(BaseCommand):
             self._log("DemoClient", data["email"], created)
 
     def _seed_payment_reminder_configs(self, website):
-        from orders.models.legacy_models.unpaid_order_payment_reminders import (
+        from orders.models.unpaid_order_payment_reminders import (
             PaymentReminderConfig,
         )
 

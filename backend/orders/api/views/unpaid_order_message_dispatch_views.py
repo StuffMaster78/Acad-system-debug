@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from orders.api.serializers.unpaid_order_message_dispatch_serializer import (
     UnpaidOrderMessageDispatchSerializer,
 )
-from orders.models.legacy_models.unpaid_order_message_dispatch import (
+from orders.models.unpaid_order_message_dispatch import (
     UnpaidOrderMessageDispatch,
 )
 

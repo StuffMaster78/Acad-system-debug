@@ -397,7 +397,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             requested_order_ids = list(order_requests.values_list('order_id', flat=True))
 
             # Get writer requests (from orders app) - lazy import to avoid circular dependency
-            from orders.models.legacy_models.requests import WriterRequest
+            from orders.models.requests import WriterRequest
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user,
                 order__payment_status='fully_paid',
@@ -1725,7 +1725,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         from django.core.cache import cache
 
         from orders.models import OrderInterest
-        from orders.models.legacy_models.requests import WriterRequest
+        from orders.models.requests import WriterRequest
         from orders.selectors.order_visibility_selector import (
             OrderVisibilitySelector,
         )

@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db import models
 from datetime import timedelta
 from orders.models.orders import Order
-from orders.models.legacy_models.writer_acknowledgment import (
+from orders.models.writer_acknowledgment import (
     WriterAssignmentAcknowledgment,
 )
 

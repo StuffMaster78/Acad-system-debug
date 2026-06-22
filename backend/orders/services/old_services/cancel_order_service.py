@@ -101,7 +101,7 @@ class CancelOrderService:
         Raises:
             ValueError: If the order cannot have a cancellation requested.
         """
-        from orders.models.legacy_models.requests import CancellationRequest
+        from orders.models.requests import CancellationRequest
 
         if threshold_percentage is None:
             threshold_percentage = Decimal('50.00')

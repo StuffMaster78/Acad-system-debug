@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, Permission
 from django.apps import apps
 from django.db import transaction
 from admin_management.models import AdminProfile, BlacklistedUser
-from orders.models.legacy_models.order_disputes import Dispute
+from orders.models.order_disputes import Dispute
 from admin_management.models import AdminActivityLog
 from notifications_system.services.notification_service import NotificationService
 from users.services.group_service import UserGroupService
