@@ -8,7 +8,7 @@
 # from datetime import timedelta
 
 # from orders.models.orders import Order
-# from orders.models.legacy_models.logs import OrderPricingSnapshot
+# from orders.models.logs import OrderPricingSnapshot
 # from order_payments_management.models.payments import OrderPayment
 # from order_pricing_core.models import PricingConfiguration, AdditionalService
 
