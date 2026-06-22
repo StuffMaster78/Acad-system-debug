@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import SavedView
-
-
-class SavedViewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SavedView
-        fields = ["id", "view_type", "name", "filters", "is_default", "created_at"]
-        read_only_fields = ["id", "created_at"]
+from .serializers import SavedViewSerializer
 
 
 class SavedViewListView(APIView):

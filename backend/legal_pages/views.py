@@ -1,69 +1,22 @@
 from __future__ import annotations
 
 from django.utils import timezone
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from .models import HelpArticle, HelpCategory, LegalDocument, UserAgreement
-
-
-# ────────────────────────────────────────────────────────────────────────────
-# Serializers (inline to keep the app self-contained)
-# ────────────────────────────────────────────────────────────────────────────
-
-class LegalDocumentSerializer(serializers.ModelSerializer):
-    doc_type_display = serializers.CharField(source="get_doc_type_display", read_only=True)
-
-    class Meta:
-        model = LegalDocument
-        fields = (
-            "id", "doc_type", "doc_type_display", "title",
-            "content", "version", "effective_date",
-            "requires_re_acceptance",
-        )
-
-
-class HelpCategorySerializer(serializers.ModelSerializer):
-    article_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = HelpCategory
-        fields = (
-            "id", "title", "slug", "description",
-            "icon", "audience", "order", "article_count",
-        )
-
-    def get_article_count(self, obj) -> int:
-        return obj.articles.filter(is_published=True).count()
-
-
-class HelpArticleListSerializer(serializers.ModelSerializer):
-    category_slug = serializers.CharField(source="category.slug", read_only=True)
-    category_title = serializers.CharField(source="category.title", read_only=True)
-
-    class Meta:
-        model = HelpArticle
-        fields = (
-            "id", "title", "slug", "summary",
-            "audience", "is_featured", "category_slug", "category_title",
-            "updated_at",
-        )
-
-
-class HelpArticleDetailSerializer(serializers.ModelSerializer):
-    category_slug = serializers.CharField(source="category.slug", read_only=True)
-    category_title = serializers.CharField(source="category.title", read_only=True)
-
-    class Meta:
-        model = HelpArticle
-        fields = (
-            "id", "title", "slug", "summary", "content",
-            "audience", "is_featured", "category_slug", "category_title",
-            "updated_at",
-        )
+from .serializers import (
+    HelpArticleDetailSerializer,
+    HelpArticleListSerializer,
+    HelpArticleWriteSerializer,
+    HelpCategorySerializer,
+    HelpCategoryWriteSerializer,
+    LegalDocumentSerializer,
+    LegalDocumentWriteSerializer,
+)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -258,40 +211,6 @@ def _resolve_audience(request: Request) -> str:
     if role in ("support", "admin", "superadmin"):
         return "staff"
     return "client"
-
-
-# ────────────────────────────────────────────────────────────────────────────
-# Admin CRUD serializers
-# ────────────────────────────────────────────────────────────────────────────
-
-class LegalDocumentWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LegalDocument
-        fields = (
-            "id", "doc_type", "title", "content", "version",
-            "effective_date", "is_active", "requires_re_acceptance",
-        )
-        read_only_fields = ("id",)
-
-
-class HelpCategoryWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = HelpCategory
-        fields = (
-            "id", "title", "slug", "description",
-            "icon", "audience", "order", "is_active",
-        )
-        read_only_fields = ("id",)
-
-
-class HelpArticleWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = HelpArticle
-        fields = (
-            "id", "category", "title", "slug", "summary",
-            "content", "audience", "is_featured", "is_published", "order",
-        )
-        read_only_fields = ("id",)
 
 
 def _resolve_website(request):
