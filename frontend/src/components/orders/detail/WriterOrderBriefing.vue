@@ -325,7 +325,7 @@ const BriefMetric = defineComponent({
   },
   template: `
     <div class="rounded-lg border border-slate-100 bg-white p-3">
-      <dt class="text-xs font-medium text-graphite">{{ label }}</dt>
+      <dt class="text-xs font-bold text-graphite">{{ label }}</dt>
       <dd class="mt-0.5 truncate text-sm font-bold text-ink" :title="value">{{ value }}</dd>
     </div>
   `,
