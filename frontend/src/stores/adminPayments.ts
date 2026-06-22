@@ -554,11 +554,11 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     if (auth.isPreviewSession) {
       financialOverview.value = {
         summary: {
-          total_revenue: 1243700,
-          revenue_breakdown: { orders: 982400, special_orders: 141800, classes: 119500 },
-          total_expenses: 462900,
-          expenses_breakdown: { writer_payments: 438200, tips: 24700 },
-          net_revenue: 780800,
+          total_revenue: 1642800,
+          revenue_breakdown: { orders: 1297700, special_orders: 187300, classes: 157800 },
+          total_expenses: 611500,
+          expenses_breakdown: { writer_payments: 578900, tips: 32600 },
+          net_revenue: 1031300,
           profit_margin: 62.8,
         },
         period_breakdown: [
