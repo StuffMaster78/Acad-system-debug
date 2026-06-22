@@ -1,5 +1,26 @@
 import { api, apiPath } from "./client";
 
+export interface GatewayKeyStatus {
+  configured: boolean;
+  masked: string | null;
+}
+
+export interface GatewayStatusResponse {
+  provider: string;
+  mode: "live" | "test" | "unknown";
+  secret_key: GatewayKeyStatus;
+  publishable_key: GatewayKeyStatus;
+  webhook_secret: GatewayKeyStatus;
+  note: string;
+}
+
+export interface WebhookConfigRecord {
+  retry_attempts: number;
+  timeout_seconds: number;
+  signature_verification_enabled: boolean;
+  updated_at: string | null;
+}
+
 export interface ConfigSummaryResponse {
   pricing_configs?: unknown[];
   writer_configs?: unknown[];
@@ -180,4 +201,16 @@ export const adminSettingsApi = {
       apiPath("/holidays/special-days/"),
       payload,
     ),
+
+  // Payment gateway status (read-only masked keys + connectivity test)
+  gatewayStatus: () =>
+    api.get<GatewayStatusResponse>(apiPath("/payments/gateway/status/")),
+  testGatewayConnection: () =>
+    api.post<{ success: boolean; detail: string }>(apiPath("/payments/gateway/status/")),
+
+  // Webhook runtime config
+  webhookConfig: () =>
+    api.get<WebhookConfigRecord>(apiPath("/payments/gateway/webhook-config/")),
+  updateWebhookConfig: (payload: Partial<WebhookConfigRecord>) =>
+    api.patch<WebhookConfigRecord>(apiPath("/payments/gateway/webhook-config/"), payload),
 };

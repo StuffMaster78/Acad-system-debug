@@ -4,6 +4,7 @@ from payments_processor.models.payment_intent import PaymentIntent
 from payments_processor.models.payment_refund import PaymentRefund
 from payments_processor.models.payment_transaction import PaymentTransaction
 from payments_processor.models.provider_webhook_event import ProviderWebhookEvent
+from payments_processor.models.webhook_config import WebhookConfig
 
 __all__ = [
     "PaymentIntent",
@@ -12,4 +13,5 @@ __all__ = [
     "PaymentAllocation",
     "PaymentDispute",
     "PaymentRefund",
+    "WebhookConfig",
 ]

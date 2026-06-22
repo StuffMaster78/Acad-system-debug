@@ -60,7 +60,6 @@ export const DOMAINS: ConfigDomainMeta[] = [
     requiredScope: "admin",
     sections: [
       { key: "marketing-email", label: "Marketing Email", requiredScope: "admin" },
-      { key: "email-templates", label: "Email Templates", requiredScope: "admin", pendingBackend: true },
       { key: "notification-rules", label: "Notification Rules", requiredScope: "admin" },
     ],
   },
@@ -101,7 +100,6 @@ export const DOMAINS: ConfigDomainMeta[] = [
       { key: "message-policies", label: "Message Policies", requiredScope: "admin" },
       { key: "whatsapp-filters", label: "WhatsApp Filters", requiredScope: "admin" },
       { key: "disallowed-words", label: "Disallowed Words", requiredScope: "admin" },
-      { key: "message-templates", label: "Message Templates", requiredScope: "support", pendingBackend: true },
       { key: "attachment-rules", label: "Attachment Rules", requiredScope: "admin" },
     ],
   },
@@ -124,11 +122,10 @@ export const DOMAINS: ConfigDomainMeta[] = [
     iconName: "ShieldCheck",
     requiredScope: "superadmin",
     sections: [
-      { key: "api-keys", label: "API Keys", requiredScope: "superadmin", isCrud: true },
-      { key: "webhooks", label: "Webhooks", requiredScope: "superadmin", pendingBackend: true },
+      { key: "api-keys", label: "Payment Gateway", requiredScope: "superadmin", isCrud: true },
+      { key: "webhooks", label: "Webhooks", requiredScope: "superadmin" },
       { key: "2fa-rules", label: "2FA Requirements", requiredScope: "superadmin" },
       { key: "session-rules", label: "Session Rules", requiredScope: "superadmin" },
-      { key: "ip-restrictions",label: "IP Restrictions", requiredScope: "superadmin", pendingBackend: true },
     ],
   },
   {
@@ -434,10 +431,7 @@ export const ALL_SETTINGS: ConfigDefinition[] = [
   { key: "security_idle_timeout_minutes", label: "Idle timeout (minutes)", description: "Automatically log out a session that has been idle for this long.", domain: "security", section: "session-rules", dataType: "number", defaultValue: 60, requiredScope: "superadmin", websiteOverrideAllowed: false },
   { key: "security_login_max_attempts", label: "Max login attempts", description: "Lock an account after this many consecutive failed login attempts.", domain: "security", section: "session-rules", dataType: "number", defaultValue: 5, requiredScope: "superadmin", websiteOverrideAllowed: false },
 
-  // Section: webhooks
-  { key: "webhook_retry_attempts", label: "Retry attempts", description: "How many times a failed webhook delivery is retried.", domain: "security", section: "webhooks", dataType: "number", defaultValue: 3, requiredScope: "superadmin", websiteOverrideAllowed: false, pendingBackend: true },
-  { key: "webhook_timeout_seconds", label: "Timeout (seconds)", description: "Maximum seconds to wait for a webhook endpoint to respond.", domain: "security", section: "webhooks", dataType: "number", defaultValue: 30, requiredScope: "superadmin", websiteOverrideAllowed: false, pendingBackend: true },
-  { key: "webhook_signature_enabled", label: "Signature verification",description: "Sign all outbound webhook payloads and require verification.", domain: "security", section: "webhooks", dataType: "boolean", defaultValue: true, requiredScope: "superadmin", websiteOverrideAllowed: false, pendingBackend: true },
+  // Section: webhooks — managed via dedicated WebhookConfig model (not generic config store)
 
   // ══════════════════════════════════════════════════════════════
   // DOMAIN: system

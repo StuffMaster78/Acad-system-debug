@@ -1,7 +1,7 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
 import { orderConfigApi, type ConfigCollection, type ConfigOptionPayload } from "@/api/orderConfig";
-import { adminSettingsApi, type ScreenedWordRecord, type SpecialDayRecord } from "@/api/adminSettings";
+import { adminSettingsApi, type GatewayStatusResponse, type WebhookConfigRecord, type ScreenedWordRecord, type SpecialDayRecord } from "@/api/adminSettings";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
 import type { OrderConfigOption } from "@/types/config";
@@ -462,24 +462,85 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     }
   }
 
-  // ── API Keys ──────────────────────────────────────────────────────────────
-  const apiKeys = ref<ApiKeyRecord[]>([]);
-  const isLoadingApiKeys = ref(false);
+  // ── Payment Gateway Status ────────────────────────────────────────────────
+  const gatewayStatus = ref<GatewayStatusResponse | null>(null);
+  const isLoadingGateway = ref(false);
+  const gatewayTestResult = ref<{ success: boolean; detail: string } | null>(null);
+  const isTestingGateway = ref(false);
 
-  async function loadApiKeys() {
-    isLoadingApiKeys.value = true;
+  async function loadGatewayStatus() {
+    isLoadingGateway.value = true;
     try {
       if (auth.isPreviewSession) {
-        apiKeys.value = [
-          { id: 1, name: "Production webhook", prefix: "pk_live_abc1", created_at: new Date(Date.now() - 86400000 * 30).toISOString(), last_used_at: new Date(Date.now() - 3600000).toISOString(), is_active: true },
-          { id: 2, name: "Staging integration", prefix: "pk_test_xyz9", created_at: new Date(Date.now() - 86400000 * 7).toISOString(), last_used_at: null, is_active: true },
-        ];
+        gatewayStatus.value = {
+          provider: "stripe",
+          mode: "test",
+          secret_key: { configured: true, masked: "sk_test_••••••••" },
+          publishable_key: { configured: true, masked: "pk_test_••••••••" },
+          webhook_secret: { configured: false, masked: null },
+          note: "Keys are loaded from environment variables.",
+        };
         return;
       }
-      // const { data } = await adminSettingsApi.apiKeys();
-      // apiKeys.value = normalizeList(data);
+      const { data } = await adminSettingsApi.gatewayStatus();
+      gatewayStatus.value = data;
     } catch { /* non-fatal */ } finally {
-      isLoadingApiKeys.value = false;
+      isLoadingGateway.value = false;
+    }
+  }
+
+  async function testGatewayConnection() {
+    isTestingGateway.value = true;
+    gatewayTestResult.value = null;
+    try {
+      if (auth.isPreviewSession) {
+        gatewayTestResult.value = { success: true, detail: "Preview: connection simulated." };
+        return;
+      }
+      const { data } = await adminSettingsApi.testGatewayConnection();
+      gatewayTestResult.value = data;
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Connection test failed.";
+      gatewayTestResult.value = { success: false, detail };
+    } finally {
+      isTestingGateway.value = false;
+    }
+  }
+
+  // ── Webhook Config ────────────────────────────────────────────────────────
+  const webhookConfig = ref<WebhookConfigRecord | null>(null);
+  const isLoadingWebhookConfig = ref(false);
+  const isSavingWebhookConfig = ref(false);
+  const webhookConfigNotice = ref("");
+
+  async function loadWebhookConfig() {
+    isLoadingWebhookConfig.value = true;
+    try {
+      if (auth.isPreviewSession) {
+        webhookConfig.value = { retry_attempts: 3, timeout_seconds: 30, signature_verification_enabled: true, updated_at: null };
+        return;
+      }
+      const { data } = await adminSettingsApi.webhookConfig();
+      webhookConfig.value = data;
+    } catch { /* non-fatal */ } finally {
+      isLoadingWebhookConfig.value = false;
+    }
+  }
+
+  async function saveWebhookConfig(payload: Partial<WebhookConfigRecord>) {
+    isSavingWebhookConfig.value = true;
+    webhookConfigNotice.value = "";
+    try {
+      if (auth.isPreviewSession) {
+        if (webhookConfig.value) Object.assign(webhookConfig.value, payload);
+        webhookConfigNotice.value = "Saved (preview).";
+        return;
+      }
+      const { data } = await adminSettingsApi.updateWebhookConfig(payload);
+      webhookConfig.value = data;
+      webhookConfigNotice.value = "Webhook config saved.";
+    } catch { webhookConfigNotice.value = "Failed to save."; } finally {
+      isSavingWebhookConfig.value = false;
     }
   }
 
@@ -648,9 +709,18 @@ export const useAdminConfigHubStore = defineStore("admin-config-hub", () => {
     discountCodes,
     isLoadingDiscounts,
     loadDiscountCodes,
-    apiKeys,
-    isLoadingApiKeys,
-    loadApiKeys,
+    gatewayStatus,
+    isLoadingGateway,
+    gatewayTestResult,
+    isTestingGateway,
+    loadGatewayStatus,
+    testGatewayConnection,
+    webhookConfig,
+    isLoadingWebhookConfig,
+    isSavingWebhookConfig,
+    webhookConfigNotice,
+    loadWebhookConfig,
+    saveWebhookConfig,
     allUsers,
     isLoadingUsers,
     userSearch,

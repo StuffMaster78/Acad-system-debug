@@ -49,6 +49,8 @@ onMounted(() => {
   syncRouteSelection();
   config.loadConfigValues();
   runtime.load();
+  hub.loadGatewayStatus();
+  hub.loadWebhookConfig();
 });
 
 // Active domain sections to render
@@ -308,40 +310,118 @@ watch(
                 </div>
               </div>
 
-              <!-- API keys CRUD -->
+              <!-- Payment gateway status (replaces the old fake API keys table) -->
               <div
                 v-else-if="section.isCrud && section.key === 'api-keys'"
                 class="overflow-hidden rounded-lg border border-slate-200 bg-white"
               >
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-                  <h3 class="text-sm font-semibold text-ink">API Keys</h3>
-                  <span class="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] text-graphite">Superadmin</span>
+                  <h3 class="text-sm font-semibold text-ink">Payment Gateway Status</h3>
+                  <span class="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] text-graphite">Read-only</span>
                 </div>
-                <table class="w-full text-sm">
-                  <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
-                    <tr>
-                      <th class="px-5 py-2.5 text-left">Name</th>
-                      <th class="px-5 py-2.5 text-left">Prefix</th>
-                      <th class="px-5 py-2.5 text-left">Last used</th>
-                      <th class="px-5 py-2.5 text-center">Active</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-50">
-                    <tr v-if="!hub.apiKeys.length">
-                      <td colspan="4" class="py-8 text-center text-graphite">No API keys yet.</td>
-                    </tr>
-                    <tr v-for="key in hub.apiKeys" :key="key.id" class="hover:bg-slate-50">
-                      <td class="px-5 py-2.5 font-medium text-ink">{{ key.name }}</td>
-                      <td class="px-5 py-2.5 font-mono text-xs text-graphite">{{ key.prefix }}…</td>
-                      <td class="px-5 py-2.5 text-graphite text-xs">{{ key.last_used_at ?? "Never" }}</td>
-                      <td class="px-5 py-2.5 text-center">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="key.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-graphite'">
-                          {{ key.is_active ? "Active" : "Off" }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="p-5 space-y-4">
+                  <div v-if="hub.isLoadingGateway" class="text-sm text-graphite animate-pulse">Loading…</div>
+                  <template v-else-if="hub.gatewayStatus">
+                    <!-- Mode badge -->
+                    <div class="flex items-center gap-3">
+                      <span class="text-xs font-semibold text-graphite uppercase tracking-wide">Provider</span>
+                      <span class="text-sm font-semibold text-ink capitalize">{{ hub.gatewayStatus.provider }}</span>
+                      <span class="rounded-full px-2.5 py-0.5 text-xs font-bold capitalize"
+                        :class="hub.gatewayStatus.mode === 'live' ? 'bg-emerald-100 text-emerald-700' : hub.gatewayStatus.mode === 'test' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-graphite'">
+                        {{ hub.gatewayStatus.mode }}
+                      </span>
+                    </div>
+                    <!-- Key rows -->
+                    <dl class="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                      <div v-for="(field, label) in {
+                        'Secret key': hub.gatewayStatus.secret_key,
+                        'Publishable key': hub.gatewayStatus.publishable_key,
+                        'Webhook secret': hub.gatewayStatus.webhook_secret,
+                      }" :key="label" class="flex items-center justify-between px-4 py-3">
+                        <dt class="text-xs font-semibold text-graphite">{{ label }}</dt>
+                        <dd class="flex items-center gap-2">
+                          <span v-if="field.configured" class="font-mono text-xs text-ink">{{ field.masked }}</span>
+                          <span v-else class="text-xs text-rose-500 font-medium">Not configured</span>
+                          <span class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                            :class="field.configured ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-600'">
+                            {{ field.configured ? '✓' : '✗' }}
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
+                    <!-- Note -->
+                    <p class="text-xs text-graphite leading-5">{{ hub.gatewayStatus.note }}</p>
+                    <!-- Test connection -->
+                    <div class="flex items-center gap-3 pt-1">
+                      <button
+                        class="focus-ring inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+                        :disabled="hub.isTestingGateway"
+                        @click="hub.testGatewayConnection()"
+                      >
+                        <span v-if="hub.isTestingGateway" class="animate-pulse">Testing…</span>
+                        <span v-else>Test connection</span>
+                      </button>
+                      <span v-if="hub.gatewayTestResult"
+                        class="text-xs font-semibold"
+                        :class="hub.gatewayTestResult.success ? 'text-emerald-700' : 'text-rose-600'">
+                        {{ hub.gatewayTestResult.detail }}
+                      </span>
+                    </div>
+                  </template>
+                  <p v-else class="text-sm text-graphite">Could not load gateway status.</p>
+                </div>
+              </div>
+
+              <!-- Webhook config (replaces pendingBackend stub) -->
+              <div
+                v-else-if="section.key === 'webhooks'"
+                class="overflow-hidden rounded-lg border border-slate-200 bg-white"
+              >
+                <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+                  <h3 class="text-sm font-semibold text-ink">Webhook Configuration</h3>
+                </div>
+                <div class="p-5 space-y-4">
+                  <div v-if="hub.isLoadingWebhookConfig" class="text-sm text-graphite animate-pulse">Loading…</div>
+                  <template v-else-if="hub.webhookConfig">
+                    <div class="grid gap-4 sm:grid-cols-3">
+                      <label class="block">
+                        <span class="text-xs font-bold text-graphite">Retry attempts</span>
+                        <input
+                          v-model.number="hub.webhookConfig.retry_attempts"
+                          type="number" min="0" max="10"
+                          class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 px-3 text-sm"
+                        />
+                      </label>
+                      <label class="block">
+                        <span class="text-xs font-bold text-graphite">Timeout (seconds)</span>
+                        <input
+                          v-model.number="hub.webhookConfig.timeout_seconds"
+                          type="number" min="5" max="120"
+                          class="focus-ring mt-1 h-9 w-full rounded-md border border-slate-200 px-3 text-sm"
+                        />
+                      </label>
+                      <label class="flex items-center gap-2 pt-5">
+                        <input
+                          v-model="hub.webhookConfig.signature_verification_enabled"
+                          type="checkbox"
+                          class="h-4 w-4 rounded border-slate-300 text-signal"
+                        />
+                        <span class="text-sm font-medium text-ink">Signature verification</span>
+                      </label>
+                    </div>
+                    <div class="flex items-center gap-3 pt-1">
+                      <button
+                        class="focus-ring inline-flex items-center gap-2 rounded-md bg-signal px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                        :disabled="hub.isSavingWebhookConfig"
+                        @click="hub.saveWebhookConfig({ retry_attempts: hub.webhookConfig.retry_attempts, timeout_seconds: hub.webhookConfig.timeout_seconds, signature_verification_enabled: hub.webhookConfig.signature_verification_enabled })"
+                      >
+                        {{ hub.isSavingWebhookConfig ? 'Saving…' : 'Save' }}
+                      </button>
+                      <span v-if="hub.webhookConfigNotice" class="text-xs font-semibold text-emerald-700">{{ hub.webhookConfigNotice }}</span>
+                    </div>
+                  </template>
+                  <p v-else class="text-sm text-graphite">Could not load webhook config.</p>
+                </div>
               </div>
 
               <!-- Settings-based section -->
