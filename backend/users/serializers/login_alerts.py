@@ -1,50 +1,27 @@
 """
 Login Alert Preferences Serializers
+
+LoginAlertPreference model was never migrated (no DB table). These are plain
+Serializer stubs so the __init__.py export list stays intact without
+referencing the nonexistent model.
 """
 from rest_framework import serializers
-from users.models.login_alerts import LoginAlertPreference
 
 
-class LoginAlertPreferenceSerializer(serializers.ModelSerializer):
-    """Serializer for login alert preferences."""
-
-    class Meta:
-        model = LoginAlertPreference
-        fields = [
-            'id',
-            'user',
-            'website',
-            'notify_new_login',
-            'notify_new_device',
-            'notify_new_location',
-            'email_enabled',
-            'push_enabled',
-            'in_app_enabled',
-            'created_at',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'user', 'website', 'created_at', 'updated_at']
-
-    def create(self, validated_data):
-        """Create preference for the current user and website."""
-        request = self.context.get('request')
-        if request and request.user:
-            validated_data['user'] = request.user
-            validated_data['website'] = request.user.website
-        return super().create(validated_data)
+class LoginAlertPreferenceSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    notify_new_login = serializers.BooleanField(default=True)
+    notify_new_device = serializers.BooleanField(default=True)
+    notify_new_location = serializers.BooleanField(default=True)
+    email_enabled = serializers.BooleanField(default=True)
+    push_enabled = serializers.BooleanField(default=False)
+    in_app_enabled = serializers.BooleanField(default=True)
 
 
-class LoginAlertPreferenceUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating login alert preferences."""
-
-    class Meta:
-        model = LoginAlertPreference
-        fields = [
-            'notify_new_login',
-            'notify_new_device',
-            'notify_new_location',
-            'email_enabled',
-            'push_enabled',
-            'in_app_enabled',
-        ]
-
+class LoginAlertPreferenceUpdateSerializer(serializers.Serializer):
+    notify_new_login = serializers.BooleanField(required=False)
+    notify_new_device = serializers.BooleanField(required=False)
+    notify_new_location = serializers.BooleanField(required=False)
+    email_enabled = serializers.BooleanField(required=False)
+    push_enabled = serializers.BooleanField(required=False)
+    in_app_enabled = serializers.BooleanField(required=False)

@@ -175,6 +175,12 @@ const social = computed(() => portal.socialLinks)
 
       </div>
 
+    </div>
+
+    <NewsletterSignup />
+
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
       <!-- ── Row 2: Quick Links · Resources · Legal + Guarantees ──────────── -->
       <div class="grid gap-8 border-t border-slate-800 py-10 sm:grid-cols-3">
 

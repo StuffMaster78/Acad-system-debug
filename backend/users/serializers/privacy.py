@@ -1,99 +1,12 @@
 """
-Serializers for privacy settings and pen names.
+Privacy serializer stubs.
+
+WriterPrivacySettings, ClientPrivacySettings, and PenName models were
+removed (they had no migrations and no callers). The concrete serializers
+below are stubs kept so that any future re-introduction of those models
+has a clear place to expand. Only the bottom exports are actively used.
 """
 from rest_framework import serializers
-from users.models.privacy_settings import (
-    WriterPrivacySettings,
-    ClientPrivacySettings,
-    PenName,
-)
-
-
-class PenNameSerializer(serializers.ModelSerializer):
-    """Serializer for pen names."""
-
-    class Meta:
-        model = PenName
-        fields = [
-            "id",
-            "pen_name",
-            "is_active",
-            "is_approved",
-            "approved_by",
-            "approved_at",
-            "created_at",
-        ]
-        read_only_fields = [
-            "id",
-            "is_approved",
-            "approved_by",
-            "approved_at",
-            "created_at",
-        ]
-
-
-class WriterPrivacySettingsSerializer(serializers.ModelSerializer):
-    """Serializer for writer privacy settings."""
-
-    class Meta:
-        model = WriterPrivacySettings
-        fields = [
-            "id",
-            "show_writer_id",
-            "show_pen_name",
-            "show_completed_orders_count",
-            "show_rating",
-            "show_workload",
-            "show_bio",
-            "show_avatar",
-            "bio_approved",
-            "bio_approved_by",
-            "bio_approved_at",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "id",
-            "show_writer_id",
-            "show_pen_name",
-            "show_completed_orders_count",
-            "show_rating",
-            "show_workload",
-            "show_bio",
-            "show_avatar",
-            "bio_approved",
-            "bio_approved_by",
-            "bio_approved_at",
-            "created_at",
-            "updated_at",
-        ]
-
-
-class ClientPrivacySettingsSerializer(serializers.ModelSerializer):
-    """Serializer for client privacy settings."""
-
-    class Meta:
-        model = ClientPrivacySettings
-        fields = [
-            "id",
-            "show_client_id",
-            "show_pen_name",
-            "show_real_name",
-            "show_email",
-            "show_avatar",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "id",
-            "show_client_id",
-            "show_pen_name",
-            "show_real_name",
-            "show_email",
-            "show_avatar",
-            "created_at",
-            "updated_at",
-        ]
 
 
 # ---------------------------------------------------------------------------

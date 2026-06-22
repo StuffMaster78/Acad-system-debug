@@ -103,6 +103,13 @@ const legal = [
 
       </div>
 
+    </div>
+
+    <!-- ── Newsletter signup ────────────────────────────────────────────── -->
+    <NewsletterSignup />
+
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
       <!-- ── Row 2: Account · Legal · Trust ──────────────────────────────── -->
       <div class="grid gap-8 border-t border-white/10 py-10 sm:grid-cols-3">
 
