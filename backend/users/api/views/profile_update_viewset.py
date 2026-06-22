@@ -62,8 +62,14 @@ class ProfileUpdateRequestViewSet(viewsets.ViewSet):
         submitted_note_raw = validated_data.get("submitted_note", "")
         submitted_note = cast(str, submitted_note_raw)
 
+        # Resolve website: prefer the user's own website FK; fall back to the
+        # request-level tenant resolved by middleware (covers staff/superadmin
+        # who don't have a personal website assignment).
+        website = getattr(request.user, "website", None) or getattr(request, "website", None)
+
         request_obj = ProfileUpdateService.submit_request(
             user=request.user,
+            website=website,
             requested_changes=requested_changes,
             submitted_note=submitted_note,
         )

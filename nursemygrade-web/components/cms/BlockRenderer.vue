@@ -20,6 +20,27 @@ function asObj(v: unknown): Record<string, unknown> {
 function asArr(v: unknown): unknown[] { return Array.isArray(v) ? v : [] }
 function asBool(v: unknown): boolean { return v === true }
 
+/** Build a site-relative path from a Wagtail page meta object.
+ *  Wagtail returns meta.url as a full absolute URL (https://…/services/foo/).
+ *  We extract the pathname. When url is absent we use meta.type + slug to
+ *  reconstruct the correct prefix (/services/, /blog/, etc.). */
+function pageHref(meta: Record<string, unknown>): string {
+  const url = asStr(meta.url)
+  if (url) {
+    try {
+      return new URL(url).pathname.replace(/\/$/, '') || '/'
+    } catch {
+      if (url.startsWith('/')) return url.replace(/\/$/, '')
+    }
+  }
+  // Fallback: derive prefix from page type
+  const slug = asStr(meta.slug)
+  const type = asStr(meta.type).toLowerCase()
+  if (type.includes('servicepage') || type.includes('service_page')) return `/services/${slug}`
+  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
+  return `/${slug}`
+}
+
 function heading(v: unknown) {
   const o = asObj(v)
   return { text: asStr(o.text), level: asStr(o.level) || 'h2', id: slugifyHeading(asStr(o.text)) }
@@ -723,7 +744,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     <!-- ── Internal Link Card ─────────────────────────────────────────────── -->
     <a
       v-else-if="block.type === 'internal_link' && asObj(asObj(block.value).page).meta"
-      :href="asStr(asObj(asObj(asObj(block.value).page).meta).url || ('/' + asStr(asObj(asObj(asObj(block.value).page).meta).slug)))"
+      :href="pageHref(asObj(asObj(asObj(block.value).page).meta))"
       class="my-6 flex items-center gap-4 rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 transition-colors hover:border-brand-300 hover:bg-brand-100 group not-prose block"
     >
       <div class="flex-1 min-w-0">

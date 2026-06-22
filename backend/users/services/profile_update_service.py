@@ -58,17 +58,21 @@ class ProfileUpdateService:
         user: User,
         requested_changes: dict[str, Any],
         submitted_note: str = "",
+        website=None,
     ) -> ProfileUpdateRequest:
         """
         Submit a new profile update request.
 
         This stores proposed changes without applying them to the live profile.
+        `website` can be supplied explicitly (e.g. from request.website for
+        staff/superadmin who don't have a personal website_id).
         """
         cls._validate_requested_changes(requested_changes)
 
-        if user.website is None:
+        resolved_website = website or getattr(user, "website", None)
+        if resolved_website is None:
             raise ValidationError(
-                {"user": "User must belong to a website to submit this request."}
+                {"user": "No website context could be resolved for this request."}
             )
 
         profile, _ = UserProfile.objects.get_or_create(user=user)
@@ -89,7 +93,7 @@ class ProfileUpdateService:
 
         request_obj = ProfileUpdateRequest.objects.create(
             user=user,
-            website=user.website,
+            website=resolved_website,
             profile=profile,
             requested_changes=requested_changes,
             submitted_note=submitted_note,
@@ -99,9 +103,9 @@ class ProfileUpdateService:
         AuditService.record(
             action="profile_update_submitted",
             actor=user,
-            website=request_obj.website,
+            website=resolved_website,
             metadata={
-                "website_id": user.website.pk,
+                "website_id": resolved_website.pk,
                 "requested_fields": sorted(requested_changes.keys()),
             },
         )

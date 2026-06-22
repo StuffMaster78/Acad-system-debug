@@ -20,6 +20,15 @@ function asObj(v: unknown): Record<string, unknown> {
 }
 function asArr(v: unknown): unknown[] { return Array.isArray(v) ? v : [] }
 function asBool(v: unknown): boolean { return v === true }
+function pageHref(meta: Record<string, unknown>): string {
+  const url = String(meta.url ?? '')
+  if (url) { try { return new URL(url).pathname.replace(/\/$/, '') || '/' } catch { if (url.startsWith('/')) return url.replace(/\/$/, '') } }
+  const slug = String(meta.slug ?? '')
+  const type = String(meta.type ?? '').toLowerCase()
+  if (type.includes('servicepage') || type.includes('service_page')) return `/services/${slug}`
+  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
+  return `/${slug}`
+}
 
 function heading(v: unknown) {
   const o = asObj(v)
@@ -716,7 +725,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     <!-- ── Internal Link Card ─────────────────────────────────────────────── -->
     <a
       v-else-if="block.type === 'internal_link' && asObj(asObj(block.value).page).meta"
-      :href="asStr(asObj(asObj(asObj(block.value).page).meta).url || ('/' + asStr(asObj(asObj(asObj(block.value).page).meta).slug)))"
+      :href="pageHref(asObj(asObj(asObj(block.value).page).meta))"
       class="my-6 flex items-center gap-4 rounded-2xl border border-gc-100 bg-gc-50 px-5 py-4 transition-colors hover:border-gc-300 hover:bg-gc-100 group not-prose block"
     >
       <div class="flex-1 min-w-0">
