@@ -100,9 +100,11 @@ export function useNotifications() {
         isConnected.value = false;
       };
 
-      ws.onclose = () => {
+      ws.onclose = (evt) => {
         isConnected.value = false;
-        if (!stopped && auth.accessToken) {
+        // 4001 = server rejected due to invalid/expired token — don't reconnect,
+        // let the response interceptor handle session expiry and redirect to login.
+        if (!stopped && auth.accessToken && evt.code !== 4001) {
           wsTimer = setTimeout(connectWs, WS_RECONNECT_DELAY_MS);
         }
       };
