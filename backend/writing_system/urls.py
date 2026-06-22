@@ -121,6 +121,7 @@ path("api/v1/special-orders/", include("special_orders.urls")),
     # ── Analytics, reporting & config ─────────────────────────────────────────
     path("api/v1/analytics/", include("analytics.urls")),
     path("api/v1/audit-logs/", include("audit_logging.api.urls")),
+    path("api/v1/", include("event_system.api.urls")),
     path("api/v1/dropdown-options/", include("core.urls")),
     path("api/v1/dashboard-config/", include("core.urls_dashboard")),
     path("api/v1/config-versioning/", include("core.urls_config_versioning")),
