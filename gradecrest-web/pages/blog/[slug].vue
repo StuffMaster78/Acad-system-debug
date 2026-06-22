@@ -71,6 +71,10 @@ const { data: article, error } = await useAsyncData<ArticleDetail | null>(
   },
 )
 
+// Static fallback — shown when CMS is unreachable in dev
+const { getBySlug } = useBlog()
+const staticPost = article.value ? null : getBySlug(slug)
+
 // Connected articles
 const { data: connectedPosts } = await useAsyncData<ArticleDetail[]>(
   `connected-${slug}`,
@@ -281,7 +285,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
     />
 
     <!-- 404 -->
-    <div v-if="error || !article" class="min-h-[60vh] flex items-center justify-center">
+    <div v-if="(error || !article) && !staticPost" class="min-h-[60vh] flex items-center justify-center">
       <div class="text-center space-y-4 px-4">
         <h1 class="text-2xl font-bold text-ink">Article not found</h1>
         <p class="text-sm text-graphite">This article may have been moved or removed.</p>
@@ -304,25 +308,25 @@ const tags             = computed(() => article.value?.tag_names ?? [])
             <span class="text-slate-600">/</span>
             <NuxtLink to="/blog" class="hover:text-slate-300 transition-colors">Blog</NuxtLink>
             <span class="text-slate-600">/</span>
-            <span class="text-slate-400 line-clamp-1">{{ article.title }}</span>
+            <span class="text-slate-400 line-clamp-1">{{ article?.title ?? staticPost?.title }}</span>
           </nav>
 
           <!-- Category + meta row -->
           <div class="flex flex-wrap items-center gap-3 mb-4 text-xs text-slate-400">
             <span
-              v-if="article.category_name"
+              v-if="article?.category_name || staticPost?.category"
               class="rounded-full bg-gc-500/20 px-3 py-1 font-semibold text-gc-300 text-xs"
-            >{{ article.category_name }}</span>
+            >{{ article?.category_name ?? staticPost?.category }}</span>
             <span class="flex items-center gap-1">
               <Clock class="size-3" />
-              {{ article.reading_time_minutes || 1 }} min read
+              {{ article?.reading_time_minutes || staticPost?.readTime || '1 min read' }}
             </span>
             <span v-if="wordCount" class="flex items-center gap-1">
               {{ wordCount.toLocaleString() }} words
             </span>
             <span class="flex items-center gap-1">
               <Calendar class="size-3" />
-              {{ formatDate(publishedDate) }}
+              {{ formatDate(publishedDate ?? staticPost?.date ?? '') }}
             </span>
             <span v-if="updatedDate" class="text-gc-400 font-medium">
               · Updated {{ formatDateShort(updatedDate) }}
@@ -331,7 +335,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
 
           <!-- Title -->
           <h1 class="text-3xl font-bold text-white sm:text-4xl leading-snug max-w-3xl print:text-ink">
-            {{ article.title }}
+            {{ article?.title ?? staticPost?.title }}
           </h1>
 
           <!-- Author + reviewer row -->
@@ -339,11 +343,11 @@ const tags             = computed(() => article.value?.tag_names ?? [])
             <!-- Author -->
             <div class="flex items-center gap-2.5">
               <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gc-600 text-sm font-bold text-white">
-                {{ authorInitial }}
+                {{ authorInitial || (staticPost?.author ?? 'G').charAt(0) }}
               </div>
               <div>
-                <p class="text-sm font-semibold text-white leading-none">{{ authorName }}</p>
-                <p v-if="authorCredentials" class="text-xs text-slate-400 mt-0.5">{{ authorCredentials }}</p>
+                <p class="text-sm font-semibold text-white leading-none">{{ authorName || staticPost?.author }}</p>
+                <p v-if="authorCredentials || staticPost?.authorCredentials" class="text-xs text-slate-400 mt-0.5">{{ authorCredentials || staticPost?.authorCredentials }}</p>
               </div>
             </div>
             <!-- Reviewer badge -->
@@ -359,9 +363,9 @@ const tags             = computed(() => article.value?.tag_names ?? [])
       </section>
 
       <!-- Featured image -->
-      <div v-if="article.thumbnail?.url" class="bg-forest-950 print:hidden">
+      <div v-if="article?.thumbnail?.url" class="bg-forest-950 print:hidden">
         <div class="mx-auto max-w-5xl px-4 sm:px-6">
-          <img :src="article.thumbnail.url" :alt="article.title" class="w-full rounded-t-2xl object-cover max-h-96" />
+          <img :src="article.thumbnail.url" :alt="article?.title ?? ''" class="w-full rounded-t-2xl object-cover max-h-96" />
         </div>
       </div>
 
@@ -401,9 +405,15 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                 </nav>
               </div>
 
-              <!-- Article body -->
+              <!-- Article body: CMS (StreamField blocks) or static (HTML) -->
               <div class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-headings:scroll-mt-24 prose-a:text-gc-600 prose-a:no-underline hover:prose-a:underline prose-p:text-graphite prose-p:leading-relaxed prose-li:text-graphite prose-strong:text-ink">
-                <BlockRenderer :blocks="article.body" :inline-cta="gcInlineCta" />
+                <BlockRenderer v-if="article?.body?.length" :blocks="article.body" :inline-cta="gcInlineCta" />
+                <div v-else-if="staticPost">
+                  <p class="lead">{{ staticPost.excerpt }}</p>
+                  <div class="not-prose my-8 rounded-xl border border-gc-100 bg-gc-50 px-5 py-4 text-sm text-gc-800">
+                    📖 This is a preview of a full article. The complete guide is available once our CMS is connected.
+                  </div>
+                </div>
               </div>
 
               <!-- Tags -->

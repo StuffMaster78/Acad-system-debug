@@ -162,10 +162,28 @@ const orderUrl = computed(() => {
 <template>
   <div class="overflow-hidden rounded-2xl bg-forest-950 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
 
-    <!-- Header -->
-    <div class="border-b border-white/10 px-5 py-4">
-      <p class="text-xs font-bold uppercase tracking-widest text-gold-400">Instant price estimate</p>
-      <p class="mt-0.5 text-[11px] text-white/45">Adjust options — price updates live</p>
+    <!-- ── Conversion header ─────────────────────────────────────────────── -->
+    <div class="relative overflow-hidden px-5 py-5 border-b border-white/10">
+      <div class="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 20px 20px;" />
+      <div class="relative">
+        <!-- Live availability pulse -->
+        <div class="mb-3 flex items-center gap-2">
+          <span class="relative flex size-2.5">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-400 opacity-75" />
+            <span class="relative inline-flex size-2.5 rounded-full bg-gold-400" />
+          </span>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-gold-300">Writers available now</span>
+        </div>
+        <h3 class="text-lg font-bold text-white leading-snug">
+          Get your paper written<br>by a subject specialist
+        </h3>
+        <div class="mt-2.5 flex flex-wrap gap-2">
+          <span class="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-white/80">🎓 PhD · Masters · BA</span>
+          <span class="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-white/80">✓ Grade guaranteed</span>
+          <span class="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-white/80">⚡ From $13/page</span>
+        </div>
+      </div>
     </div>
 
     <div class="space-y-4 p-5">
@@ -333,13 +351,27 @@ const orderUrl = computed(() => {
         <!-- CTA -->
         <a
           :href="orderUrl"
-          class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-gc-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gc-500"
+          class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gold-400 text-sm font-bold text-forest-950 shadow-md transition-all hover:bg-gold-300 active:scale-[0.98]"
         >
-          Order now — {{ selectedLevel?.label }}
+          Get my writer now
+          <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
         </a>
 
-        <p class="mt-2 text-center text-[11px] text-white/30">
-          Exact price confirmed at checkout · no card needed
+        <!-- Social proof -->
+        <div class="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-white/35">
+          <div class="flex -space-x-1">
+            <div v-for="d in ['PhD','MSc','MA','BA']" :key="d"
+              class="flex size-5 items-center justify-center rounded-full border border-forest-800 bg-forest-800 text-[8px] font-bold text-white/70">
+              {{ d[0] }}
+            </div>
+          </div>
+          <span>12,000+ papers delivered</span>
+        </div>
+
+        <p class="mt-1.5 text-center text-[11px] text-white/25">
+          Price confirmed at checkout · no card needed
         </p>
       </div>
 
