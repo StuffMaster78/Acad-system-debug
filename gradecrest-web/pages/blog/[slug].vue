@@ -380,7 +380,7 @@ const tags             = computed(() => article.value?.tag_names ?? [])
       <!-- Body -->
       <section class="bg-white py-10" id="article-body">
         <div class="mx-auto max-w-5xl px-4 sm:px-6">
-          <div class="lg:grid lg:grid-cols-[1fr_260px] lg:gap-12 lg:items-start">
+          <div class="lg:grid lg:grid-cols-[1fr_260px] lg:gap-12">
 
             <!-- Main content -->
             <div class="min-w-0">
@@ -601,8 +601,8 @@ const tags             = computed(() => article.value?.tag_names ?? [])
             </div>
 
             <!-- Sticky sidebar (desktop) -->
-            <aside class="hidden lg:block print:hidden">
-              <div class="sticky top-24 space-y-5">
+            <aside class="hidden lg:block lg:self-start lg:sticky lg:top-24 print:hidden">
+              <div class="max-h-[calc(100vh-6rem)] overflow-y-auto space-y-5 pb-4">
 
                 <!-- Sidebar TOC: chapter progress -->
                 <div v-if="toc.length >= 2" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">

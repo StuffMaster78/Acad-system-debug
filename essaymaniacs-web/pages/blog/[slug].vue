@@ -449,7 +449,7 @@ useHead({
     <!-- ── Article body ───────────────────────────────────────────────── -->
     <div class="bg-white">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid gap-10 py-12 lg:grid-cols-[1fr_260px] lg:items-start">
+        <div class="grid gap-10 py-12 lg:grid-cols-[1fr_260px]">
 
           <!-- Left: reading column -->
           <div class="min-w-0">
@@ -646,8 +646,8 @@ useHead({
           </div><!-- end left column -->
 
           <!-- Right: sticky sidebar -->
-          <aside class="hidden lg:block">
-            <div class="sticky top-24 space-y-6">
+          <aside class="hidden lg:block lg:self-start lg:sticky lg:top-24">
+            <div class="max-h-[calc(100vh-6rem)] overflow-y-auto space-y-6 pb-4">
               <ClientOnly>
                 <MultiStepOrderForm />
                 <template #fallback><div class="h-96 animate-pulse rounded-2xl bg-slate-100" /></template>

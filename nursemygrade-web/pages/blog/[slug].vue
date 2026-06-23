@@ -574,7 +574,9 @@ useHead({
 
       <!-- ── Right: sticky sidebar ──────────────────────────────────── -->
       <div class="lg:sticky lg:top-24 lg:self-start">
-        <BlogSidebar />
+        <div class="max-h-[calc(100vh-6rem)] overflow-y-auto pb-4 scrollbar-thin">
+          <BlogSidebar />
+        </div>
       </div>
 
     </div>
