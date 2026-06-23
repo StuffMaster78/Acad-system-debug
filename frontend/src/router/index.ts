@@ -174,6 +174,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/client/ClientFeedbackView.vue"),
       },
       {
+        path: "review",
+        name: "client-review",
+        component: () => import("@/views/client/ClientReviewView.vue"),
+      },
+      {
         path: "subscriptions",
         name: "client-subscriptions",
         component: () => import("@/views/client/ClientSubscriptionsView.vue"),

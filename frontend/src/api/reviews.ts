@@ -22,7 +22,7 @@ export const reviewsApi = {
     ),
 
   // Website review — client rates the platform
-  submitWebsiteReview: (payload: { rating: number; comment?: string }) =>
+  submitWebsiteReview: (payload: { rating: number; comment?: string; is_public?: boolean }) =>
     api.post<Review>(apiPath("/reviews/api/reviews/website-review/"), payload),
 
   // Admin moderation helpers
