@@ -38,7 +38,9 @@ _DOMAIN_PAT = re.compile(
     r"https?://(?:www\.)?(?:" + "|".join(DOMAINS) + r")((?:/[^\s\"'<>]*)?)(?=[\"'<>\s]|$)"
 )
 
-# Legacy path substitutions applied before slug-remapping (order matters).
+# Legacy path substitutions: exact href="<old>" → href="<new>" replacements.
+# IMPORTANT: these must be EXACT paths (no prefix matching) to avoid corrupting
+# longer paths that share a prefix. Applied as regex anchored to the closing quote.
 _LEGACY_PATHS = [
     # Order page aliases
     ("/place-order.php",  "/order"),
@@ -49,48 +51,45 @@ _LEGACY_PATHS = [
     # Other static page aliases
     ("/services.php",     "/services"),
     ("/blog.php",         "/blog"),
-    # Common old service URL patterns that differ from current slugs
-    # Add site-specific mappings here as you discover them
+    # Common old service URL patterns that are EXACT paths differing from current slugs.
+    # Only list paths that are the COMPLETE old URL, not prefixes.
     ("/essay-writing",               "/services/essays"),
     ("/essay-writing-service",       "/services/essays"),
     ("/write-my-essay",              "/services/essays"),
     ("/buy-essay",                   "/services/essays"),
-    ("/research-paper",              "/services/research-papers"),
     ("/research-paper-writing",      "/services/research-papers"),
+    ("/research-paper-writing-service", "/services/research-papers"),
     ("/write-my-research-paper",     "/services/research-papers"),
     ("/dissertation-writing",        "/services/dissertations"),
     ("/dissertation-writing-service","/services/dissertations"),
-    ("/thesis-writing",              "/services/dissertations"),
-    ("/nursing-essay",               "/services/online-nursing-essays-help"),
+    ("/thesis-writing-service",      "/services/dissertations"),
     ("/nursing-essay-writing",       "/services/online-nursing-essays-help"),
+    ("/nursing-essay-writing-service", "/services/online-nursing-essays-help"),
     ("/nursing-assignment-help",     "/services/online-nursing-essays-help"),
-    ("/care-plan",                   "/services/nursing-care-plan-writing-services"),
-    ("/nursing-care-plan",           "/services/nursing-care-plan-writing-services"),
-    ("/soap-note",                   "/services/nursing-soap-note-writing-help"),
+    ("/nursing-care-plan-writing",   "/services/nursing-care-plan-writing-services"),
+    ("/soap-note-writing",           "/services/nursing-soap-note-writing-help"),
     ("/term-paper-writing",          "/services/term-papers"),
     ("/term-paper-writing-service",  "/services/term-papers"),
     ("/case-study-writing",          "/services/case-studies"),
-    ("/coursework-help",             "/services/coursework"),
+    ("/case-study-writing-service",  "/services/case-studies"),
     ("/coursework-writing-service",  "/services/coursework"),
+    ("/do-my-coursework",            "/services/coursework"),
     ("/literature-review-writing",   "/services/literature-reviews"),
-    ("/editing-proofreading",        "/services/proofreading"),
-    ("/proofreading-service",        "/services/proofreading"),
+    ("/literature-review-writing-service", "/services/literature-reviews"),
+    ("/editing-proofreading-service", "/services/proofreading"),
     ("/essay-editing-service",       "/services/proofreading"),
+    ("/proofreading-service",        "/services/proofreading"),
     ("/admission-essay-writing",     "/services/admission-essays"),
     ("/personal-statement-writing",  "/services/personal-statements"),
-    ("/college-essay-writing",       "/services/admission-essays"),
+    ("/college-essay-writing-service", "/services/admission-essays"),
     ("/data-analysis-help",          "/services/data-analysis"),
-    ("/statistical-analysis",        "/services/data-analysis"),
-    ("/presentation-writing",        "/services/presentations"),
-    ("/online-class-help",           "/services/coursework"),
+    ("/statistical-analysis-service", "/services/data-analysis"),
+    ("/presentation-writing-service", "/services/presentations"),
     ("/take-my-online-class",        "/services/coursework"),
-    ("/homework-help",               "/services/coursework"),
-    # Blog path aliases (old WordPress-style slugs that don't match current blog slugs)
-    ("/blog-post",      "/blog"),
-    ("/articles",       "/blog"),
 ]
 
-# Matches href="/{slug}" where slug is root-level (no subdirectory).
+# Matches href="/{slug}" where slug is a root-level slug (no subdirectory, no
+# query string, no trailing content). Must end immediately at the closing quote.
 _ROOT_HREF_PAT = re.compile(r'href="/([\w-]+)"')
 
 
@@ -109,18 +108,23 @@ def _build_blog_slugs(site_filter=None):
 
 
 def _fix(raw: str, blog_slugs: set, service_slugs: set) -> str:
-    # 1. Strip domain prefix
+    # 1. Strip domain prefix from absolute same-site links only
     raw = _DOMAIN_PAT.sub(lambda m: m.group(1) or "/", raw)
 
-    # 2. Apply legacy path substitutions (most specific first)
+    # 2. Apply legacy path substitutions — anchored to a non-slug character so
+    #    we never match a prefix of a longer path. In JSON, href values end with
+    #    \" (backslash + quote) so the lookahead must accept anything that is not
+    #    a valid slug char [a-z0-9-]. This handles both JSON-escaped strings and
+    #    plain unescaped href attributes.
     for old, new in _LEGACY_PATHS:
-        if old in raw:
-            raw = raw.replace(old, new)
+        pattern = re.escape(old) + r'(?=[^a-z0-9-])'
+        raw = re.sub(pattern, new, raw)
 
-    # Strip remaining *.php from same-site paths
+    # Strip remaining *.php from same-site paths (after domain was stripped)
     raw = re.sub(r'"(/[a-z0-9/-]+)\.php(?=["\s])', lambda m: '"' + m.group(1), raw)
 
-    # 3 & 4. Remap root-level hrefs to /services/ or /blog/
+    # 3 & 4. Remap root-level hrefs: href="/{slug}" → /services/ or /blog/
+    #    _ROOT_HREF_PAT already anchors on the closing quote, so no prefix risk.
     def _remap(m):
         slug = m.group(1)
         if slug in service_slugs:
