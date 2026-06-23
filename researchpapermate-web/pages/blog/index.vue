@@ -239,7 +239,8 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
             </div>
             <!-- Image (right, taller) -->
             <div class="h-48 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-auto sm:w-64">
-              <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+              <NuxtImg v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                width="512" height="288" fetchpriority="high" loading="eager"
                 class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               <div v-else class="flex h-full items-center justify-center bg-parchment-100">
                 <span class="text-5xl font-extrabold text-parchment-300 select-none">R</span>
@@ -261,7 +262,8 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
             </div>
             <!-- Thumbnail -->
             <div class="h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-slate-100">
-              <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+              <NuxtImg v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                width="144" height="96" loading="lazy"
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
               <div v-else class="flex h-full items-center justify-center bg-parchment-100">
                 <span class="text-2xl font-extrabold text-parchment-300 select-none">R</span>

@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap', '@nuxt/image'],
 
   compatibilityDate: '2026-06-09',
 
@@ -84,6 +84,15 @@ export default defineNuxtConfig({
   sitemap: {
     exclude: ['/login', '/register', '/auth/**'],
     sources: ['/api/_sitemap-urls'],
+  },
+
+  image: {
+    // SSG site — no server-side transformer available at request time.
+    // NuxtImg still injects correct width/height/loading/fetchpriority attrs
+    // and will auto-switch to a CDN provider when NUXT_IMAGE_PROVIDER is set.
+    provider: 'none',
+    domains: ['nursemygrade.com'],
+    screens: { xs: 320, sm: 640, md: 768, lg: 1024, xl: 1280 },
   },
 
   runtimeConfig: {

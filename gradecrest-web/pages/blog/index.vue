@@ -226,7 +226,8 @@ const gridPosts   = computed(() => {
             style="min-height:280px"
           >
             <div class="absolute inset-0">
-              <img v-if="post.thumbnail?.url" :src="post.thumbnail.url" :alt="post.title"
+              <NuxtImg v-if="post.thumbnail?.url" :src="post.thumbnail.url" :alt="post.title"
+                width="800" height="450" fetchpriority="high" loading="eager"
                 class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               <div v-else class="h-full w-full bg-forest-900 flex items-center justify-center">
                 <span class="text-6xl font-extrabold text-forest-700 select-none">G</span>
@@ -258,7 +259,8 @@ const gridPosts   = computed(() => {
           >
             <!-- Image with fixed height -->
             <div class="relative h-48 overflow-hidden bg-slate-100 shrink-0">
-              <img v-if="post.thumbnail?.url" :src="post.thumbnail.url" :alt="post.title"
+              <NuxtImg v-if="post.thumbnail?.url" :src="post.thumbnail.url" :alt="post.title"
+                width="400" height="192" loading="lazy"
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
               <div v-else class="flex h-full items-center justify-center">
                 <span class="select-none text-4xl font-extrabold text-slate-200">G</span>

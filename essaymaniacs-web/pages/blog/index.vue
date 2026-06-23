@@ -217,7 +217,8 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
                 </div>
               </div>
               <div class="h-48 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-40 sm:w-60">
-                <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                <NuxtImg v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                  width="480" height="320" fetchpriority="high" loading="eager"
                   class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div v-else class="flex h-full items-center justify-center bg-brand-50">
                   <span class="text-5xl font-extrabold text-brand-200 select-none">E</span>
@@ -250,7 +251,8 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
                 <p class="text-xs text-slate-400">{{ formatDate(post.publishedAt) }}</p>
               </div>
               <div class="h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-24 sm:w-36">
-                <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                <NuxtImg v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                  width="144" height="96" loading="lazy"
                   class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 <div v-else class="flex h-full items-center justify-center">
                   <span class="text-2xl font-extrabold text-slate-200 select-none">E</span>

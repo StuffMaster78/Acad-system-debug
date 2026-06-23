@@ -238,7 +238,10 @@ function catBadge(cat: string) { return CAT_BADGE[cat] ?? 'bg-slate-100 text-sla
           <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
             class="group flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-sm transition-all hover:shadow-md sm:flex-row sm:items-stretch">
             <div class="h-52 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-auto sm:w-64">
-              <img v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+              <NuxtImg v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
+                width="512" height="288"
+                sizes="sm:256px md:512px"
+                fetchpriority="high" loading="eager"
                 class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               <div v-else class="flex h-full min-h-[180px] items-center justify-center bg-brand-50">
                 <span class="text-5xl font-extrabold text-brand-200 select-none">N</span>
@@ -274,7 +277,9 @@ function catBadge(cat: string) { return CAT_BADGE[cat] ?? 'bg-slate-100 text-sla
             class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition-all hover:shadow-md"
           >
             <div class="h-24 w-36 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-              <img v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+              <NuxtImg v-if="post.thumbnail" :src="post.thumbnail" :alt="post.title"
+                width="144" height="96"
+                loading="lazy"
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
               <div v-else class="flex h-full items-center justify-center bg-brand-50">
                 <span class="text-2xl font-extrabold text-brand-200 select-none">N</span>

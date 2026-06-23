@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/sitemap'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/sitemap', '@nuxt/image'],
 
   compatibilityDate: '2026-06-10',
 
@@ -141,5 +141,13 @@ export default defineNuxtConfig({
     exclude: ['/auth/**', '/legal/**'],
     // Pulls all 160 CMS service page slugs at build/generate time
     sources: ['/api/__sitemap__/services'],
+  },
+
+  image: {
+    // GC runs in hybrid SSR mode — IPX can transform images at request time.
+    // Switch provider to 'cloudinary' or 'bunny' when CDN is configured.
+    provider: 'ipx',
+    domains: ['gradecrest.com'],
+    screens: { xs: 320, sm: 640, md: 768, lg: 1024, xl: 1280 },
   },
 })

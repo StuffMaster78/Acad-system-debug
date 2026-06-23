@@ -285,7 +285,9 @@ useHead({
       <div class="absolute inset-0 opacity-10"
         style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 28px 28px;" />
       <div v-if="cmsArticle?.thumbnail?.url" class="absolute inset-0">
-        <img :src="cmsArticle.thumbnail.url" :alt="postTitle" class="h-full w-full object-cover opacity-30" />
+        <NuxtImg :src="cmsArticle.thumbnail.url" :alt="postTitle"
+          width="1200" height="630" fetchpriority="high" loading="eager"
+          class="h-full w-full object-cover opacity-30" />
       </div>
       <div class="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
         <Icon :name="postCover.icon" class="h-12 w-12 text-white" />

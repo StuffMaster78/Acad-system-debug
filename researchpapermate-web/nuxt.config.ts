@@ -7,7 +7,7 @@ const patchNuxtSiteConfig = fileURLToPath(
 )
 
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/sitemap', '@nuxt/image'],
 
   compatibilityDate: '2026-06-09',
 
@@ -103,6 +103,12 @@ export default defineNuxtConfig({
     exclude: ['/login', '/register', '/auth/**'],
     // Server route translates Wagtail API responses into [{loc}] format
     sources: ['/api/_sitemap-urls'],
+  },
+
+  image: {
+    provider: 'none',
+    domains: ['researchpapermate.com'],
+    screens: { xs: 320, sm: 640, md: 768, lg: 1024, xl: 1280 },
   },
 
   runtimeConfig: {
