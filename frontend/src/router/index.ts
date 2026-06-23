@@ -664,6 +664,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminContentView.vue"),
       },
       {
+        path: "images",
+        name: "editor-images",
+        component: () => import("@/views/admin/AdminImageManagerView.vue"),
+      },
+      {
         path: "content-graph",
         name: "editor-content-graph",
         component: () => import("@/views/admin/AdminContentGraphView.vue"),

@@ -250,6 +250,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Adjustments", to: "/editor/adjustments", icon: AlertTriangle },
     { label: "Publishing", to: "/editor/publishing", icon: Newspaper },
     { label: "Content", to: "/editor/content", icon: FileEdit },
+    { label: "Images", to: "/editor/images", icon: ImageIcon },
     { label: "Content Graph", to: "/editor/content-graph", icon: GitBranch },
     { label: "Workload", to: "/editor/workload", icon: Gauge },
     { label: "Analytics", to: "/editor/analytics", icon: BarChart3 },
