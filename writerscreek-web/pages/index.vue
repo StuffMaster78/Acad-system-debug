@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Banknote, Calendar, GraduationCap, CreditCard } from '@lucide/vue'
 const appUrl = useAppUrl()
 
 useSeoMeta({
@@ -20,22 +22,22 @@ const stats = [
 
 const benefits = [
   {
-    icon: '💰',
+    icon: markRaw(Banknote),
     title: 'Competitive per-page rates',
     desc: 'Entry writers start at $18/page. Senior and Expert writers earn $35–$45/page. Rates increase as you build your reputation on the platform.',
   },
   {
-    icon: '📅',
+    icon: markRaw(Calendar),
     title: 'Flexible, on your schedule',
     desc: 'Choose assignments that match your availability. No minimum hours, no lock-in. Write one paper a week or twenty — entirely your call.',
   },
   {
-    icon: '🎓',
+    icon: markRaw(GraduationCap),
     title: 'Work in your exact discipline',
     desc: 'We match assignments to your subject background. A nursing MSN handles nursing papers. A finance PhD handles quantitative analysis.',
   },
   {
-    icon: '💳',
+    icon: markRaw(CreditCard),
     title: 'Bi-weekly payouts, every time',
     desc: 'Earnings are released every two weeks without fail. Direct bank transfer or PayPal — your choice at onboarding.',
   },
@@ -264,7 +266,7 @@ const faqs = [
             :key="b.title"
             class="rounded-2xl border border-slate-100 bg-white p-7 shadow-sm"
           >
-            <div class="mb-4 text-3xl">{{ b.icon }}</div>
+            <div class="mb-4"><component :is="b.icon" class="h-8 w-8 text-indigo-600" /></div>
             <h3 class="text-lg font-bold text-slate-900">{{ b.title }}</h3>
             <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ b.desc }}</p>
           </div>
