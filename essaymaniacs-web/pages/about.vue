@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Target, Heart, Handshake, Lock } from '@lucide/vue'
+
 const app = useAppUrl()
 useSeoMeta({
   title: 'About EssayManiacs — Our Writers, Our Standards',
@@ -17,10 +20,10 @@ const stats = [
 ]
 
 const values = [
-  { emoji: '🎯', title: 'Subject matching is non-negotiable', desc: "Your history essay doesn't go to a business writer. We match strictly by subject and degree level." },
-  { emoji: '❤️', title: 'Writers who love the subject',      desc: "We hire writers who are enthusiastic about their discipline — it comes through in the quality of their arguments." },
-  { emoji: '🤝', title: 'Academic integrity',                desc: "We provide model papers for reference and study. We include an academic-use disclosure on every order and never encourage misrepresentation." },
-  { emoji: '🔒', title: 'Privacy first',                     desc: "Your name, school, and order details are never shared. Your writer receives only the brief — not your personal information." },
+  { icon: markRaw(Target),    title: 'Subject matching is non-negotiable', desc: "Your history essay doesn't go to a business writer. We match strictly by subject and degree level." },
+  { icon: markRaw(Heart),     title: 'Writers who love the subject',      desc: "We hire writers who are enthusiastic about their discipline — it comes through in the quality of their arguments." },
+  { icon: markRaw(Handshake), title: 'Academic integrity',                desc: "We provide model papers for reference and study. We include an academic-use disclosure on every order and never encourage misrepresentation." },
+  { icon: markRaw(Lock),      title: 'Privacy first',                     desc: "Your name, school, and order details are never shared. Your writer receives only the brief — not your personal information." },
 ]
 
 const vettingSteps = [
@@ -75,7 +78,9 @@ const milestones = [
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div v-for="v in values" :key="v.title" class="rounded-2xl border border-brand-100 bg-brand-50 p-6">
-              <div class="mb-3 text-3xl">{{ v.emoji }}</div>
+              <div class="mb-3">
+                <component :is="v.icon" class="h-8 w-8" />
+              </div>
               <h3 class="font-bold text-slate-900">{{ v.title }}</h3>
               <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ v.desc }}</p>
             </div>

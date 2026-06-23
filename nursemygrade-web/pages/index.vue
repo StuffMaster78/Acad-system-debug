@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { PenLine, Monitor, GraduationCap, ClipboardList, FileText, Hospital, Target, Microscope, Globe, Trophy, Bot, Stethoscope, Lock, RefreshCw, Zap } from '@lucide/vue'
 import { STATIC_SUBJECTS } from '~/composables/useOrderForm'
 
 const app = useAppUrl()
@@ -74,21 +76,21 @@ const stats = [
 
 const pillars = [
   {
-    emoji: '✍️',
+    icon: markRaw(PenLine),
     title: 'Nursing Writing',
     headline: "Written by nurses who've done it.",
     body: 'Essays, care plans, SOAP notes, PICOT papers, capstone projects, dissertations — written from scratch by a credentialed nurse who knows the clinical context, the NANDA diagnoses, and what your faculty expects.',
     href: '/services',
   },
   {
-    emoji: '🖥️',
+    icon: markRaw(Monitor),
     title: 'Online Class Help',
     headline: 'We handle the coursework. You handle clinicals.',
     body: 'Discussions, quizzes, assignments, and full course management for online nursing programmes. Handled by BSN/MSN specialists who know the curriculum.',
     href: '/services/online-nursing-classes',
   },
   {
-    emoji: '🎓',
+    icon: markRaw(GraduationCap),
     title: 'Mentoring',
     headline: 'Into nursing school. Into your career.',
     body: 'Nursing school admission essays, career statement reviews, and programme-specific guidance from nurses who have navigated the process themselves.',
@@ -97,12 +99,12 @@ const pillars = [
 ]
 
 const services = [
-  { emoji: '📋', title: 'Care Plans',        href: '/services/care-plans',              badge: 'Most requested', desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — ADPIE formatted and clinically grounded.' },
-  { emoji: '📝', title: 'SOAP Notes',        href: '/services/soap-notes',              badge: null,             desc: 'Accurate S-O-A-P documentation for NP and advanced practice programmes.' },
-  { emoji: '🏥', title: 'Nursing Essays',    href: '/services/nursing-essays',          badge: null,             desc: 'Reflective, argumentative, and EBP essays grounded in current nursing science.' },
-  { emoji: '🎯', title: 'Capstone Projects', href: '/services/capstone-projects',       badge: 'Full support',   desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support from start to submission.' },
-  { emoji: '🔬', title: 'Research Papers',   href: '/services/nursing-research-papers', badge: null,             desc: 'Evidence-based nursing research, APA 7th, peer-reviewed nursing journals.' },
-  { emoji: '🌐', title: 'Concept Maps',      href: '/services/concept-maps',            badge: null,             desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
+  { icon: markRaw(ClipboardList), title: 'Care Plans',        href: '/services/care-plans',              badge: 'Most requested', desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — ADPIE formatted and clinically grounded.' },
+  { icon: markRaw(FileText),      title: 'SOAP Notes',        href: '/services/soap-notes',              badge: null,             desc: 'Accurate S-O-A-P documentation for NP and advanced practice programmes.' },
+  { icon: markRaw(Hospital),      title: 'Nursing Essays',    href: '/services/nursing-essays',          badge: null,             desc: 'Reflective, argumentative, and EBP essays grounded in current nursing science.' },
+  { icon: markRaw(Target),        title: 'Capstone Projects', href: '/services/capstone-projects',       badge: 'Full support',   desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support from start to submission.' },
+  { icon: markRaw(Microscope),    title: 'Research Papers',   href: '/services/nursing-research-papers', badge: null,             desc: 'Evidence-based nursing research, APA 7th, peer-reviewed nursing journals.' },
+  { icon: markRaw(Globe),         title: 'Concept Maps',      href: '/services/concept-maps',            badge: null,             desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
 ]
 
 const nursingAreas = [
@@ -121,12 +123,12 @@ const steps = [
 ]
 
 const guarantees = [
-  { emoji: '🏆', title: 'Grade or money back',           desc: "If the work doesn't meet your stated requirements, we'll rewrite or refund — no questions asked." },
-  { emoji: '🤖', title: 'Zero AI — human nurses only',   desc: 'Every paper is written by a real nurse. We provide a free AI-detection report on request.' },
-  { emoji: '🩺', title: 'Clinically accurate content',   desc: 'NANDA, NIC, NOC, ADPIE, APA 7th — written by practitioners who use these frameworks in their work.' },
-  { emoji: '🔒', title: 'Your privacy protected',        desc: 'Your name, order details, and school are never shared with any third party.' },
-  { emoji: '🔁', title: 'Unlimited free revisions',      desc: 'Within the revision window, as many changes as you need at zero extra cost.' },
-  { emoji: '⚡', title: 'As fast as 3 hours',            desc: 'Need it tonight? We can deliver most nursing papers within 3 hours for urgent orders.' },
+  { icon: markRaw(Trophy),      title: 'Grade or money back',           desc: "If the work doesn't meet your stated requirements, we'll rewrite or refund — no questions asked." },
+  { icon: markRaw(Bot),         title: 'Zero AI — human nurses only',   desc: 'Every paper is written by a real nurse. We provide a free AI-detection report on request.' },
+  { icon: markRaw(Stethoscope), title: 'Clinically accurate content',   desc: 'NANDA, NIC, NOC, ADPIE, APA 7th — written by practitioners who use these frameworks in their work.' },
+  { icon: markRaw(Lock),        title: 'Your privacy protected',        desc: 'Your name, order details, and school are never shared with any third party.' },
+  { icon: markRaw(RefreshCw),   title: 'Unlimited free revisions',      desc: 'Within the revision window, as many changes as you need at zero extra cost.' },
+  { icon: markRaw(Zap),         title: 'As fast as 3 hours',            desc: 'Need it tonight? We can deliver most nursing papers within 3 hours for urgent orders.' },
 ]
 
 const testimonials = [
@@ -338,7 +340,7 @@ const nurses = [
           v-for="p in pillars" :key="p.title" :href="p.href"
           class="group relative overflow-hidden rounded-2xl border border-brand-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
         >
-          <div class="mb-4 text-4xl">{{ p.emoji }}</div>
+          <div class="mb-4"><component :is="p.icon" class="h-10 w-10 text-brand-700" /></div>
           <p class="text-xs font-bold uppercase tracking-widest text-brand-600">{{ p.title }}</p>
           <h3 class="mt-2 text-lg font-bold text-slate-900">{{ p.headline }}</h3>
           <p class="mt-3 text-sm leading-relaxed text-slate-500">{{ p.body }}</p>
@@ -368,7 +370,7 @@ const nurses = [
           class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
         >
           <div v-if="svc.badge" class="absolute right-4 top-4 rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-bold text-brand-700">{{ svc.badge }}</div>
-          <div class="mb-3 text-2xl">{{ svc.emoji }}</div>
+          <div class="mb-3"><component :is="svc.icon" class="h-7 w-7 text-brand-700" /></div>
           <h3 class="font-bold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
           <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{{ svc.desc }}</p>
           <span class="mt-4 text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
@@ -427,7 +429,7 @@ const nurses = [
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="g in guarantees" :key="g.title" class="flex gap-4 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10">
-          <div class="text-2xl">{{ g.emoji }}</div>
+          <component :is="g.icon" class="h-7 w-7 text-brand-700" />
           <div>
             <h3 class="font-semibold text-white">{{ g.title }}</h3>
             <p class="mt-1.5 text-sm leading-relaxed text-brand-200">{{ g.desc }}</p>

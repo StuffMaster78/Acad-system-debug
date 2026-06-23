@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { GraduationCap, Star, Microscope } from '@lucide/vue'
 import { fetchPricingConfig, FALLBACK_LEVELS, FALLBACK_DEADLINES } from '~/composables/usePricingConfig'
 
 const app = useAppUrl()
@@ -63,7 +65,7 @@ const deadlines = computed(() => {
 const writerTiers = [
   {
     name: 'Standard',
-    emoji: '🎓',
+    icon: markRaw(GraduationCap),
     credential: "Master's degree",
     from: 'Base price',
     fromColor: 'text-slate-700',
@@ -73,7 +75,7 @@ const writerTiers = [
   },
   {
     name: 'Advanced',
-    emoji: '⭐',
+    icon: markRaw(Star),
     credential: "Master's, top-rated",
     from: '+10%',
     fromColor: 'text-amber-600',
@@ -83,7 +85,7 @@ const writerTiers = [
   },
   {
     name: 'Expert',
-    emoji: '🔬',
+    icon: markRaw(Microscope),
     credential: 'PhD / Doctoral',
     from: '+20%',
     fromColor: 'text-amber-700',
@@ -185,7 +187,9 @@ const faqs = [
             <div v-if="tier.badge" class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-600 px-4 py-1 text-xs font-bold text-white shadow">
               {{ tier.badge }}
             </div>
-            <div class="mb-4 text-4xl">{{ tier.emoji }}</div>
+            <div class="mb-4">
+              <component :is="tier.icon" class="h-8 w-8" />
+            </div>
             <h3 class="text-xl font-bold text-slate-900">{{ tier.name }}</h3>
             <p class="text-sm text-slate-500">{{ tier.credential }}</p>
             <p class="mt-3 text-2xl font-extrabold" :class="tier.fromColor">{{ tier.from }}</p>

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { BookOpen, FileText, GraduationCap, ClipboardList, Hospital, Stethoscope, PenLine, Microscope, Pill } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -114,20 +117,20 @@ function formatDate(iso: string) {
 }
 
 // Tile appearance per category — fallback covers CMS-generated categories
-const CAT_TILE: Record<string, { icon: string; bg: string; text: string; border: string }> = {
-  'All':                  { icon: '📚', bg: 'bg-brand-50',   text: 'text-brand-700',  border: 'border-brand-200' },
-  'Nursing Papers':       { icon: '📄', bg: 'bg-teal-50',    text: 'text-teal-700',   border: 'border-teal-200'  },
-  'Capstone & Research':  { icon: '🎓', bg: 'bg-indigo-50',  text: 'text-indigo-700', border: 'border-indigo-200'},
-  'Citation & Format':    { icon: '📝', bg: 'bg-slate-50',   text: 'text-slate-700',  border: 'border-slate-200' },
-  'Clinical Simulations': { icon: '🏥', bg: 'bg-emerald-50', text: 'text-emerald-700',border: 'border-emerald-200'},
-  'Nursing School':       { icon: '🩺', bg: 'bg-rose-50',    text: 'text-rose-700',   border: 'border-rose-200'  },
-  'Essays':               { icon: '✍️', bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200' },
-  'Research Papers':      { icon: '🔬', bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200'  },
-  'SOAP Notes':           { icon: '🗒️', bg: 'bg-cyan-50',    text: 'text-cyan-700',   border: 'border-cyan-200'  },
-  'Care Plans':           { icon: '💊', bg: 'bg-violet-50',  text: 'text-violet-700', border: 'border-violet-200'},
+const CAT_TILE: Record<string, { icon: ReturnType<typeof markRaw>; bg: string; text: string; border: string }> = {
+  'All':                  { icon: markRaw(BookOpen),     bg: 'bg-brand-50',   text: 'text-brand-700',  border: 'border-brand-200' },
+  'Nursing Papers':       { icon: markRaw(FileText),     bg: 'bg-teal-50',    text: 'text-teal-700',   border: 'border-teal-200'  },
+  'Capstone & Research':  { icon: markRaw(GraduationCap),bg: 'bg-indigo-50',  text: 'text-indigo-700', border: 'border-indigo-200'},
+  'Citation & Format':    { icon: markRaw(ClipboardList),bg: 'bg-slate-50',   text: 'text-slate-700',  border: 'border-slate-200' },
+  'Clinical Simulations': { icon: markRaw(Hospital),     bg: 'bg-emerald-50', text: 'text-emerald-700',border: 'border-emerald-200'},
+  'Nursing School':       { icon: markRaw(Stethoscope),  bg: 'bg-rose-50',    text: 'text-rose-700',   border: 'border-rose-200'  },
+  'Essays':               { icon: markRaw(PenLine),      bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200' },
+  'Research Papers':      { icon: markRaw(Microscope),   bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200'  },
+  'SOAP Notes':           { icon: markRaw(ClipboardList),bg: 'bg-cyan-50',    text: 'text-cyan-700',   border: 'border-cyan-200'  },
+  'Care Plans':           { icon: markRaw(Pill),         bg: 'bg-violet-50',  text: 'text-violet-700', border: 'border-violet-200'},
 }
 function tile(cat: string) {
-  return CAT_TILE[cat] ?? { icon: '📖', bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' }
+  return CAT_TILE[cat] ?? { icon: markRaw(BookOpen), bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' }
 }
 
 const CAT_BADGE: Record<string, string> = {
@@ -186,7 +189,7 @@ function catBadge(cat: string) { return CAT_BADGE[cat] ?? 'bg-slate-100 text-sla
               : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'"
             @click="setCategory(cat)"
           >
-            <span class="text-2xl leading-none select-none">{{ tile(cat).icon }}</span>
+            <component :is="tile(cat).icon" class="h-5 w-5" />
             <span class="text-[10px] font-bold leading-snug"
               :class="activeCategory === cat ? tile(cat).text : 'text-slate-500'">
               {{ cat }}

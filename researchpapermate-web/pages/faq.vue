@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Building2, PenLine, ClipboardList, Timer, RefreshCw, Lock } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -29,7 +32,7 @@ useHead({
 const sections = [
   {
     heading: 'About the service',
-    emoji: '🏢',
+    icon: markRaw(Building2),
     items: [
       { q: 'Is ResearchPaperMate legit?', a: "Yes. ResearchPaperMate is a legitimate academic assistance platform. Every writer holds at minimum a Master's degree that we verify before they can accept orders. We have delivered 14,700+ papers with a 4.8/5 average rating." },
       { q: 'What exactly do you provide?', a: "Custom academic papers written from scratch by subject-specialist writers — research papers, essays, dissertations, case studies, coursework, lab reports, presentations, and more. Papers are model documents for study and reference, provided in the same spirit as a writing centre or tutoring service." },
@@ -39,7 +42,7 @@ const sections = [
   },
   {
     heading: 'Writers & quality',
-    emoji: '✍️',
+    icon: markRaw(PenLine),
     items: [
       { q: 'Who writes my paper?', a: "A subject-specialist writer matched to your assignment type and academic level. Undergraduate papers go to Master's-level writers. Dissertations and doctoral work go to PhD-qualified specialists. We match on subject area, not just general academic level." },
       { q: 'How do you vet your writers?', a: "Four stages: (1) degree verification against the issuing institution, (2) subject knowledge assessment in their field, (3) sample paper review by our editorial team, (4) supervised trial period on the first five orders. We reject over 95% of applicants." },
@@ -49,7 +52,7 @@ const sections = [
   },
   {
     heading: 'Ordering & communication',
-    emoji: '📋',
+    icon: markRaw(ClipboardList),
     items: [
       { q: 'How do I place an order?', a: "Click 'Order Now' and fill in your brief: assignment type, academic level, deadline, word count, and any rubric or source requirements. Pay securely — your order is then matched with a qualified writer." },
       { q: 'Can I communicate with my writer?', a: "Yes. From the moment a writer accepts your order, you have a direct message channel in your dashboard. Share additional instructions, rubric files, or feedback at any time." },
@@ -59,7 +62,7 @@ const sections = [
   },
   {
     heading: 'Delivery & deadlines',
-    emoji: '⏱️',
+    icon: markRaw(Timer),
     items: [
       { q: 'How fast can you deliver?', a: "As fast as 2 hours for most standard papers up to 4 pages. Longer papers, dissertations, and complex projects have minimum lead times. Use the price calculator for an exact estimate for your specific order." },
       { q: 'What happens if my paper is late?', a: "If we deliver later than the agreed deadline, you are entitled to a partial or full refund proportional to the delay. See our Refund Policy for the full schedule." },
@@ -68,7 +71,7 @@ const sections = [
   },
   {
     heading: 'Revisions & refunds',
-    emoji: '🔁',
+    icon: markRaw(RefreshCw),
     items: [
       { q: 'How many revisions do I get?', a: "Unlimited free revisions within the revision window (equal to the original delivery time, minimum 24 hours, maximum 30 days). All revisions handled by your original writer." },
       { q: 'What is your grade guarantee?', a: "If you receive a grade lower than stated in your brief, contact us within 14 days with the graded paper and instructor feedback. We rewrite the relevant sections at no charge or issue a partial or full refund." },
@@ -77,7 +80,7 @@ const sections = [
   },
   {
     heading: 'Privacy & payment',
-    emoji: '🔒',
+    icon: markRaw(Lock),
     items: [
       { q: 'Is my personal information kept private?', a: "Yes. Your name, email, school, and order details are never sold, shared, or disclosed to third parties. Your writer receives only the assignment brief — not your name or contact information." },
       { q: 'How do I pay?', a: "We accept credit and debit cards, bank transfers, and M-Pesa. All payments are processed securely through our regulated payment processor. We never store your card details." },
@@ -110,7 +113,7 @@ const sections = [
         <div class="space-y-12">
           <div v-for="section in sections" :key="section.heading">
             <div class="mb-5 flex items-center gap-3">
-              <span class="text-2xl">{{ section.emoji }}</span>
+              <component :is="section.icon" class="h-6 w-6 text-slate-500" />
               <h2 class="text-lg font-bold text-slate-900 capitalize">{{ section.heading }}</h2>
             </div>
             <div class="space-y-2">

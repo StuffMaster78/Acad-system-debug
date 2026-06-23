@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { GraduationCap, Star, Users, Calendar, Banknote } from '@lucide/vue'
+
 const { promo, visible, init } = usePromoDisplay()
 onMounted(init)
 
@@ -40,7 +43,7 @@ useHead({
 
 const ways = [
   {
-    icon: '🎓',
+    icon: markRaw(GraduationCap),
     title: 'First-Order Discount',
     badge: 'Auto-applied',
     desc: 'New to GradeCrest? Your first-order discount is applied automatically at checkout — no code required.',
@@ -48,7 +51,7 @@ const ways = [
     href: '/order',
   },
   {
-    icon: '⭐',
+    icon: markRaw(Star),
     title: 'Loyalty Rewards',
     badge: 'Earn with every order',
     desc: 'Every completed paper earns loyalty points. Redeem them for discount codes through your dashboard.',
@@ -56,7 +59,7 @@ const ways = [
     href: '/auth/login',
   },
   {
-    icon: '👥',
+    icon: markRaw(Users),
     title: 'Refer a Classmate',
     badge: 'Both of you save',
     desc: "Share your unique referral link. When your classmate completes their first order, you both get a discount.",
@@ -64,7 +67,7 @@ const ways = [
     href: '/auth/login',
   },
   {
-    icon: '📅',
+    icon: markRaw(Calendar),
     title: 'Seasonal Promos',
     badge: 'Check the strip above',
     desc: 'Holiday and exam-season deals run throughout the year. Check back here for the latest codes.',
@@ -72,7 +75,7 @@ const ways = [
     href: '/services',
   },
   {
-    icon: '💰',
+    icon: markRaw(Banknote),
     title: 'Spend-Tier Rewards',
     badge: 'Returning clients',
     desc: 'Hit a lifetime spend milestone and unlock a standing discount — the more you order, the more you save.',
@@ -129,7 +132,7 @@ const redeemSteps = [
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="w in ways" :key="w.title" class="flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <div class="mb-4 flex items-start justify-between gap-3">
-            <span class="text-3xl">{{ w.icon }}</span>
+            <component :is="w.icon" class="h-8 w-8 text-gc-700" />
             <span class="rounded-full bg-gc-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gc-700">{{ w.badge }}</span>
           </div>
           <h3 class="mb-2 text-base font-bold text-slate-900">{{ w.title }}</h3>

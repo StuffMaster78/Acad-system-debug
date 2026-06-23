@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Banknote, Clock, Target, TrendingUp, ShieldCheck, MessageSquare } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -18,12 +21,12 @@ const stats = [
 ]
 
 const perks = [
-  { emoji: '💰', title: 'Earn up to $50/page', desc: 'Pay scales with your tier and performance. Expert writers earn 20% above base rate. No ceiling on your earnings.' },
-  { emoji: '⏰', title: 'Work your own hours', desc: 'No fixed shifts. Accept orders that fit your timetable, decline anything that doesn\'t. Log in when you choose.' },
-  { emoji: '🎯', title: 'Only your subjects', desc: 'Browse 100+ subject categories. You only see orders in your declared disciplines — no irrelevant requests.' },
-  { emoji: '📈', title: 'Grow your tier', desc: 'Standard → Advanced → Expert. Each tier unlocks higher-paying orders and better assignment access.' },
-  { emoji: '🛡️', title: 'Protected by escrow', desc: 'Your payment is in escrow the moment a client places the order. You get paid even if the client goes quiet.' },
-  { emoji: '💬', title: 'Direct client chat', desc: 'Communicate with clients directly through the platform — no third-party go-betweens or support ticket chains.' },
+  { icon: markRaw(Banknote),     title: 'Earn up to $50/page', desc: 'Pay scales with your tier and performance. Expert writers earn 20% above base rate. No ceiling on your earnings.' },
+  { icon: markRaw(Clock),        title: 'Work your own hours', desc: 'No fixed shifts. Accept orders that fit your timetable, decline anything that doesn\'t. Log in when you choose.' },
+  { icon: markRaw(Target),       title: 'Only your subjects', desc: 'Browse 100+ subject categories. You only see orders in your declared disciplines — no irrelevant requests.' },
+  { icon: markRaw(TrendingUp),   title: 'Grow your tier', desc: 'Standard → Advanced → Expert. Each tier unlocks higher-paying orders and better assignment access.' },
+  { icon: markRaw(ShieldCheck),  title: 'Protected by escrow', desc: 'Your payment is in escrow the moment a client places the order. You get paid even if the client goes quiet.' },
+  { icon: markRaw(MessageSquare), title: 'Direct client chat', desc: 'Communicate with clients directly through the platform — no third-party go-betweens or support ticket chains.' },
 ]
 
 const steps = [
@@ -103,7 +106,9 @@ const testimonials = [
         </div>
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="p in perks" :key="p.title" class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-shadow hover:shadow-md">
-            <div class="mb-4 text-3xl">{{ p.emoji }}</div>
+            <div class="mb-4">
+              <component :is="p.icon" class="h-8 w-8" />
+            </div>
             <h3 class="font-bold text-slate-900">{{ p.title }}</h3>
             <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ p.desc }}</p>
           </div>

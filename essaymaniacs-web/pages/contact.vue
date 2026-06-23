@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { MessageSquare, Smartphone, Mail } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -31,7 +34,7 @@ async function submit() {
 
 const channels = [
   {
-    emoji: '💬',
+    icon: markRaw(MessageSquare),
     title: 'Live chat',
     desc: 'The fastest way to reach us. Available on every page — look for the chat button.',
     badge: 'Fastest',
@@ -39,7 +42,7 @@ const channels = [
     link: null,
   },
   {
-    emoji: '📱',
+    icon: markRaw(Smartphone),
     title: 'WhatsApp',
     desc: 'Message us on WhatsApp for urgent orders or quick questions. Typical reply: under 5 minutes.',
     badge: 'Recommended',
@@ -47,7 +50,7 @@ const channels = [
     link: 'https://wa.me/1234567890',
   },
   {
-    emoji: '✉️',
+    icon: markRaw(Mail),
     title: 'Email',
     desc: 'support@essaymaniacs.com — we reply within 1 hour during operating hours.',
     badge: null,
@@ -88,8 +91,8 @@ const faqs = [
               <h2 class="text-xl font-bold text-slate-900">Contact channels</h2>
               <div class="mt-5 space-y-4">
                 <div v-for="c in channels" :key="c.title" class="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-2xl">
-                    {{ c.emoji }}
+                  <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                    <component :is="c.icon" class="h-5 w-5 text-slate-600" />
                   </div>
                   <div class="flex-1">
                     <div class="flex items-center gap-2">

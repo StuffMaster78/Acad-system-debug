@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Banknote, GraduationCap, Bot, RefreshCw } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -65,10 +68,10 @@ const steps = [
 ]
 
 const guarantees = [
-  { icon: '💰', title: 'Escrow protection', desc: 'Your money only moves to your writer when you approve the work.' },
-  { icon: '🎓', title: 'Grade guarantee', desc: "Miss your grade target? We rewrite free or refund completely." },
-  { icon: '🤖', title: 'Zero AI', desc: 'Every paper is human-written. AI-detection report available free.' },
-  { icon: '🔁', title: 'Free revisions', desc: 'Unlimited revisions within the revision window — always free.' },
+  { icon: markRaw(Banknote), title: 'Escrow protection', desc: 'Your money only moves to your writer when you approve the work.' },
+  { icon: markRaw(GraduationCap), title: 'Grade guarantee', desc: "Miss your grade target? We rewrite free or refund completely." },
+  { icon: markRaw(Bot), title: 'Zero AI', desc: 'Every paper is human-written. AI-detection report available free.' },
+  { icon: markRaw(RefreshCw), title: 'Free revisions', desc: 'Unlimited revisions within the revision window — always free.' },
 ]
 </script>
 
@@ -123,7 +126,9 @@ const guarantees = [
         <p class="mb-8 text-center text-[11px] font-bold uppercase tracking-widest text-amber-700">What's always included</p>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div v-for="g in guarantees" :key="g.title" class="rounded-2xl border border-parchment-300 bg-parchment-50 p-6 text-center">
-            <div class="mb-3 text-3xl">{{ g.icon }}</div>
+            <div class="mb-3 flex justify-center">
+              <component :is="g.icon" class="h-8 w-8 text-slate-600" />
+            </div>
             <h3 class="font-bold text-ink-DEFAULT">{{ g.title }}</h3>
             <p class="mt-2 text-xs leading-relaxed text-ink-secondary">{{ g.desc }}</p>
           </div>

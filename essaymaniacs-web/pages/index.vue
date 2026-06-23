@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Target, Bot, Ruler, PenLine, FileText, GraduationCap, Briefcase, School, CheckCircle2, Trophy, Lock, RefreshCw, Zap } from '@lucide/vue'
 const app = useAppUrl()
 
 // Live-feeling order counter — seed realistic, increment occasionally
@@ -78,29 +80,29 @@ const stats = [
 
 const whyUs = [
   {
-    emoji: '🎯',
+    icon: markRaw(Target),
     headline: 'Matched to your exact subject.',
     body: "We don't assign essays randomly. Your order goes to a writer with a degree in your discipline — someone who has actually written at this level before and knows what tutors look for.",
   },
   {
-    emoji: '🤖',
+    icon: markRaw(Bot),
     headline: 'Written by a human who cares.',
     body: "AI writes sentences. It doesn't have opinions about your subject, can't read your rubric's nuance, and doesn't care about your grade. Our writers do. That difference shows.",
   },
   {
-    emoji: '📐',
+    icon: markRaw(Ruler),
     headline: 'Every essay type. Every level.',
     body: 'Argumentative, reflective, analytical, personal statement, case study, literature review — plus proofreading and editing. One platform, 20+ types, all subjects, high school to doctoral.',
   },
 ]
 
 const services = [
-  { emoji: '✍️', title: 'Essays',              href: '/services/essays',           badge: 'Most popular', desc: 'Argumentative, analytical, reflective, narrative — any type, any level, any subject.' },
-  { emoji: '📄', title: 'Research Papers',      href: '/services/research-papers',  badge: null,          desc: 'Original research from peer-reviewed sources, any citation style.' },
-  { emoji: '🎓', title: 'Dissertations',        href: '/services/dissertations',    badge: null,          desc: 'Proposal through final chapter, with supervisor feedback integration.' },
-  { emoji: '💼', title: 'Case Studies',         href: '/services/case-studies',     badge: null,          desc: 'Problem-solution-evaluation structure with real supporting evidence.' },
-  { emoji: '🏫', title: 'Admission Essays',     href: '/services/admission-essays', badge: 'High impact', desc: 'Personal statements and scholarship essays tailored to each school.' },
-  { emoji: '✅', title: 'Proofreading',         href: '/services/proofreading',     badge: null,          desc: 'Grammar, argument, structure, and citation accuracy — all checked.' },
+  { icon: markRaw(PenLine),       title: 'Essays',              href: '/services/essays',           badge: 'Most popular', desc: 'Argumentative, analytical, reflective, narrative — any type, any level, any subject.' },
+  { icon: markRaw(FileText),      title: 'Research Papers',      href: '/services/research-papers',  badge: null,          desc: 'Original research from peer-reviewed sources, any citation style.' },
+  { icon: markRaw(GraduationCap), title: 'Dissertations',        href: '/services/dissertations',    badge: null,          desc: 'Proposal through final chapter, with supervisor feedback integration.' },
+  { icon: markRaw(Briefcase),     title: 'Case Studies',         href: '/services/case-studies',     badge: null,          desc: 'Problem-solution-evaluation structure with real supporting evidence.' },
+  { icon: markRaw(School),        title: 'Admission Essays',     href: '/services/admission-essays', badge: 'High impact', desc: 'Personal statements and scholarship essays tailored to each school.' },
+  { icon: markRaw(CheckCircle2),  title: 'Proofreading',         href: '/services/proofreading',     badge: null,          desc: 'Grammar, argument, structure, and citation accuracy — all checked.' },
 ]
 
 const subjects = [
@@ -117,12 +119,12 @@ const steps = [
 ]
 
 const guarantees = [
-  { emoji: '🏆', title: 'Grade or money back',        desc: "If the work doesn't meet your stated requirements, we rewrite it or refund you. No questions asked." },
-  { emoji: '🎯', title: 'Subject-matched writer',     desc: "Your essay goes to someone with a degree in your discipline. Not a generalist who dabbles." },
-  { emoji: '🤖', title: 'Zero AI content',            desc: 'Human-written by a subject enthusiast. Free AI-detection report on request if you need proof.' },
-  { emoji: '🔒', title: 'Complete confidentiality',   desc: 'Your identity, school, and order details are never shared with any third party.' },
-  { emoji: '🔁', title: 'Unlimited free revisions',   desc: 'As many changes as you need within the revision window — always at zero extra cost.' },
-  { emoji: '⚡', title: 'As fast as 2 hours',         desc: 'Urgent essay due tonight? Most essays up to 4 pages delivered in 2 hours.' },
+  { icon: markRaw(Trophy),    title: 'Grade or money back',        desc: "If the work doesn't meet your stated requirements, we rewrite it or refund you. No questions asked." },
+  { icon: markRaw(Target),    title: 'Subject-matched writer',     desc: "Your essay goes to someone with a degree in your discipline. Not a generalist who dabbles." },
+  { icon: markRaw(Bot),       title: 'Zero AI content',            desc: 'Human-written by a subject enthusiast. Free AI-detection report on request if you need proof.' },
+  { icon: markRaw(Lock),      title: 'Complete confidentiality',   desc: 'Your identity, school, and order details are never shared with any third party.' },
+  { icon: markRaw(RefreshCw), title: 'Unlimited free revisions',   desc: 'As many changes as you need within the revision window — always at zero extra cost.' },
+  { icon: markRaw(Zap),       title: 'As fast as 2 hours',         desc: 'Urgent essay due tonight? Most essays up to 4 pages delivered in 2 hours.' },
 ]
 
 const testimonials = [
@@ -236,7 +238,7 @@ const testimonials = [
           v-for="w in whyUs" :key="w.headline"
           class="group relative overflow-hidden rounded-2xl border border-brand-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
         >
-          <div class="mb-5 text-4xl">{{ w.emoji }}</div>
+          <div class="mb-5"><component :is="w.icon" class="h-10 w-10 text-brand-700" /></div>
           <h3 class="text-lg font-bold leading-snug text-slate-900">{{ w.headline }}</h3>
           <p class="mt-3 text-sm leading-relaxed text-slate-500">{{ w.body }}</p>
           <div class="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-brand-50 transition-transform group-hover:scale-150" />
@@ -264,7 +266,7 @@ const testimonials = [
           class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
         >
           <div v-if="svc.badge" class="absolute right-4 top-4 rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-bold text-brand-700">{{ svc.badge }}</div>
-          <div class="mb-3 text-2xl">{{ svc.emoji }}</div>
+          <div class="mb-3"><component :is="svc.icon" class="h-7 w-7 text-brand-700" /></div>
           <h3 class="font-bold text-slate-900 transition-colors group-hover:text-brand-700">{{ svc.title }}</h3>
           <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{{ svc.desc }}</p>
           <span class="mt-4 text-xs font-semibold text-brand-600 opacity-0 transition-opacity group-hover:opacity-100">Learn more →</span>
@@ -327,7 +329,7 @@ const testimonials = [
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="g in guarantees" :key="g.title" class="flex gap-4 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-colors hover:bg-white/10">
-          <div class="text-2xl">{{ g.emoji }}</div>
+          <component :is="g.icon" class="h-7 w-7 text-brand-700" />
           <div>
             <h3 class="font-semibold text-white">{{ g.title }}</h3>
             <p class="mt-1.5 text-sm leading-relaxed text-brand-200">{{ g.desc }}</p>

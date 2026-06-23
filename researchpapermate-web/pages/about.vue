@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { Trophy, Handshake, Lock, MessageSquare } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -41,10 +44,10 @@ const vettingSteps = [
 ]
 
 const values = [
-  { emoji: '🏆', title: 'Quality over volume', desc: 'We turn away 98% of applicants. Every paper is reviewed by a senior editor before delivery.' },
-  { emoji: '🤝', title: 'Academic integrity', desc: 'We provide model and reference papers. We never encourage misrepresentation and include a legal-use disclosure on every order.' },
-  { emoji: '🔒', title: 'Privacy by design', desc: 'Your identity and order details are never sold, shared, or stored beyond what\'s required to deliver your paper.' },
-  { emoji: '💬', title: 'Real human support', desc: 'Every query reaches a real person. No chatbots, no queues, no scripted replies — direct and knowledgeable.' },
+  { icon: markRaw(Trophy),        title: 'Quality over volume', desc: 'We turn away 98% of applicants. Every paper is reviewed by a senior editor before delivery.' },
+  { icon: markRaw(Handshake),     title: 'Academic integrity', desc: 'We provide model and reference papers. We never encourage misrepresentation and include a legal-use disclosure on every order.' },
+  { icon: markRaw(Lock),          title: 'Privacy by design', desc: 'Your identity and order details are never sold, shared, or stored beyond what\'s required to deliver your paper.' },
+  { icon: markRaw(MessageSquare), title: 'Real human support', desc: 'Every query reaches a real person. No chatbots, no queues, no scripted replies — direct and knowledgeable.' },
 ]
 
 const milestones = [
@@ -107,7 +110,9 @@ const milestones = [
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div v-for="v in values" :key="v.title" class="rounded-2xl border border-slate-200 bg-parchment-100 p-6">
-              <div class="mb-3 text-3xl">{{ v.emoji }}</div>
+              <div class="mb-3">
+                <component :is="v.icon" class="h-8 w-8" />
+              </div>
               <h3 class="font-bold text-slate-900">{{ v.title }}</h3>
               <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ v.desc }}</p>
             </div>

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { GraduationCap, PenLine, Lock, ClipboardList, RefreshCw, MessageSquare } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -132,12 +135,12 @@ const steps = [
 
 // ── Guarantees ────────────────────────────────────────────────────────────────
 const guarantees = [
-  { icon: '🎓', title: 'Grade or full refund',       desc: "We set a grade target. Miss it → free rewrite or complete refund. No conditions." },
-  { icon: '✍️', title: 'Zero AI content',            desc: 'Every paper is handwritten. Request a free AI-detection report as proof.' },
-  { icon: '🔒', title: '100% confidential',          desc: 'Your identity and order details are never shared with any third party.' },
-  { icon: '📋', title: 'Plagiarism report included', desc: 'Checked against academic databases. Originality report included free.' },
-  { icon: '🔁', title: 'Unlimited free revisions',   desc: 'Within the revision window, request as many changes as you need.' },
-  { icon: '💬', title: 'Direct researcher access',   desc: 'Message your assigned expert directly — no tickets, no queues.' },
+  { icon: markRaw(GraduationCap), title: 'Grade or full refund',       desc: "We set a grade target. Miss it → free rewrite or complete refund. No conditions." },
+  { icon: markRaw(PenLine),       title: 'Zero AI content',            desc: 'Every paper is handwritten. Request a free AI-detection report as proof.' },
+  { icon: markRaw(Lock),          title: '100% confidential',          desc: 'Your identity and order details are never shared with any third party.' },
+  { icon: markRaw(ClipboardList), title: 'Plagiarism report included', desc: 'Checked against academic databases. Originality report included free.' },
+  { icon: markRaw(RefreshCw),     title: 'Unlimited free revisions',   desc: 'Within the revision window, request as many changes as you need.' },
+  { icon: markRaw(MessageSquare), title: 'Direct researcher access',   desc: 'Message your assigned expert directly — no tickets, no queues.' },
 ]
 
 // ── Testimonials ──────────────────────────────────────────────────────────────
@@ -626,7 +629,9 @@ const pricingTiers = [
           :key="g.title"
           class="flex gap-4 rounded-2xl bg-claret-900/60 p-6 ring-1 ring-claret-800 transition-colors hover:bg-claret-900 hover:ring-amber-800"
         >
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-claret-800 text-xl">{{ g.icon }}</div>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-claret-800">
+            <component :is="g.icon" class="h-5 w-5 text-white" />
+          </div>
           <div>
             <h3 class="font-semibold text-white">{{ g.title }}</h3>
             <p class="mt-1.5 text-sm leading-relaxed text-claret-300">{{ g.desc }}</p>

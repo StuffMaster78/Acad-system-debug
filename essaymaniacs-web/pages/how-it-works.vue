@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { ClipboardList, Lock, MessageSquare, Download, Banknote, GraduationCap, Bot, RefreshCw } from '@lucide/vue'
+
 const app = useAppUrl()
 
 useSeoMeta({
@@ -13,7 +16,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/how-it-work
 const steps = [
   {
     n: '01',
-    emoji: '📋',
+    icon: markRaw(ClipboardList),
     title: 'Fill in your brief',
     sub: 'Takes 2 minutes',
     desc: 'Tell us your assignment type, academic level, deadline, word count, and any rubric or reading list. The more you share upfront, the better your match.',
@@ -29,7 +32,7 @@ const steps = [
   },
   {
     n: '02',
-    emoji: '🔒',
+    icon: markRaw(Lock),
     title: 'Pay — your money is held safely',
     sub: 'Your payment is in escrow',
     desc: 'Pay via card or PayPal. Your payment is held in escrow by our billing partner — it is only released to your writer after you have approved the completed work.',
@@ -44,7 +47,7 @@ const steps = [
   },
   {
     n: '03',
-    emoji: '💬',
+    icon: markRaw(MessageSquare),
     title: 'Your writer gets matched and starts',
     sub: 'Direct communication included',
     desc: 'We match your order to a verified specialist whose degree and subject background align with your requirements. Message them directly, share files, and track progress.',
@@ -60,7 +63,7 @@ const steps = [
   },
   {
     n: '04',
-    emoji: '⬇️',
+    icon: markRaw(Download),
     title: 'Download, review, and request revisions',
     sub: 'Free revisions included',
     desc: 'Your writer uploads the completed paper. Download in Word or PDF. Your plagiarism report is included free. Request as many revisions as you need within the revision window.',
@@ -77,10 +80,10 @@ const steps = [
 ]
 
 const guarantees = [
-  { emoji: '💰', title: 'Escrow payment protection', desc: 'Your money only moves to the writer when you approve the work.' },
-  { emoji: '🎓', title: 'Grade or money back', desc: "State your grade target. If we miss it, we rewrite or refund." },
-  { emoji: '🤖', title: 'Zero AI content', desc: 'Every paper is human-written. Free AI-detection report on request.' },
-  { emoji: '🔁', title: 'Unlimited free revisions', desc: 'Within the revision window, revisions are always free.' },
+  { icon: markRaw(Banknote), title: 'Escrow payment protection', desc: 'Your money only moves to the writer when you approve the work.' },
+  { icon: markRaw(GraduationCap), title: 'Grade or money back', desc: "State your grade target. If we miss it, we rewrite or refund." },
+  { icon: markRaw(Bot), title: 'Zero AI content', desc: 'Every paper is human-written. Free AI-detection report on request.' },
+  { icon: markRaw(RefreshCw), title: 'Unlimited free revisions', desc: 'Within the revision window, revisions are always free.' },
 ]
 </script>
 
@@ -123,8 +126,9 @@ const guarantees = [
             <!-- Content -->
             <div class="flex-1">
               <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ step.sub }}</p>
-              <h2 class="mt-1 text-xl font-bold text-slate-900">
-                {{ step.emoji }} {{ step.title }}
+              <h2 class="mt-1 flex items-center gap-2 text-xl font-bold text-slate-900">
+                <component :is="step.icon" class="h-5 w-5 shrink-0" />
+                {{ step.title }}
               </h2>
               <p class="mt-3 leading-relaxed text-slate-600">{{ step.desc }}</p>
               <ul class="mt-5 grid gap-2 sm:grid-cols-2">
@@ -145,7 +149,9 @@ const guarantees = [
         <p class="mb-8 text-center text-xs font-bold uppercase tracking-widest text-brand-600">What's always included</p>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div v-for="g in guarantees" :key="g.title" class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-            <div class="mb-3 text-3xl">{{ g.emoji }}</div>
+            <div class="mb-3 flex justify-center">
+              <component :is="g.icon" class="h-8 w-8 text-slate-600" />
+            </div>
             <h3 class="font-bold text-slate-900">{{ g.title }}</h3>
             <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ g.desc }}</p>
           </div>
