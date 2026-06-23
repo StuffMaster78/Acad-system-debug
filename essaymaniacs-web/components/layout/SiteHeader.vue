@@ -89,7 +89,7 @@ const ORDER_SVG: Record<string, string> = {
           v-for="item in nav.slice(0, 3)"
           :key="item.href"
           :href="item.href"
-          class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+          class="rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           active-class="text-brand-600"
         >
           {{ item.label }}
@@ -102,12 +102,14 @@ const ORDER_SVG: Record<string, string> = {
           @mouseleave="scheduleClose"
         >
           <button
-            class="flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+            class="flex items-center gap-1 rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             :class="servicesOpen ? 'text-brand-600' : ''"
+            :aria-expanded="servicesOpen"
+            aria-haspopup="true"
             @click="servicesOpen = !servicesOpen"
           >
             Services
-            <svg class="h-4 w-4 transition-transform duration-200" :class="servicesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            <svg class="h-4 w-4 transition-transform duration-200" :class="servicesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </button>
 
           <!-- Mega-menu dropdown -->
@@ -195,7 +197,7 @@ const ORDER_SVG: Record<string, string> = {
           v-for="item in nav.slice(3)"
           :key="item.href"
           :href="item.href"
-          class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+          class="rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           active-class="text-brand-600"
         >
           {{ item.label }}
@@ -210,19 +212,19 @@ const ORDER_SVG: Record<string, string> = {
         </div>
         <!-- Gradient split capsule -->
         <div class="inline-flex items-center overflow-hidden rounded-full ring-1 ring-black/[0.06] shadow-sm">
-          <NuxtLink to="/login" class="flex h-9 items-center bg-white px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700">
+          <NuxtLink to="/login" class="flex h-9 items-center bg-white px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500">
             Sign in
           </NuxtLink>
           <span class="h-4 w-px flex-shrink-0 bg-slate-200" />
-          <NuxtLink to="/order" class="flex h-9 items-center bg-gradient-to-r from-brand-600 to-violet-600 px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+          <NuxtLink to="/order" class="flex h-9 items-center bg-gradient-to-r from-brand-600 to-violet-600 px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
             Get started
           </NuxtLink>
         </div>
       </div>
 
       <!-- Mobile hamburger -->
-      <button class="md:hidden" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
-        <svg class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <button class="md:hidden rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" :aria-expanded="mobileOpen" aria-label="Toggle menu" @click="mobileOpen = !mobileOpen">
+        <svg class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path v-if="!mobileOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
           <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>

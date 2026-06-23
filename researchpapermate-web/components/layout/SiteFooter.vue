@@ -71,8 +71,8 @@ const social = computed(() => portal.socialLinks)
     <!-- Trust strip -->
     <div class="border-b border-claret-900">
       <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-6 px-4 py-5 sm:px-6 lg:px-8">
-        <div class="flex items-center gap-2">
-          <div class="flex gap-0.5">
+        <div class="flex items-center gap-2" aria-label="Rated 4.8 out of 5 on Trustpilot">
+          <div class="flex gap-0.5" aria-hidden="true">
             <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
             </svg>
@@ -97,7 +97,7 @@ const social = computed(() => portal.socialLinks)
         <!-- Brand -->
         <div class="space-y-4">
           <span class="flex items-center gap-2.5">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path d="M4 2h13l7 7v17a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z" fill="#7B2241"/>
               <path d="M17 2v5a2 2 0 002 2h5" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.3"/>
               <rect x="6" y="12" width="8"  height="1.5" rx="0.75" fill="white" fill-opacity="0.9"/>

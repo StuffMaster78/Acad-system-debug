@@ -45,7 +45,10 @@ function toggle(i: number) {
         <div v-for="(faq, i) in faqs" :key="faq.q" class="border-b border-slate-100 last:border-b-0">
           <dt>
             <button
-              class="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-slate-50"
+              :id="`faq-btn-${i}`"
+              class="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+              :aria-expanded="open === i"
+              :aria-controls="`faq-panel-${i}`"
               @click="toggle(i)"
             >
               <span class="font-semibold text-slate-900">{{ faq.q }}</span>
@@ -55,12 +58,19 @@ function toggle(i: number) {
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
               </svg>
             </button>
           </dt>
-          <dd v-show="open === i" class="border-t border-slate-100 bg-slate-50/60 px-6 pb-5 pt-4 text-sm text-slate-600 leading-relaxed">
+          <dd
+            :id="`faq-panel-${i}`"
+            role="region"
+            :aria-labelledby="`faq-btn-${i}`"
+            v-show="open === i"
+            class="border-t border-slate-100 bg-slate-50/60 px-6 pb-5 pt-4 text-sm text-slate-600 leading-relaxed"
+          >
             {{ faq.a }}
           </dd>
         </div>

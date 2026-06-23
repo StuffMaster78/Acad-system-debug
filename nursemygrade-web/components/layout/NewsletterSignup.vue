@@ -44,7 +44,9 @@ async function submit() {
       <!-- Form -->
       <form v-if="!success" class="mt-6 space-y-3" @submit.prevent="submit" novalidate>
         <div class="flex flex-col gap-2 sm:flex-row">
+          <label for="newsletter-email" class="sr-only">Email address</label>
           <input
+            id="newsletter-email"
             v-model="email"
             type="email"
             placeholder="Enter your email address"

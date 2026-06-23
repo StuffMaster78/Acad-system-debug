@@ -69,12 +69,14 @@ function scheduleClose() { closeTimer = setTimeout(() => { servicesOpen.value = 
         <!-- Services mega-menu -->
         <div class="relative" @mouseenter="openServices" @mouseleave="scheduleClose">
           <button
-            class="flex items-center gap-1 text-sm font-medium text-white/80 transition-colors hover:text-white"
+            class="flex items-center gap-1 rounded-sm text-sm font-medium text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
             :class="servicesOpen ? 'text-white' : ''"
+            :aria-expanded="servicesOpen"
+            aria-haspopup="true"
             @click="servicesOpen = !servicesOpen"
           >
             Services
-            <svg class="h-4 w-4 transition-transform" :class="servicesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="h-4 w-4 transition-transform" :class="servicesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
           </button>
@@ -158,7 +160,7 @@ function scheduleClose() { closeTimer = setTimeout(() => { servicesOpen.value = 
           v-for="item in nav"
           :key="item.href"
           :href="item.href"
-          class="text-sm font-medium text-white/80 transition-colors hover:text-white"
+          class="rounded-sm text-sm font-medium text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
           active-class="text-white"
         >
           {{ item.label }}
@@ -167,21 +169,21 @@ function scheduleClose() { closeTimer = setTimeout(() => { servicesOpen.value = 
 
       <!-- Desktop CTAs — split capsule, claret flavour -->
       <div class="hidden items-center gap-3 md:flex">
-        <NuxtLink to="/login" class="text-sm font-medium text-white/70 transition-colors hover:text-white">
+        <NuxtLink to="/login" class="rounded-sm text-sm font-medium text-white/70 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
           Sign in
         </NuxtLink>
         <NuxtLink
           to="/order"
-          class="inline-flex h-9 items-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-500"
+          class="inline-flex h-9 items-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           Place order
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
         </NuxtLink>
       </div>
 
       <!-- Mobile hamburger -->
-      <button class="md:hidden text-white" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
-        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <button class="md:hidden rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400" :aria-expanded="mobileOpen" aria-label="Toggle menu" @click="mobileOpen = !mobileOpen">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path v-if="!mobileOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
           <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
