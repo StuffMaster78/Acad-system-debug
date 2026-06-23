@@ -69,6 +69,7 @@ export interface OrderSummary {
   requires_editing?: boolean | null;
   editing_skip_reason?: string;
   flags?: string[];
+  visibility_mode?: string | null;
   client_deadline?: string;
   writer_deadline?: string | null;
   pricing_snapshot_id?: number | null;

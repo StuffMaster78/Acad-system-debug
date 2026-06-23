@@ -109,6 +109,7 @@ export const writerApi = {
       can_take: boolean;
       can_bid: boolean;
       has_capacity: boolean;
+      is_eligible: boolean;
       reason: string;
       suggested_bid_price: string | null;
       rate_breakdown: {

@@ -9,7 +9,7 @@ const { getBySlug, getRelated } = useServices()
 const apiBase = import.meta.server
   ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
   : (config.public.apiBase || '')
-const svcFields = 'title,slug,pricing_from,pricing_to,turnaround_hours_fastest,turnaround_hours_standard,primary_cta_text,primary_cta_url,reviewer,last_substantive_update,body'
+const svcFields = 'title,slug,pricing_from,pricing_to,turnaround_hours_fastest,turnaround_hours_standard,primary_cta_text,primary_cta_url,reviewer,last_substantive_update,hero_image,thumbnail,body'
 
 const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(
   `svc-${slug}`,
@@ -100,7 +100,7 @@ if (cmsPage.value?.schema) {
         '@type': 'Service',
         name: displayTitle.value,
         description: displayMeta.value.description,
-        dateModified: cmsPage.value?.last_published_at ?? new Date().toISOString().slice(0, 10),
+        dateModified: cmsPage.value?.last_substantive_update ?? new Date().toISOString().slice(0, 10),
         provider: { '@type': 'Organization', name: 'NurseMyGrade', url: 'https://nursemygrade.com' },
         speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.service-hero-sub', '.service-description'] },
         offers: {

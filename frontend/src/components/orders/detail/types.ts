@@ -2,6 +2,8 @@ import type { InjectionKey, Ref } from "vue";
 import type { OrderSummary, OrderLifecycle } from "@/types/orders";
 import type { UserRole } from "@/types/roles";
 
+export type { OrderSummary, OrderLifecycle };
+
 export interface OrderDetailContext {
   orderId: Ref<string>;
   order: Ref<OrderSummary | null>;

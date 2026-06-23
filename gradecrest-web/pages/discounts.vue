@@ -87,6 +87,12 @@ const faqs = [
   { q: 'Does a discount apply to urgent orders?', a: 'Yes — discounts apply to the base price before rush modifiers. A 10% off code on a 12-hour urgent order saves 10% of the base rate.' },
   { q: 'What if my promo code is not working?', a: 'Enter the code in capitals with no extra spaces. Check if it has expired or been used. If the issue persists, contact our support team.' },
 ]
+
+const redeemSteps = [
+  { n: 1, title: 'Start your order', text: 'Go to the order page and configure your paper — academic level, deadline, and subject.' },
+  { n: 2, title: 'Enter your code', text: 'Expand the discount code field on the order form and type or paste your code.' },
+  { n: 3, title: 'See the saving', text: 'The discount applies instantly to your total. Confirm and pay the reduced amount.' },
+]
 </script>
 
 <template>
@@ -138,11 +144,7 @@ const faqs = [
       <div class="mx-auto max-w-4xl text-center">
         <h2 class="mb-10 font-serif text-2xl font-bold text-slate-900">How to redeem a discount code</h2>
         <div class="grid gap-6 sm:grid-cols-3">
-          <div v-for="(step, i) in [
-            { n: 1, title: 'Start your order', text: 'Go to the order page and configure your paper — academic level, deadline, and subject.' },
-            { n: 2, title: 'Enter your code', text: 'Expand the discount code field on the order form and type or paste your code.' },
-            { n: 3, title: 'See the saving', text: 'The discount applies instantly to your total. Confirm and pay the reduced amount.' },
-          ]" :key="i" class="flex flex-col items-center">
+          <div v-for="(step, i) in redeemSteps" :key="i" class="flex flex-col items-center">
             <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gc-700 text-sm font-bold text-white">{{ step.n }}</div>
             <h3 class="mb-1.5 text-sm font-bold text-slate-900">{{ step.title }}</h3>
             <p class="text-sm text-slate-500 leading-relaxed">{{ step.text }}</p>

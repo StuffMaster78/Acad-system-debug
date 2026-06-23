@@ -452,7 +452,7 @@ const FileTypeIcon = defineComponent({
   },
   setup(props) {
     return () => {
-      const att = props.att ?? props.attachment;
+      const att = props.attachment;
       const name = att?.managed_file?.original_filename ?? att?.display_name ?? "";
       const ext = name.includes(".") ? name.split(".").pop()?.toLowerCase() ?? "" : (att?.external_link ? "url" : "");
       const EXT_COLOR: Record<string, string> = {

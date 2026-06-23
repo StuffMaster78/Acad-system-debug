@@ -10,6 +10,8 @@ export interface CmsServicePage {
   primary_cta_url: string
   reviewer: { name: string; role: string } | null
   last_substantive_update: string | null
+  hero_image?: { url: string } | null
+  thumbnail?: { url: string } | null
   body: CmsBlock[]
   schema?: Record<string, unknown>
 }

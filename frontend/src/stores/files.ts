@@ -6,8 +6,10 @@ import { useAuthStore } from "@/stores/auth";
 export interface QueuedFile {
   id: string;
   file: File;
+  name: string;
   purpose: FilePurpose;
   status: "pending" | "uploading" | "done" | "error";
+  progress?: number;
   error?: string;
 }
 
@@ -40,6 +42,7 @@ export const useFilesStore = defineStore("files", () => {
       uploadQueue.value.push({
         id: `${Date.now()}-${Math.random()}`,
         file,
+        name: file.name,
         purpose,
         status: "pending",
       });
