@@ -39,6 +39,7 @@ export function useServiceCms(serviceSlug: string) {
   const { data, status, error } = useFetch<{ items: CmsServicePage[] }>(
     `${apiBase}/api/v2/pages/`,
     {
+      key: `svc-cms-em-${serviceSlug}`,
       headers: extraHeaders,
       query: {
         type: 'cms_service_pages.ServicePage',

@@ -82,7 +82,7 @@ const featuredServices = [
         <div class="relative" @mouseenter="openSvc" @mouseleave="closeSvc">
           <NuxtLink
             to="/services"
-            class="flex items-center gap-1 rounded-lg px-3 py-2 text-graphite transition-colors hover:text-ink"
+            class="flex items-center gap-1 rounded-lg px-3 py-2 text-graphite transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gc-500"
             :class="route.path.startsWith('/services') ? '!text-gc-600 font-semibold' : ''"
             @click="svcOpen = false"
           >
@@ -138,7 +138,7 @@ const featuredServices = [
           v-for="item in nav"
           :key="item.href"
           :to="item.href"
-          class="rounded-lg px-3 py-2 text-graphite transition-colors hover:text-ink"
+          class="rounded-lg px-3 py-2 text-graphite transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gc-500"
           active-class="!text-gc-600 font-semibold"
         >{{ item.label }}</NuxtLink>
       </nav>
@@ -155,11 +155,11 @@ const featuredServices = [
         <div class="flex items-center">
           <a
             :href="app.login"
-            class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            class="-mr-px flex h-9 items-center rounded-l-full rounded-r-[5px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gc-500"
           >Sign in</a>
           <NuxtLink
             to="/order"
-            class="flex h-9 items-center rounded-r-full rounded-l-[5px] bg-gc-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gc-700"
+            class="flex h-9 items-center rounded-r-full rounded-l-[5px] bg-gc-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
           >Order now</NuxtLink>
         </div>
       </div>
@@ -168,7 +168,7 @@ const featuredServices = [
       <div class="flex items-center gap-3 lg:hidden">
         <span class="text-xs font-semibold text-graphite">From $13/page</span>
         <button
-          class="flex size-9 items-center justify-center rounded-lg text-graphite transition-colors hover:bg-slate-100"
+          class="flex size-9 items-center justify-center rounded-lg text-graphite transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gc-500"
           :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
           :aria-expanded="mobileOpen"
           @click="mobileOpen = !mobileOpen"
