@@ -8,9 +8,39 @@ useSeoMeta({
   description: 'Join 2,000+ credentialed writers earning $18–$45 per page. Flexible assignments, bi-weekly payouts, and work matched to your exact academic discipline.',
   ogTitle: 'Writers Creek — Write at the Highest Standard',
   ogDescription: 'Competitive per-page rates, flexible assignments, and reliable bi-weekly payouts for writers who take their craft seriously.',
+  ogImage:       'https://writerscreek.com/og-default.png',
   ogImageWidth:  1200,
   ogImageHeight: 630,
   twitterCard:   'summary_large_image',
+})
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        '@id': 'https://writerscreek.com/#org',
+        name: 'Writers Creek',
+        url: 'https://writerscreek.com',
+        description: 'A selective academic writing network connecting credential-verified writers with quality academic assignments.',
+        logo: 'https://writerscreek.com/logo.png',
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        '@id': 'https://writerscreek.com/#website',
+        url: 'https://writerscreek.com',
+        name: 'Writers Creek',
+        description: 'A selective academic writing network connecting credential-verified writers with quality academic assignments.',
+        publisher: { '@id': 'https://writerscreek.com/#org' },
+      }),
+    },
+  ],
 })
 
 const stats = [

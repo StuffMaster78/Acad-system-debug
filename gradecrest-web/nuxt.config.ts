@@ -118,6 +118,7 @@ export default defineNuxtConfig({
 
   site: {
     url: 'https://gradecrest.com',
+    name: 'GradeCrest',
   },
 
   app: {

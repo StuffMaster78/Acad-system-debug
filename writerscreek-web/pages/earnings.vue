@@ -2,6 +2,7 @@
 useSeoMeta({
   title: 'Earnings & Writer Rates | Writers Creek',
   description: 'See how much you can earn as a Writers Creek writer. Level-based rates from $18 to $45 per page with bi-weekly payouts.',
+  ogImage:       'https://writerscreek.com/og-default.png',
   ogImageWidth:  1200,
   ogImageHeight: 630,
   twitterCard:   'summary_large_image',

@@ -2,6 +2,7 @@
 useSeoMeta({
   title: 'Privacy Policy | Writers Creek',
   description: 'How Writers Creek collects, uses, stores, and protects your personal information. Writer credentials and personal data are never shared with clients.',
+  ogImage:       'https://writerscreek.com/og-default.png',
   ogImageWidth:  1200,
   ogImageHeight: 630,
   twitterCard:   'summary_large_image',

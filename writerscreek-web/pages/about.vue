@@ -5,6 +5,7 @@ useSeoMeta({
   title: 'About Writers Creek',
   description: 'Writers Creek is a selective academic writing network connecting credential-verified writers with quality academic assignments. Learn who we are and how we work.',
   ogTitle: 'About Writers Creek — A Selective Academic Writing Network',
+  ogImage:       'https://writerscreek.com/og-default.png',
   ogImageWidth:  1200,
   ogImageHeight: 630,
   twitterCard:   'summary_large_image',

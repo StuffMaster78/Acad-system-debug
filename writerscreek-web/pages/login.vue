@@ -3,6 +3,7 @@ useSeoMeta({
   title: 'Sign in | Writers Creek',
   description: 'Sign in to Writers Creek. Writers and staff are routed to their portal automatically.',
   robots: 'noindex',
+  ogImage:       'https://writerscreek.com/og-default.png',
   ogImageWidth:  1200,
   ogImageHeight: 630,
   twitterCard:   'summary_large_image',
