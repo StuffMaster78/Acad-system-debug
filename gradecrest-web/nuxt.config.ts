@@ -57,6 +57,7 @@ export default defineNuxtConfig({
       routes: [
         '/',
         '/pricing',
+        '/discounts',
         '/writers',
         '/how-it-works',
         '/reviews',

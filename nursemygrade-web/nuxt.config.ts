@@ -26,6 +26,7 @@ export default defineNuxtConfig({
         '/terms',
         '/privacy',
         '/refunds',
+        '/discounts',
         '/login',
         '/register',
         '/auth/magic-link',
