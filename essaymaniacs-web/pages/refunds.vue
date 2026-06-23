@@ -1,8 +1,5 @@
-<script setup lang="ts">,
-  ogImageWidth:  1200,
-  ogImageHeight: 630,
-  twitterCard:   'summary_large_image',
-useSeoMeta({ title: 'Refund Policy | EssayManiacs', description: 'EssayManiacs grade-or-money-back guarantee, revision policy, and full refund process.' })
+<script setup lang="ts">
+useSeoMeta({ title: 'Refund Policy | EssayManiacs', description: 'EssayManiacs grade-or-money-back guarantee, revision policy, and full refund process.', ogImageWidth: 1200, ogImageHeight: 630, twitterCard: 'summary_large_image' })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/refunds' }] })
 </script>
 

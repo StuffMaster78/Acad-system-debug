@@ -91,6 +91,8 @@ export default defineNuxtConfig({
       apiBase: '',
       appUrl: '',
       siteUrl: 'https://nursemygrade.com',
+      tawktoPropertyId: '',
+      tawktoWidgetId: '',
     },
   },
 

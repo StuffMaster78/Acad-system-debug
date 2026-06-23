@@ -41,10 +41,7 @@ async function sendMagicLink() {
   }
 }
 
-  ogImageWidth:  1200,
-  ogImageHeight: 630,
-  twitterCard:   'summary_large_image',
-useSeoMeta({ title: 'Sign in | NurseMyGrade', robots: 'noindex' })
+useSeoMeta({ title: 'Sign in | NurseMyGrade', robots: 'noindex', ogImageWidth: 1200, ogImageHeight: 630, twitterCard: 'summary_large_image' })
 </script>
 
 <template>

@@ -77,6 +77,9 @@ const cmsToc = computed(() => extractToc(cmsArticle.value?.body ?? []))
 const readingProgress = ref(0)
 const tocOpen = ref(false)
 const stickyBarDismissed = ref(false)
+const activeTocId = ref('')
+
+let tocObserver: IntersectionObserver | null = null
 
 onMounted(() => {
   tocOpen.value = window.innerWidth >= 1024
@@ -88,7 +91,28 @@ onMounted(() => {
     readingProgress.value = scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 0
   }
   window.addEventListener('scroll', updateProgress, { passive: true })
-  onUnmounted(() => window.removeEventListener('scroll', updateProgress))
+
+  // Active TOC section tracking
+  tocObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) activeTocId.value = entry.target.id
+      }
+    },
+    { rootMargin: '-20% 0px -70% 0px' },
+  )
+  nextTick(() => {
+    const allToc = [...cmsToc.value.map(t => t.id), ...toc.map(t => t.anchor)]
+    allToc.forEach(id => {
+      const el = document.getElementById(id)
+      if (el) tocObserver?.observe(el)
+    })
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('scroll', updateProgress)
+    tocObserver?.disconnect()
+  })
 })
 
 // Engagement (works off slug regardless of CMS vs static)
@@ -383,61 +407,80 @@ useHead({
           <!-- Left: reading column -->
           <div class="min-w-0">
 
-            <!-- TOC: CMS (block-based) -->
+            <!-- TOC: CMS (block-based) — numbered magazine style with active tracking -->
             <nav
               v-if="cmsArticle && cmsToc.length >= 3"
-              class="mb-10 rounded-2xl border border-slate-200 bg-slate-50"
+              class="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
               aria-label="Table of contents"
             >
               <button
-                class="flex w-full items-center justify-between px-5 py-4"
+                class="flex w-full items-center justify-between bg-gradient-to-r from-brand-950 to-brand-800 px-5 py-3.5"
                 :aria-expanded="tocOpen"
                 @click="tocOpen = !tocOpen"
               >
-                <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
-                  In this article
-                  <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{{ cmsToc.length }}</span>
+                <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/80">
+                  <svg class="h-3.5 w-3.5 text-brand-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
+                  In This Article
+                  <span class="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">{{ cmsToc.length }}</span>
                 </span>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                <svg class="h-4 w-4 text-white/50 transition-transform" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
               </button>
-              <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[600px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[600px]" leave-to-class="opacity-0 max-h-0">
-                <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
-                  <ol class="space-y-1.5">
-                    <li v-for="item in cmsToc" :key="item.id" :class="item.level === 'h3' ? 'ml-4' : ''">
-                      <a :href="`#${item.id}`" class="text-sm text-brand-600 hover:underline" @click="tocOpen = false">{{ item.text }}</a>
-                    </li>
-                  </ol>
-                </div>
+              <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[700px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[700px]" leave-to-class="opacity-0 max-h-0">
+                <ol v-if="tocOpen" class="divide-y divide-slate-100">
+                  <li v-for="(item, idx) in cmsToc" :key="item.id"
+                    :class="[item.level === 'h3' ? 'pl-10' : '', activeTocId === item.id ? 'bg-brand-50' : 'bg-white hover:bg-slate-50']"
+                    class="transition-colors">
+                    <a :href="`#${item.id}`"
+                      class="flex items-center gap-3 px-5 py-3 text-sm"
+                      :class="activeTocId === item.id ? 'text-brand-700 font-semibold' : 'text-slate-600 hover:text-brand-600'"
+                      @click="tocOpen = false">
+                      <span class="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors"
+                        :class="activeTocId === item.id ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'">
+                        {{ idx + 1 }}
+                      </span>
+                      <span class="leading-snug">{{ item.text }}</span>
+                      <svg v-if="activeTocId === item.id" class="ml-auto size-3 shrink-0 text-brand-500" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </a>
+                  </li>
+                </ol>
               </Transition>
             </nav>
 
             <!-- TOC: static (HTML-based) -->
             <nav
               v-else-if="staticPost && toc.length >= 3"
-              class="mb-10 rounded-2xl border border-slate-200 bg-slate-50"
+              class="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
               aria-label="Table of contents"
             >
               <button
-                class="flex w-full items-center justify-between px-5 py-4"
+                class="flex w-full items-center justify-between bg-gradient-to-r from-brand-950 to-brand-800 px-5 py-3.5"
                 :aria-expanded="tocOpen"
                 @click="tocOpen = !tocOpen"
               >
-                <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
-                  In this article
-                  <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{{ toc.length }}</span>
+                <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/80">
+                  <svg class="h-3.5 w-3.5 text-brand-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
+                  In This Article
+                  <span class="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">{{ toc.length }}</span>
                 </span>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                <svg class="h-4 w-4 text-white/50 transition-transform" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
               </button>
-              <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[600px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[600px]" leave-to-class="opacity-0 max-h-0">
-                <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
-                  <ol class="space-y-1.5">
-                    <li v-for="item in toc" :key="item.anchor" :class="item.level === 'h3' ? 'ml-4' : ''">
-                      <a :href="`#${item.anchor}`" class="text-sm text-brand-600 hover:underline" @click="tocOpen = false">{{ item.text }}</a>
-                    </li>
-                  </ol>
-                </div>
+              <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[700px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[700px]" leave-to-class="opacity-0 max-h-0">
+                <ol v-if="tocOpen" class="divide-y divide-slate-100">
+                  <li v-for="(item, idx) in toc" :key="item.anchor"
+                    :class="[item.level === 'h3' ? 'pl-10' : '', activeTocId === item.anchor ? 'bg-brand-50' : 'bg-white hover:bg-slate-50']"
+                    class="transition-colors">
+                    <a :href="`#${item.anchor}`"
+                      class="flex items-center gap-3 px-5 py-3 text-sm"
+                      :class="activeTocId === item.anchor ? 'text-brand-700 font-semibold' : 'text-slate-600 hover:text-brand-600'"
+                      @click="tocOpen = false">
+                      <span class="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors"
+                        :class="activeTocId === item.anchor ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'">
+                        {{ idx + 1 }}
+                      </span>
+                      <span class="leading-snug">{{ item.text }}</span>
+                    </a>
+                  </li>
+                </ol>
               </Transition>
             </nav>
 

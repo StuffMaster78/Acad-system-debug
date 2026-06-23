@@ -9,5 +9,10 @@
     </main>
     <SiteFooter />
     <WhatsAppButton />
+    <ChatWidget />
+    <ClientOnly>
+      <CookieConsentBanner />
+      <CookieSettingsButton />
+    </ClientOnly>
   </div>
 </template>

@@ -47,6 +47,8 @@ watch(consent.analyticsAllowed, (allowed) => {
     </main>
     <SiteFooter />
     <CookieConsentBanner />
+    <CookieSettingsButton />
+    <ChatWidget />
     <ExitIntentPopup />
   </div>
 </template>

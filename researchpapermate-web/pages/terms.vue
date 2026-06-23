@@ -1,8 +1,5 @@
-<script setup lang="ts">,
-  ogImageWidth:  1200,
-  ogImageHeight: 630,
-  twitterCard:   'summary_large_image',
-useSeoMeta({ title: 'Terms of Use | ResearchPaperMate', description: 'Terms and conditions for using ResearchPaperMate academic writing services.' })
+<script setup lang="ts">
+useSeoMeta({ title: 'Terms of Use | ResearchPaperMate', description: 'Terms and conditions for using ResearchPaperMate academic writing services.', ogImageWidth: 1200, ogImageHeight: 630, twitterCard: 'summary_large_image' })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/terms' }] })
 </script>
 

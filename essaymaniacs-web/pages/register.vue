@@ -20,10 +20,7 @@ async function submit() {
   } catch { /* error set by store */ }
 }
 
-  ogImageWidth:  1200,
-  ogImageHeight: 630,
-  twitterCard:   'summary_large_image',
-useSeoMeta({ title: 'Create an account | EssayManiacs', robots: 'noindex' })
+useSeoMeta({ title: 'Create an account | EssayManiacs', robots: 'noindex', ogImageWidth: 1200, ogImageHeight: 630, twitterCard: 'summary_large_image' })
 </script>
 
 <template>

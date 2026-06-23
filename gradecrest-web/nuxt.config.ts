@@ -92,6 +92,8 @@ export default defineNuxtConfig({
       apiBase: '',       // NUXT_PUBLIC_API_BASE — https://gradecrest.com (browser-accessible)
       appUrl: '',        // NUXT_PUBLIC_APP_URL  — client portal (for login/register links)
       siteUrl: 'https://gradecrest.com',
+      tawktoPropertyId: '',
+      tawktoWidgetId: '',
     },
   },
 

@@ -111,6 +111,8 @@ export default defineNuxtConfig({
       apiBase: '',           // NUXT_PUBLIC_API_BASE — set in .env
       appUrl: '',
       siteUrl: 'https://researchpapermate.com',
+      tawktoPropertyId: '',
+      tawktoWidgetId: '',
     },
   },
 

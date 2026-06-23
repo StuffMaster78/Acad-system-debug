@@ -216,9 +216,9 @@ class AttachmentReferenceBlock(StructBlock):
     attachment = SnippetChooserBlock("cms_attachments.Attachment")
     display_style = ChoiceBlock(
         choices=[
-            ("card", "Card with preview"),
-            ("list", "Compact list item"),
-            ("hero", "Large hero card"),
+            ("card",   "Card with preview"),
+            ("list",   "Compact list item"),
+            ("hero",   "Large hero card"),
             ("button", "Simple download button"),
         ],
         default="card",
@@ -228,6 +228,21 @@ class AttachmentReferenceBlock(StructBlock):
         required=False,
         default="Download Now",
     )
+
+    def get_api_representation(self, value, context=None):
+        result = super().get_api_representation(value, context=context)
+        att = value.get("attachment") if value else None
+        if att and hasattr(att, "pk"):
+            result["attachment"] = {
+                "id":             att.pk,
+                "title":          att.title,
+                "slug":           att.slug,
+                "description":    att.description,
+                "attachment_type": att.attachment_type,
+                "file_format":    att.file_format,
+                "file_size_bytes": att.file_size_bytes,
+            }
+        return result
 
     class Meta:
         icon = "doc-full"
@@ -1227,6 +1242,68 @@ class BenefitsSectionBlock(StructBlock):
 # COMPOSED STREAMBLOCKS — the two exports other apps use
 # ===========================================================================
 
+class RichCtaBlock(StructBlock):
+    """
+    Rich in-article call-to-action banner — image, headline, trust bullets, two CTAs.
+
+    Five visual styles selectable by the publisher:
+      gradient    — dark brand gradient, white text (strongest conversion)
+      split_image — left image + right text on wide screens
+      light       — soft brand-tint background, dark text
+      urgent      — amber/red accent for deadline urgency
+      minimal     — single-line bar with a CTA button (lowest visual weight)
+    """
+    style = ChoiceBlock(
+        choices=[
+            ("gradient",    "Gradient — dark brand (default)"),
+            ("split_image", "Split image — image left, text right"),
+            ("light",       "Light — brand-tint background"),
+            ("urgent",      "Urgent — deadline/scarcity accent"),
+            ("minimal",     "Minimal — inline text bar"),
+        ],
+        default="gradient",
+    )
+    eyebrow = CharBlock(
+        max_length=100,
+        required=False,
+        help_text="Small label above headline, e.g. '500+ specialists available'",
+    )
+    headline = CharBlock(max_length=200)
+    subtext = CharBlock(max_length=400, required=False)
+    image = ImageChooserBlock(
+        required=False,
+        help_text="Used in 'split_image' style — shown on the left side",
+    )
+    trust_items = ListBlock(
+        CharBlock(max_length=150),
+        required=False,
+        max_num=5,
+        help_text="Short trust/benefit bullets, e.g. 'Grade or money back'",
+    )
+    cta_text = CharBlock(max_length=80, default="Order Now")
+    cta_url = CharBlock(max_length=255, default="/order")
+    secondary_cta_text = CharBlock(max_length=80, required=False)
+    secondary_cta_url = CharBlock(max_length=255, required=False)
+
+    def get_api_representation(self, value, context=None):
+        result = super().get_api_representation(value, context=context)
+        image = value.get("image") if value else None
+        if image:
+            try:
+                result["image"] = {
+                    "url":          image.get_rendition("width-900|format-webp").url,
+                    "url_fallback": image.get_rendition("width-900").url,
+                }
+            except Exception:
+                result["image"] = {"url": getattr(getattr(image, "file", None), "url", None)}
+        return result
+
+    class Meta:
+        icon = "pick"
+        label = "Rich CTA Banner"
+        template = None  # Client-side rendered
+
+
 class CalculatorBlock(StructBlock):
     """
     Embeds an interactive pricing calculator widget inside a service page or
@@ -1331,6 +1408,7 @@ BLOG_BLOCKS = StreamBlock([
     ("disclaimer", DisclaimerBlock()),
     ("faq", FAQItemBlock()),
     ("cta", CTABlock()),
+    ("rich_cta", RichCtaBlock()),
     ("internal_link", InternalLinkCardBlock()),
     ("attachment", AttachmentReferenceBlock()),
     ("table", TableDataBlock()),

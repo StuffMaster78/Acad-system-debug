@@ -73,8 +73,22 @@ const { toc, processedBody } = staticPost ? useToc(staticPost.body) : { toc: [],
 // ── CMS TOC ────────────────────────────────────────────────────────────────
 const cmsToc = computed(() => extractToc(cmsArticle.value?.body ?? []))
 
-const tocOpen = ref(false)
-onMounted(() => { tocOpen.value = window.innerWidth >= 1024 })
+const tocOpen    = ref(false)
+const activeTocId = ref('')
+let tocObserver: IntersectionObserver | null = null
+
+onMounted(() => {
+  tocOpen.value = window.innerWidth >= 1024
+  tocObserver = new IntersectionObserver(
+    (entries) => { for (const e of entries) { if (e.isIntersecting) activeTocId.value = e.target.id } },
+    { rootMargin: '-20% 0px -70% 0px' },
+  )
+  nextTick(() => {
+    const ids = [...cmsToc.value.map(t => t.id), ...toc.map(t => t.anchor)]
+    ids.forEach(id => { const el = document.getElementById(id); if (el) tocObserver?.observe(el) })
+  })
+})
+onUnmounted(() => tocObserver?.disconnect())
 
 const { pageId, stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
   useEngagement(slug)
@@ -316,45 +330,75 @@ useHead({
           </ClientOnly>
         </div>
 
-        <!-- TOC: CMS -->
-        <nav v-if="cmsArticle && cmsToc.length >= 3" class="mt-8 rounded-xl border border-slate-200 bg-slate-50" aria-label="Table of contents">
-          <button class="flex w-full items-center justify-between px-5 py-4 text-left" :aria-expanded="tocOpen" @click="tocOpen = !tocOpen">
-            <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
-              In this article
-              <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{{ cmsToc.length }}</span>
+        <!-- TOC: CMS — healthcare dot-steps with active tracking -->
+        <nav v-if="cmsArticle && cmsToc.length >= 3"
+          class="mt-8 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
+          aria-label="Table of contents">
+          <button class="flex w-full items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3.5 text-left"
+            :aria-expanded="tocOpen" @click="tocOpen = !tocOpen">
+            <span class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+              <svg class="h-3.5 w-3.5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
+              Contents
             </span>
-            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[600px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[600px]" leave-to-class="opacity-0 max-h-0">
-            <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
-              <ol class="space-y-1.5">
-                <li v-for="item in cmsToc" :key="item.id" :class="item.level === 'h3' ? 'ml-4' : ''">
-                  <a :href="`#${item.id}`" class="text-sm text-brand-600 hover:underline" @click="tocOpen = false">{{ item.text }}</a>
-                </li>
-              </ol>
-            </div>
+          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[700px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[700px]" leave-to-class="opacity-0 max-h-0">
+            <ol v-if="tocOpen" class="py-3 pl-5 pr-4">
+              <li v-for="(item, idx) in cmsToc" :key="item.id"
+                class="relative flex gap-3 pb-3 last:pb-0"
+                :class="item.level === 'h3' ? 'pl-6' : ''">
+                <!-- Connecting line -->
+                <div v-if="idx < cmsToc.length - 1"
+                  class="absolute left-[9px] top-6 bottom-0 w-px"
+                  :class="activeTocId === item.id ? 'bg-brand-400' : 'bg-slate-100'" />
+                <!-- Dot indicator -->
+                <span class="relative mt-0.5 flex size-4.5 shrink-0 items-center justify-center">
+                  <span class="absolute inset-0 rounded-full transition-all duration-200"
+                    :class="activeTocId === item.id ? 'bg-brand-500 scale-100' : 'bg-slate-200 scale-75'" />
+                  <span v-if="activeTocId === item.id" class="absolute inset-0 rounded-full bg-brand-300 animate-ping opacity-40" />
+                </span>
+                <a :href="`#${item.id}`"
+                  class="min-w-0 flex-1 py-0.5 text-sm leading-snug transition-colors"
+                  :class="activeTocId === item.id ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-brand-600'"
+                  @click="tocOpen = false">{{ item.text }}</a>
+              </li>
+            </ol>
           </Transition>
         </nav>
 
-        <!-- TOC: static -->
-        <nav v-else-if="staticPost && toc.length >= 3" class="mt-8 rounded-xl border border-slate-200 bg-slate-50" aria-label="Table of contents">
-          <button class="flex w-full items-center justify-between px-5 py-4 text-left" :aria-expanded="tocOpen" @click="tocOpen = !tocOpen">
-            <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
-              In this article
-              <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{{ toc.length }}</span>
+        <!-- TOC: static — same dot-steps style -->
+        <nav v-else-if="staticPost && toc.length >= 3"
+          class="mt-8 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
+          aria-label="Table of contents">
+          <button class="flex w-full items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3.5 text-left"
+            :aria-expanded="tocOpen" @click="tocOpen = !tocOpen">
+            <span class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+              <svg class="h-3.5 w-3.5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
+              Contents
             </span>
-            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[600px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[600px]" leave-to-class="opacity-0 max-h-0">
-            <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
-              <ol class="space-y-1.5">
-                <li v-for="item in toc" :key="item.anchor" :class="item.level === 'h3' ? 'ml-4' : ''">
-                  <a :href="`#${item.anchor}`" class="text-sm text-brand-600 hover:underline" @click="tocOpen = false">{{ item.text }}</a>
-                </li>
-              </ol>
-            </div>
+          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[700px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[700px]" leave-to-class="opacity-0 max-h-0">
+            <ol v-if="tocOpen" class="py-3 pl-5 pr-4">
+              <li v-for="(item, idx) in toc" :key="item.anchor"
+                class="relative flex gap-3 pb-3 last:pb-0"
+                :class="item.level === 'h3' ? 'pl-6' : ''">
+                <div v-if="idx < toc.length - 1"
+                  class="absolute left-[9px] top-6 bottom-0 w-px"
+                  :class="activeTocId === item.anchor ? 'bg-brand-400' : 'bg-slate-100'" />
+                <span class="relative mt-0.5 flex size-4.5 shrink-0 items-center justify-center">
+                  <span class="absolute inset-0 rounded-full transition-all duration-200"
+                    :class="activeTocId === item.anchor ? 'bg-brand-500 scale-100' : 'bg-slate-200 scale-75'" />
+                  <span v-if="activeTocId === item.anchor" class="absolute inset-0 rounded-full bg-brand-300 animate-ping opacity-40" />
+                </span>
+                <a :href="`#${item.anchor}`"
+                  class="min-w-0 flex-1 py-0.5 text-sm leading-snug transition-colors"
+                  :class="activeTocId === item.anchor ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-brand-600'"
+                  @click="tocOpen = false">{{ item.text }}</a>
+              </li>
+            </ol>
           </Transition>
         </nav>
 

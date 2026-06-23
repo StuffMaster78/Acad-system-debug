@@ -78,6 +78,8 @@ export default defineNuxtConfig({
       apiBase: '',
       appUrl: '',
       siteUrl: 'https://essaymaniacs.com',
+      tawktoPropertyId: '',
+      tawktoWidgetId: '',
     },
   },
 

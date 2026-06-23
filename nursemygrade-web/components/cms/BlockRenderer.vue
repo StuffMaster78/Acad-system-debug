@@ -583,30 +583,34 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     </div>
 
     <!-- ── Sample Excerpt ───────────────────────────────────────────────── -->
-    <div v-else-if="block.type === 'sample_excerpt'" class="my-8 not-prose">
-      <div class="rounded-2xl border border-slate-200 overflow-hidden">
-        <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
-          <p class="font-semibold text-sm text-ink">
-            {{ asStr(asObj(block.value).title) || 'Writing Sample' }}
-          </p>
-          <div class="flex gap-2">
-            <span class="rounded-full bg-brand-100 px-2.5 py-0.5 text-[10px] font-bold text-brand-700">
-              {{ FORMAT_LABELS[asStr(asObj(block.value).formatting_style)] ?? asStr(asObj(block.value).formatting_style) }}
-            </span>
-            <span class="rounded-full bg-slate-200 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
-              {{ LEVEL_LABELS[asStr(asObj(block.value).academic_level)] ?? asStr(asObj(block.value).academic_level) }}
-            </span>
+    <div v-else-if="block.type === 'sample_excerpt'" class="my-10 not-prose">
+      <div class="overflow-hidden rounded-2xl shadow-md ring-1 ring-slate-900/5">
+        <div class="bg-gradient-to-r from-brand-900 to-brand-700 px-6 py-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-brand-300 mb-0.5">Writing Sample</p>
+              <p class="font-semibold text-white text-sm leading-snug">{{ asStr(asObj(block.value).title) || 'Academic Writing Sample' }}</p>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold text-white/90">{{ FORMAT_LABELS[asStr(asObj(block.value).formatting_style)] ?? asStr(asObj(block.value).formatting_style) }}</span>
+              <span class="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold text-white/90">{{ LEVEL_LABELS[asStr(asObj(block.value).academic_level)] ?? asStr(asObj(block.value).academic_level) }}</span>
+            </div>
           </div>
         </div>
-        <div class="px-6 py-5 font-serif text-sm leading-8 text-ink bg-white" v-html="asStr(asObj(block.value).excerpt)" />
-        <div v-if="asStr(asObj(block.value).download_cta)" class="border-t border-slate-100 px-5 py-3 bg-slate-50">
-          <a
-            href="#"
-            class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:underline"
-          >
-            <Download class="size-3.5" />
-            {{ asStr(asObj(block.value).download_cta) || 'Download Full Sample' }}
-          </a>
+        <div class="bg-[#fafaf8] px-7 py-6 font-serif text-[0.9rem] leading-8 text-slate-800 relative overflow-hidden">
+          <div class="pointer-events-none absolute inset-0 opacity-[0.035]" style="background-image: repeating-linear-gradient(transparent, transparent 31px, #94a3b8 31px, #94a3b8 32px);" />
+          <div class="absolute left-10 top-0 bottom-0 w-px bg-rose-200/60 pointer-events-none" />
+          <div class="relative pl-4" v-html="asStr(asObj(block.value).excerpt)" />
+        </div>
+        <div class="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4">
+          <p class="text-xs text-slate-500">Want work of this quality written for you?</p>
+          <div class="flex items-center gap-3">
+            <a v-if="asObj(asObj(block.value).attachment).slug" :href="`/resources/${asStr(asObj(asObj(block.value).attachment).slug)}`"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-700 transition-colors">
+              <Download class="size-3.5" />{{ asStr(asObj(block.value).download_cta) || 'Full Sample' }}
+            </a>
+            <a :href="app.order" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-brand-700 transition-colors">Order like this</a>
+          </div>
         </div>
       </div>
     </div>
@@ -658,27 +662,29 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     </figure>
 
     <!-- ── Sources / References ──────────────────────────────────────────── -->
-    <div v-else-if="block.type === 'sources'" class="my-8 not-prose">
-      <p class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">
-        {{ asStr(asObj(block.value).heading) || 'Articles Consulted' }}
-      </p>
-      <ol class="space-y-3">
-        <li
-          v-for="(src, j) in asArr(asObj(block.value).sources)"
-          :key="j"
-          class="flex gap-3 text-xs text-slate-600 leading-relaxed"
-        >
-          <span class="shrink-0 font-bold text-slate-400 tabular-nums w-5 text-right">{{ j + 1 }}.</span>
-          <span>
-            <span v-if="asStr(asObj(src).author)" class="font-medium text-ink">{{ asStr(asObj(src).author) }}.&nbsp;</span>
-            <a :href="asStr(asObj(src).url)" target="_blank" rel="noopener noreferrer" class="underline decoration-dotted hover:text-brand-600">
-              {{ asStr(asObj(src).title) }}
-            </a>
-            <span v-if="asStr(asObj(src).publication)" class="text-slate-500">. <em>{{ asStr(asObj(src).publication) }}</em></span>
-            <span v-if="asStr(asObj(src).year)" class="text-slate-500"> ({{ asStr(asObj(src).year) }})</span>
-          </span>
-        </li>
-      </ol>
+    <div v-else-if="block.type === 'sources'" class="my-10 not-prose">
+      <div class="rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="flex items-center gap-3 bg-slate-50 border-b border-slate-200 px-5 py-3.5">
+          <svg class="size-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-500">{{ asStr(asObj(block.value).heading) || 'Articles Consulted' }}</p>
+          <span class="ml-auto rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">{{ asArr(asObj(block.value).sources).length }}</span>
+        </div>
+        <ol class="divide-y divide-slate-100">
+          <li v-for="(src, j) in asArr(asObj(block.value).sources)" :key="j" class="flex gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+            <span class="shrink-0 flex size-6 items-center justify-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-700 mt-0.5">{{ j + 1 }}</span>
+            <div class="min-w-0 flex-1">
+              <a :href="asStr(asObj(src).url)" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-ink hover:text-brand-600 transition-colors hover:underline line-clamp-2 flex items-start gap-1">
+                {{ asStr(asObj(src).title) }}<ExternalLink class="size-3 shrink-0 mt-0.5 text-slate-400" />
+              </a>
+              <p class="mt-0.5 text-[11px] text-slate-400">
+                <span v-if="asStr(asObj(src).author)">{{ asStr(asObj(src).author) }}</span>
+                <span v-if="asStr(asObj(src).publication)"> · <em>{{ asStr(asObj(src).publication) }}</em></span>
+                <span v-if="asStr(asObj(src).year)"> · {{ asStr(asObj(src).year) }}</span>
+              </p>
+            </div>
+          </li>
+        </ol>
+      </div>
     </div>
 
     <!-- ── Manual Table of Contents ──────────────────────────────────────── -->
@@ -852,6 +858,123 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
 
     <!-- ── Divider ────────────────────────────────────────────────────────── -->
     <hr v-else-if="block.type === 'divider'" class="my-8 border-slate-200" />
+
+    <!-- ── Attachment / Downloadable File ──────────────────────────────── -->
+    <div v-else-if="block.type === 'attachment'" class="my-6 not-prose">
+      <div v-if="asStr(asObj(block.value).display_style) === 'hero'" class="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-900 to-brand-700 shadow-lg">
+        <div class="px-7 py-7 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div class="flex items-start gap-4">
+            <div class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-white/15 text-2xl text-white">📄</div>
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-brand-300 mb-0.5">Free Download</p>
+              <p class="font-bold text-white text-base leading-snug">{{ asStr(asObj(block.value).custom_title) || asStr(asObj(asObj(block.value).attachment).title) }}</p>
+              <p v-if="asStr(asObj(asObj(block.value).attachment).description)" class="mt-1 text-sm text-brand-200 leading-relaxed line-clamp-2">{{ asStr(asObj(asObj(block.value).attachment).description) }}</p>
+            </div>
+          </div>
+          <a :href="asStr(asObj(asObj(block.value).attachment).slug) ? `/resources/${asStr(asObj(asObj(block.value).attachment).slug)}` : '#'"
+            class="mt-5 flex shrink-0 items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-brand-700 shadow transition-colors hover:bg-brand-50 sm:mt-0">
+            <Download class="size-4" />{{ asStr(asObj(block.value).custom_cta_text) || 'Download Now' }}
+          </a>
+        </div>
+      </div>
+      <div v-else-if="!asStr(asObj(block.value).display_style) || asStr(asObj(block.value).display_style) === 'card'"
+        class="flex items-start gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-brand-200 hover:shadow-md transition-all">
+        <div class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl text-brand-600">📄</div>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-sm text-ink">{{ asStr(asObj(block.value).custom_title) || asStr(asObj(asObj(block.value).attachment).title) }}</p>
+          <p v-if="asStr(asObj(asObj(block.value).attachment).description)" class="mt-0.5 text-xs text-slate-500 line-clamp-2">{{ asStr(asObj(asObj(block.value).attachment).description) }}</p>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span v-if="asStr(asObj(asObj(block.value).attachment).file_format)" class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">{{ asStr(asObj(asObj(block.value).attachment).file_format) }}</span>
+            <a :href="asStr(asObj(asObj(block.value).attachment).slug) ? `/resources/${asStr(asObj(asObj(block.value).attachment).slug)}` : '#'"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:underline"><Download class="size-3.5" />{{ asStr(asObj(block.value).custom_cta_text) || 'Download Now' }}</a>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="asStr(asObj(block.value).display_style) === 'list'"
+        class="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:bg-slate-50 transition-colors">
+        <span class="text-slate-400">📎</span>
+        <span class="flex-1 min-w-0 text-sm font-medium text-ink truncate">{{ asStr(asObj(block.value).custom_title) || asStr(asObj(asObj(block.value).attachment).title) }}</span>
+        <a :href="asStr(asObj(asObj(block.value).attachment).slug) ? `/resources/${asStr(asObj(asObj(block.value).attachment).slug)}` : '#'"
+          class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700 transition-colors"><Download class="size-3.5" />{{ asStr(asObj(block.value).custom_cta_text) || 'Download' }}</a>
+      </div>
+      <div v-else-if="asStr(asObj(block.value).display_style) === 'button'">
+        <a :href="asStr(asObj(asObj(block.value).attachment).slug) ? `/resources/${asStr(asObj(asObj(block.value).attachment).slug)}` : '#'"
+          class="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors"><Download class="size-4" />{{ asStr(asObj(block.value).custom_cta_text) || asStr(asObj(block.value).custom_title) || 'Download File' }}</a>
+      </div>
+    </div>
+
+    <!-- ── Related Posts ──────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'related_posts'" class="my-8 not-prose">
+      <p v-if="asStr(asObj(block.value).heading)" class="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">{{ asStr(asObj(block.value).heading) }}</p>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <a v-for="(post, j) in asArr(asObj(block.value).posts)" :key="j" :href="pageHref(asObj(asObj(post).meta))"
+          class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-brand-200 hover:shadow-sm">
+          <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 font-bold text-sm">{{ j + 1 }}</div>
+          <p class="text-sm font-semibold text-ink group-hover:text-brand-700 transition-colors line-clamp-2 flex-1">{{ asStr(asObj(post).title) }}</p>
+          <ArrowRight class="size-4 shrink-0 text-slate-300 group-hover:text-brand-500 ml-auto transition-all" />
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Rich CTA Banner ────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'rich_cta'" class="my-10 not-prose">
+      <div v-if="!asStr(asObj(block.value).style) || asStr(asObj(block.value).style) === 'gradient'"
+        class="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-950 via-brand-800 to-brand-700 relative shadow-xl">
+        <div class="absolute inset-0 opacity-[0.07]" style="background-image:radial-gradient(circle,white 1px,transparent 1px);background-size:24px 24px;" />
+        <div class="relative px-7 py-7 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div class="flex-1 min-w-0">
+            <p v-if="asStr(asObj(block.value).eyebrow)" class="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-300">{{ asStr(asObj(block.value).eyebrow) }}</p>
+            <p class="text-xl font-bold leading-snug text-white sm:text-2xl">{{ asStr(asObj(block.value).headline) }}</p>
+            <p v-if="asStr(asObj(block.value).subtext)" class="mt-2 text-sm leading-relaxed text-brand-200">{{ asStr(asObj(block.value).subtext) }}</p>
+            <ul v-if="asArr(asObj(block.value).trust_items).length" class="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+              <li v-for="(item, j) in asArr(asObj(block.value).trust_items)" :key="j" class="flex items-center gap-1.5 text-xs text-brand-300">
+                <svg class="size-3.5 text-green-400 shrink-0" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>{{ asStr(item) }}
+              </li>
+            </ul>
+          </div>
+          <div class="mt-5 flex flex-col gap-2 sm:mt-0 sm:shrink-0">
+            <a :href="asStr(asObj(block.value).cta_url) || app.order" class="flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-brand-800 shadow transition-colors hover:bg-brand-50">{{ asStr(asObj(block.value).cta_text) || 'Order Now' }}<ArrowRight class="size-4" /></a>
+            <a v-if="asStr(asObj(block.value).secondary_cta_text)" :href="asStr(asObj(block.value).secondary_cta_url) || '#'" class="text-center text-xs font-semibold text-brand-300 hover:text-white transition-colors hover:underline">{{ asStr(asObj(block.value).secondary_cta_text) }}</a>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="asStr(asObj(block.value).style) === 'split_image'" class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm sm:flex">
+        <div v-if="asObj(asObj(block.value).image).url" class="sm:w-2/5 shrink-0"><img :src="asStr(asObj(asObj(block.value).image).url)" alt="" class="h-48 w-full object-cover sm:h-full" loading="lazy" /></div>
+        <div class="flex flex-1 flex-col justify-center bg-brand-50 px-6 py-6">
+          <p v-if="asStr(asObj(block.value).eyebrow)" class="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand-600">{{ asStr(asObj(block.value).eyebrow) }}</p>
+          <p class="text-lg font-bold text-ink leading-snug">{{ asStr(asObj(block.value).headline) }}</p>
+          <p v-if="asStr(asObj(block.value).subtext)" class="mt-1.5 text-sm text-slate-600 leading-relaxed">{{ asStr(asObj(block.value).subtext) }}</p>
+          <ul v-if="asArr(asObj(block.value).trust_items).length" class="mt-3 space-y-1">
+            <li v-for="(item, j) in asArr(asObj(block.value).trust_items)" :key="j" class="flex items-center gap-1.5 text-xs text-slate-600"><CheckCircle2 class="size-3.5 text-brand-600 shrink-0" />{{ asStr(item) }}</li>
+          </ul>
+          <a :href="asStr(asObj(block.value).cta_url) || app.order" class="mt-4 inline-flex items-center gap-2 self-start rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 transition-colors">{{ asStr(asObj(block.value).cta_text) || 'Order Now' }}<ArrowRight class="size-4" /></a>
+        </div>
+      </div>
+      <div v-else-if="asStr(asObj(block.value).style) === 'light'" class="rounded-2xl border border-brand-200 bg-brand-50 px-6 py-6">
+        <div class="sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-ink">{{ asStr(asObj(block.value).headline) }}</p>
+            <p v-if="asStr(asObj(block.value).subtext)" class="mt-1 text-sm text-slate-600">{{ asStr(asObj(block.value).subtext) }}</p>
+          </div>
+          <a :href="asStr(asObj(block.value).cta_url) || app.order" class="mt-4 flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 transition-colors sm:mt-0 sm:shrink-0">{{ asStr(asObj(block.value).cta_text) || 'Order Now' }}</a>
+        </div>
+      </div>
+      <div v-else-if="asStr(asObj(block.value).style) === 'urgent'" class="overflow-hidden rounded-2xl border border-amber-300 bg-amber-50">
+        <div class="bg-amber-500 px-5 py-1.5"><p class="text-[10px] font-bold uppercase tracking-widest text-white">{{ asStr(asObj(block.value).eyebrow) || '⏰ Limited Time' }}</p></div>
+        <div class="sm:flex sm:items-center sm:justify-between sm:gap-6 px-6 py-5">
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-amber-900">{{ asStr(asObj(block.value).headline) }}</p>
+            <p v-if="asStr(asObj(block.value).subtext)" class="mt-1 text-sm text-amber-800">{{ asStr(asObj(block.value).subtext) }}</p>
+          </div>
+          <a :href="asStr(asObj(block.value).cta_url) || app.order" class="mt-4 flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-amber-700 transition-colors sm:mt-0 sm:shrink-0">{{ asStr(asObj(block.value).cta_text) || 'Claim Now' }}<ArrowRight class="size-4" /></a>
+        </div>
+      </div>
+      <div v-else-if="asStr(asObj(block.value).style) === 'minimal'"
+        class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+        <p class="text-sm font-semibold text-ink">{{ asStr(asObj(block.value).headline) }}</p>
+        <a :href="asStr(asObj(block.value).cta_url) || app.order" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-xs font-bold text-white hover:bg-brand-700 transition-colors">{{ asStr(asObj(block.value).cta_text) || 'Order Now' }}</a>
+      </div>
+    </div>
 
   </template>
 </template>
