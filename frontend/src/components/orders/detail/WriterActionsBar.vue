@@ -10,6 +10,7 @@ import {
   Star,
   ShieldAlert,
   XCircle,
+  RotateCcw,
 } from "@lucide/vue";
 import type { OrderLifecycle, OrderSummary } from "@/types/orders";
 import { writerApi } from "@/api/writer";
@@ -131,6 +132,31 @@ async function rejectAssignment() {
   } catch (e: unknown) {
     const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
     rejectError.value = detail ?? "Could not decline assignment.";
+  } finally {
+    busy.value = null;
+  }
+}
+
+// ─── Mark revision complete ───────────────────────────────────────────────────
+
+const showCompleteRevisionForm = ref(false);
+const completeRevisionNotes    = ref("");
+const completeRevisionError    = ref("");
+
+async function completeRevision() {
+  const revId = props.lifecycle?.latest_revision_request_id;
+  if (!revId) return;
+  busy.value = "complete_revision";
+  completeRevisionError.value = "";
+  try {
+    await ordersApi.completeRevision(props.orderId, revId, completeRevisionNotes.value.trim() || undefined);
+    ui.toast("Revision marked as complete. The client has been notified.", "success");
+    showCompleteRevisionForm.value = false;
+    completeRevisionNotes.value = "";
+    emit("refresh");
+  } catch (e: unknown) {
+    const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    completeRevisionError.value = detail ?? "Could not complete revision.";
   } finally {
     busy.value = null;
   }
@@ -376,6 +402,18 @@ async function openDispute() {
           Upload &amp; submit work
         </button>
 
+        <!-- Complete revision shortcut — only shown when revision is open -->
+        <button
+          v-if="status === 'revision_requested' && lifecycle?.latest_revision_request_id"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-emerald-500 bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+          :disabled="busy !== null"
+          @click="showCompleteRevisionForm = !showCompleteRevisionForm"
+        >
+          <RotateCcw class="h-3.5 w-3.5" />
+          Mark revision complete
+          <component :is="showCompleteRevisionForm ? ChevronUp : ChevronDown" class="h-3 w-3" />
+        </button>
+
         <!-- Dispute -->
         <button
           class="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100"
@@ -387,6 +425,41 @@ async function openDispute() {
         </button>
 
       </div>
+
+      <!-- Complete revision inline form -->
+      <Transition name="slide-down">
+        <div v-if="showCompleteRevisionForm" class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+          <p class="text-xs font-semibold text-emerald-900">
+            Confirming revision complete will notify the client that the revised work is ready.
+          </p>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-ink">Notes for client <span class="font-normal text-graphite">(optional)</span></label>
+            <textarea
+              v-model.trim="completeRevisionNotes"
+              rows="2"
+              class="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm resize-none"
+              placeholder="Briefly describe what was changed in this revision…"
+            />
+          </div>
+          <p v-if="completeRevisionError" class="text-xs text-berry">{{ completeRevisionError }}</p>
+          <div class="flex gap-2">
+            <button
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              :disabled="busy !== null"
+              @click="completeRevision"
+            >
+              <CheckCircle2 class="h-3.5 w-3.5" />
+              {{ busy === "complete_revision" ? "Marking complete…" : "Confirm revision complete" }}
+            </button>
+            <button
+              class="focus-ring inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-1.5 text-xs font-medium text-graphite hover:bg-slate-50"
+              @click="showCompleteRevisionForm = false; completeRevisionNotes = ''; completeRevisionError = ''"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Transition>
 
       <!-- Dispute inline form -->
       <Transition name="slide-down">

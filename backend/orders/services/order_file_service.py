@@ -208,16 +208,41 @@ class OrderFileService:
     ) -> FileAttachment:
         """
         Let the assigned writer or staff upload a revision file.
+
+        Links the file to the current open OrderRevisionRequest and stamps
+        revision_cycle so the UI can group files by revision round correctly.
         """
+        from orders.models.revisions.order_revision_request import OrderRevisionRequest
+        from orders.models.orders.enums import OrderRevisionStatus
 
         cls._ensure_same_website(order=order, user=uploaded_by)
         cls._ensure_assigned_writer_or_staff(order=order, user=uploaded_by)
+
+        # Look up the currently open revision request (APPROVED or IN_PROGRESS).
+        open_revision = (
+            OrderRevisionRequest.objects
+            .filter(
+                order=order,
+                status__in=[OrderRevisionStatus.APPROVED, OrderRevisionStatus.IN_PROGRESS],
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        # revision_cycle = total number of revision requests on this order so far.
+        # 0 = original delivery; 1 = first revision round; 2 = second, etc.
+        revision_cycle = OrderRevisionRequest.objects.filter(order=order).count()
 
         attachment = OrderFileIntegrationService.upload_revision_file(
             order=order,
             uploaded_by=uploaded_by,
             uploaded_file=uploaded_file,
+            revision_request=open_revision,
         )
+
+        if revision_cycle:
+            attachment.revision_cycle = revision_cycle
+            attachment.save(update_fields=["revision_cycle"])
 
         cls._notify_order_file_uploaded(
             order=order,

@@ -462,8 +462,14 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
 
   // ── Submit payload builder ────────────────────────────────────────────────
 
-  function savePendingOrder() {
-    if (!import.meta.client) return
+  function savePendingOrder(): string {
+    if (!import.meta.client) return ''
+
+    // Resolve selected addon codes (needed for the portal deep-link URL)
+    const selectedAddonCodes = addons.value
+      .filter(a => form.selectedAddonIds.includes(a.id))
+      .map(a => a.addon_code)
+
     localStorage.setItem('nmg_pending_order', JSON.stringify({
       orderType: form.orderType.id, paperType: form.paperType.label,
       level: form.level.label, pages: form.pages, spacing: form.spacing,
@@ -476,8 +482,17 @@ export function useOrderForm(cfg?: Ref<PublicPricingConfig | null>) {
       englishType: form.englishType.label,
       references: form.references, discountCode: form.discountCode,
       selectedAddonIds: form.selectedAddonIds,
+      selectedAddonCodes,
       estimatedPrice: totalPrice.value, savedAt: new Date().toISOString(),
     }))
+
+    // Build portal deep-link URL so the success screen can send the user directly
+    // to NewOrderView with the correct addons pre-filled after email confirmation.
+    const config = useRuntimeConfig()
+    const portalBase = (config.public.appUrl as string | undefined) || 'https://app.nursemygrade.com'
+    const params = new URLSearchParams()
+    if (selectedAddonCodes.length) params.set('addon_codes', selectedAddonCodes.join(','))
+    return `${portalBase}/client/new-order${params.size ? `?${params}` : ''}`
   }
 
   // ── Validation ────────────────────────────────────────────────────────────

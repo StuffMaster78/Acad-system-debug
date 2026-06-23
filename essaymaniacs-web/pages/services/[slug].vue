@@ -117,7 +117,9 @@ if (cmsPage.value?.schema) {
         '@type': 'Service',
         name: displayTitle.value,
         description: displayMeta.value.description,
+        dateModified: cmsPage.value?.last_published_at ?? new Date().toISOString().slice(0, 10),
         provider: { '@type': 'Organization', name: 'EssayManiacs', url: 'https://essaymaniacs.com' },
+        speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.service-hero-sub', '.service-description'] },
         offers: {
           '@type': 'Offer',
           price: displayPrice.value,

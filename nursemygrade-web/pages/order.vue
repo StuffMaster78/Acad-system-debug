@@ -23,6 +23,7 @@ const route       = useRoute()
 const step          = ref(0)
 const submitting    = ref(false)
 const submitted     = ref(false)
+const portalDeepLink = ref('')
 const serverError   = ref<string | null>(null)
 const showDiscount  = ref(false)
 const subjectSearch = ref('')
@@ -146,7 +147,7 @@ function goBack() {
 async function submitOrder() {
   submitting.value = true; serverError.value = null
   try {
-    savePendingOrder()
+    portalDeepLink.value = savePendingOrder()
     await auth.register({ email: form.email, password: form.password, first_name: form.firstName, last_name: form.lastName })
     submitted.value = true
   } catch { serverError.value = auth.error || 'Something went wrong. Please try again.' }
@@ -205,6 +206,21 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <dd class="text-lg font-bold text-brand-700">${{ totalPrice }}</dd>
           </div>
         </dl>
+      </div>
+
+      <!-- Portal deep-link: shown when addons were selected so they carry over -->
+      <div v-if="portalDeepLink" class="mt-6 rounded-xl border border-brand-200 bg-white p-4 text-sm text-slate-600">
+        <p class="mb-3">
+          After clicking the confirmation link in your email, use the button below to open your order form with your selected add-ons already applied.
+        </p>
+        <a
+          :href="portalDeepLink"
+          class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          target="_blank"
+          rel="noopener"
+        >
+          Continue to your order →
+        </a>
       </div>
     </div>
   </div>

@@ -291,6 +291,21 @@ const ldScripts = computed(() => {
       }),
     })
   }
+
+  // HowTo schema — step-by-step articles
+  const titleLower = postTitle.value.toLowerCase()
+  const isHowTo = titleLower.includes('how to') || titleLower.includes('step-by-step') || titleLower.includes('guide to')
+  const numberedBlocks = (cmsArticle.value?.body ?? []).filter(b => b.type === 'numbered_list') as Array<{ type: string; value: { items: Array<{ title: string; description?: string }> } }>
+  if (isHowTo && numberedBlocks.length > 0 && numberedBlocks[0].value.items.length >= 3) {
+    scripts.push({ type: 'application/ld+json', innerHTML: JSON.stringify({ '@context': 'https://schema.org', '@type': 'HowTo', name: postTitle.value, description: postExcerpt.value, step: numberedBlocks[0].value.items.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.description ?? s.title })) }) })
+  }
+
+  // QAPage schema — question-format posts
+  const isQaFormat = /^(is |are |can |should |does |do |will |was |were |has |have |why |what |which )/i.test(postTitle.value)
+  if (isQaFormat && faqBlocks.value.length >= 1) {
+    scripts.push({ type: 'application/ld+json', innerHTML: JSON.stringify({ '@context': 'https://schema.org', '@type': 'QAPage', mainEntity: { '@type': 'Question', name: postTitle.value, text: postExcerpt.value, answerCount: faqBlocks.value.length, acceptedAnswer: { '@type': 'Answer', text: faqBlocks.value[0].value.answer } } }) })
+  }
+
   return scripts
 })
 

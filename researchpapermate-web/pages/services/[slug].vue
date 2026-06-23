@@ -96,9 +96,22 @@ const faqSchema = service ? {
   ],
 } : null
 
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home',     item: 'https://researchpapermate.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Services', item: 'https://researchpapermate.com/services' },
+    { '@type': 'ListItem', position: 3, name: displayTitle.value, item: canonicalUrl },
+  ],
+}
+
 useHead({
   link: [{ rel: 'canonical', href: canonicalUrl }],
-  script: faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : [],
+  script: [
+    { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbSchema) },
+    ...(faqSchema ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqSchema) }] : []),
+  ],
 })
 
 if (cmsPage.value?.schema) {
@@ -112,7 +125,9 @@ if (cmsPage.value?.schema) {
         '@type': 'Service',
         name: displayTitle.value,
         description: displayMeta.value.description,
+        dateModified: cmsPage.value?.last_published_at ?? new Date().toISOString().slice(0, 10),
         provider: { '@type': 'Organization', name: 'ResearchPaperMate', url: 'https://researchpapermate.com' },
+        speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.service-hero-sub', '.service-description'] },
         offers: {
           '@type': 'Offer',
           price: displayPrice.value,
