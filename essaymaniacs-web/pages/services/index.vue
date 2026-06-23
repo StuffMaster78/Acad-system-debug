@@ -42,6 +42,9 @@ const trustItems = [
 useSeoMeta({
   title: 'Essay & Academic Writing Services — 20 Types | EssayManiacs',
   description: 'Expert essays, research papers, dissertations, admission essays, and more — written by subject-obsessed specialists. From $10/page.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

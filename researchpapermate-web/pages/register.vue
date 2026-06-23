@@ -20,6 +20,9 @@ async function submit() {
   } catch { /* error set by store */ }
 }
 
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ title: 'Create an account | ResearchPaperMate', robots: 'noindex' })
 </script>
 

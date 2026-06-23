@@ -69,6 +69,9 @@ const usps = [
 useSeoMeta({
   title: 'Academic Writing Services — 100+ Subjects | ResearchPaperMate',
   description: 'Expert help with research papers, essays, dissertations, case studies, lab reports, data analysis, and more — across 100+ academic subjects. From $15/page.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

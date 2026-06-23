@@ -7,6 +7,9 @@ useSeoMeta({
   title: 'Our Research Specialists — PhD & Master\'s Writers | ResearchPaperMate',
   description: 'Meet ResearchPaperMate\'s verified researchers. Every writer holds a postgraduate degree in their subject area and passed our four-stage vetting process.',
   ogTitle: 'ResearchPaperMate Writers — PhD & Masters Researchers',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/writers' }] })
 

@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Write With Us — Apply as a Nurse Writer | NurseMyGrade',
   description: 'Join 500+ BSN, MSN, and DNP nurses earning up to $50/page on a flexible schedule. Turn your clinical expertise into income. Apply in minutes.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

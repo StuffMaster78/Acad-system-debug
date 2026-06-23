@@ -8,6 +8,9 @@ useSeoMeta({
   description: 'Read verified reviews from nursing students across BSN, MSN, and DNP programmes. 4.98/5 average. Care plans, SOAP notes, capstone projects, dissertations.',
   ogTitle: 'NurseMyGrade Reviews — 4.98/5 from 9,800+ Nursing Students',
   ogDescription: 'BSN, MSN, and DNP students share their experience with NurseMyGrade. Clinically accurate, nurse-written work.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/reviews' }],

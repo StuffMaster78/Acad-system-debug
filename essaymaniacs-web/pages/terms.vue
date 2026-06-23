@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script setup lang="ts">,
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ title: 'Terms of Use | EssayManiacs', description: 'Terms and conditions for using EssayManiacs academic writing services.' })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/terms' }] })
 </script>

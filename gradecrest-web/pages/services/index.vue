@@ -6,6 +6,9 @@ useSeoMeta({
   title: 'Academic Writing Services — Essays, Research Papers, Dissertations | GradeCrest',
   description: 'Expert academic writing across 100+ subjects. Essays, research papers, dissertations, nursing, law, business, data analysis and more. Human-written, grade guaranteed.',
   ogTitle: 'GradeCrest Academic Writing Services',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/services')

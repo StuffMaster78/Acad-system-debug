@@ -23,6 +23,9 @@ const ROLE_BADGE: Record<string, string> = {
 useSeoMeta({
   title: 'Our Expert Writers & Editors — ResearchPaperMate',
   description: 'Meet the credentialed academics, editors, and subject-matter experts who produce every article on ResearchPaperMate.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

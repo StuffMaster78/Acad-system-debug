@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'FAQ — ResearchPaperMate',
   description: 'Answers to the most common questions about ResearchPaperMate — writers, quality, pricing, revisions, privacy, and delivery.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://researchpapermate.com/faq' }],

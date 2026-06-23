@@ -12,6 +12,9 @@ useSeoMeta({
   description: 'Expert nursing papers written by qualified BSN, MSN, and DNP nurses. Care plans, SOAP notes, capstone projects, dissertations. From $24/page. Grade or money back.',
   ogTitle: 'NurseMyGrade — Nursing Papers Written by Real Nurses',
   ogDescription: 'SOAP notes, care plans, capstone projects, nursing essays — written by BSN/MSN/DNP experts. Grade or money back. Free Turnitin report.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/' }],

@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'FAQ — EssayManiacs',
   description: 'Answers to the most common questions about EssayManiacs — writers, quality, pricing, revisions, privacy, and delivery.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/faq' }],

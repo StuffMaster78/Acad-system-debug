@@ -21,6 +21,9 @@ useSeoMeta({
   description: 'Join GradeCrest as a freelance academic writer. Competitive per-page rates, flexible hours, 100+ subjects. Apply with your postgraduate degree and writing sample.',
   ogTitle: 'Join the GradeCrest Writing Team',
   ogDescription: 'Earn competitive rates working from home as a freelance academic writer. Postgraduate degree required.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/apply')

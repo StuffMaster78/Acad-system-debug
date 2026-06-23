@@ -23,6 +23,9 @@ const ROLE_BADGE: Record<string, string> = {
 useSeoMeta({
   title: 'Our Nurse Writers & Editors — NurseMyGrade',
   description: 'Meet the BSN, MSN, and DNP nurses who write and review every article on NurseMyGrade.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

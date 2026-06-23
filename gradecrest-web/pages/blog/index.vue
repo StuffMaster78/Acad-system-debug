@@ -7,6 +7,9 @@ useSeoMeta({
   title: 'Academic Writing Blog — Tips, Guides & Resources | GradeCrest',
   description: 'Academic writing guides, essay tips, dissertation advice, and study resources from GradeCrest\'s expert team.',
   ogTitle: 'GradeCrest Blog — Academic Writing Resources',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useSeoBase('https://gradecrest.com/blog')
 useBreadcrumbs([

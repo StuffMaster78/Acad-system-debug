@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Privacy Policy | NurseMyGrade',
   description: 'How NurseMyGrade collects, uses, stores, and protects your personal information. Your data is never sold.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/privacy' }],

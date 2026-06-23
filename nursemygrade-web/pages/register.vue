@@ -37,6 +37,9 @@ async function submit() {
   }
 }
 
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ title: 'Create an account | NurseMyGrade', robots: 'noindex' })
 </script>
 

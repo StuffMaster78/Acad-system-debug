@@ -5,6 +5,9 @@ useSeoMeta({
   title: 'Research Paper Blog — APA, MLA & Writing Guides | ResearchPaperMate',
   description: 'Practical guides on research papers, citations, literature reviews, and academic writing — from Master\'s and PhD writers across 100+ fields.',
   ogTitle: 'ResearchPaperMate Blog — Research & Writing Resources',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/blog' }] })
 

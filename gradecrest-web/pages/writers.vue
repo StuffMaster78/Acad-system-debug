@@ -7,6 +7,9 @@ useSeoMeta({
   title: 'Our Expert Writers — 600+ Verified Academic Specialists | GradeCrest',
   description: 'Meet GradeCrest\'s 600+ verified expert writers. All hold postgraduate degrees, verified credentials, and subject-specific expertise. Browse by subject.',
   ogTitle: 'GradeCrest Writers — 600+ Verified Experts',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/writers')

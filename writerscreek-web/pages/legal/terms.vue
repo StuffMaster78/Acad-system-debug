@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Terms of Service | Writers Creek',
   description: 'Terms governing participation in the Writers Creek writer network. Read before applying.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://writerscreek.com/legal/terms' }],

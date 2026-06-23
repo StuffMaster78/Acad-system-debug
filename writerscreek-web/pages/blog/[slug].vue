@@ -166,6 +166,9 @@ useSeoMeta({
   ogImage:              postImage,
   ogType:               'article',
   articlePublishedTime: postDate,
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

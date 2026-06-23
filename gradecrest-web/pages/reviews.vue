@@ -6,6 +6,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Student Reviews — 12,400+ Verified Reviews | GradeCrest',
   description: 'Read verified student reviews of GradeCrest. 4.9/5 from 12,400+ reviews on Trustpilot, SiteJabber, and Google. Real students, real results.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/reviews')

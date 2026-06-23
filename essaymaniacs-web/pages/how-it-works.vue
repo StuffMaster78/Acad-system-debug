@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'How It Works | EssayManiacs',
   description: 'How EssayManiacs works: submit your brief, pay securely, get matched with a subject expert, communicate directly, and download your paper.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/how-it-works' }] })
 

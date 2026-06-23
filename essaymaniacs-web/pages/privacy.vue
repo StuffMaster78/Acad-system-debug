@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script setup lang="ts">,
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ title: 'Privacy Policy | EssayManiacs', description: 'How EssayManiacs collects, uses, stores, and protects your personal information. Your data is never sold.' })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/privacy' }] })
 </script>

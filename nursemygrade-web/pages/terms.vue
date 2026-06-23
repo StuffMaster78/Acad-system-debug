@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Terms of Use | NurseMyGrade',
   description: 'Terms and conditions governing use of NurseMyGrade nursing paper writing services. Read before placing an order.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/terms' }],

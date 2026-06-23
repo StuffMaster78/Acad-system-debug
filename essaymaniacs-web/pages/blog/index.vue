@@ -5,6 +5,9 @@ useSeoMeta({
   title: 'Academic Writing Blog — Essay Guides & Tips | EssayManiacs',
   description: 'Expert guides on essays, dissertations, research papers, and academic writing. Tips from subject-specialist writers at EssayManiacs.',
   ogTitle: 'EssayManiacs Blog — Academic Writing Resources',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/blog' }] })
 

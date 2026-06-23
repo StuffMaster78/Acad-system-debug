@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Essay Writing Pricing — From $10/Page | EssayManiacs',
   description: 'Transparent academic writing prices. Essays from $10/page. No hidden fees. Grade or money back guarantee.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/pricing' }] })
 

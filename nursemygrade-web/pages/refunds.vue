@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Refund Policy | NurseMyGrade',
   description: 'NurseMyGrade grade-or-money-back guarantee, revision policy, and refund process for nursing paper orders.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/refunds' }],

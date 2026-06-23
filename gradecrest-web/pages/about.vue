@@ -6,6 +6,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'About GradeCrest — Academic Writing Service | Our Mission & Values',
   description: 'Learn about GradeCrest — our mission, our writers, and the values behind every paper we deliver. Human-written academic work, grade guaranteed.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/about')

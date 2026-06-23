@@ -10,6 +10,9 @@ useSeoMeta({
   description: 'Transparent academic writing prices. Essays from $13/page. Price depends on academic level, deadline, and page count. No hidden fees. Grade or money back.',
   ogTitle: 'GradeCrest Pricing — From $13/Page',
   ogDescription: 'Simple, transparent academic writing prices. No hidden fees. Grade or money back guarantee.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/pricing')

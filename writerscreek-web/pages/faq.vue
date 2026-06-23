@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'FAQ | Writers Creek',
   description: 'Frequently asked questions about writing for Writers Creek — qualification requirements, earnings, payouts, assignment process, and more.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const faqs = [

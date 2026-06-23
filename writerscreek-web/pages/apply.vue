@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Apply to Write | Writers Creek',
   description: 'Apply to join the Writers Creek network. We accept writers with postgraduate credentials in any academic discipline.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const config = useRuntimeConfig()

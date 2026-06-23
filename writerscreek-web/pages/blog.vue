@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Writer Resources & Blog | Writers Creek',
   description: 'Guides, tips, and resources for Writers Creek writers — writing quality advice, payout information, platform updates, and academic writing best practice.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 interface CmsPost {

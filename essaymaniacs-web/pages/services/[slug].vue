@@ -70,8 +70,11 @@ useSeoMeta({
   description:   displayMeta.value.description,
   ogTitle:       displayMeta.value.title || displayTitle.value,
   ogDescription: displayMeta.value.description,
-  ogImage:       cmsPage.value?.hero_image?.url ?? cmsPage.value?.thumbnail?.url ?? 'https://essaymaniacs.com/og-default.svg',
+  ogImage:       cmsPage.value?.hero_image?.url ?? cmsPage.value?.thumbnail?.url ?? 'https://essaymaniacs.com/og-default.png',
   ogType:        'website',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const faqSchema = service ? {

@@ -98,6 +98,9 @@ if (article.value) {
     ogDescription: article.value.excerpt,
     ogImage:       article.value.thumbnail?.url,
     ogType:        'article',
+    ogImageWidth:  1200,
+    ogImageHeight: 630,
+    twitterCard:   'summary_large_image',
   })
   useSeoBase(`https://gradecrest.com/blog/${slug}`)
   useBreadcrumbs([

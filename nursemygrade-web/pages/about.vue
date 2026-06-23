@@ -73,6 +73,9 @@ const milestones = [
 useSeoMeta({
   title: 'About NurseMyGrade — Nursing Papers Written by Real Nurses',
   description: 'NurseMyGrade is staffed entirely by BSN, MSN, and DNP nurses. Learn how we vet our writers, what we stand for, and why nursing students trust us.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

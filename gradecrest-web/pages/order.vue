@@ -17,6 +17,9 @@ useHead({ title: 'Place Your Order | GradeCrest' })
 useSeoMeta({
   title: 'Place Your Order | GradeCrest',
   description: 'Configure your academic paper order — type, level, deadline, and brief. Human-written by verified experts. Grade or money back.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const app    = useAppUrl()

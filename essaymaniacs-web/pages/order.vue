@@ -127,6 +127,9 @@ useSeoMeta({
   title: 'Place an Order — EssayManiacs',
   description: 'Place your academic writing order in 3 steps. Papers, design, diagrams from $15. Human-written, plagiarism-free.',
   robots: 'noindex',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/order' }] })
 </script>

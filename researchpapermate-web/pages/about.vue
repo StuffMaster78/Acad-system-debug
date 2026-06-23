@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'About ResearchPaperMate — Our Researchers, Our Standards',
   description: 'ResearchPaperMate connects students with verified PhD and Master\'s researchers since 2019. Only 2 in 100 applicants pass our vetting process.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/about' }] })
 

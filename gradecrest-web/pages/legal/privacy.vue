@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Privacy Policy | GradeCrest',
   description: 'GradeCrest Privacy Policy — how we collect, use, and protect your personal data. Your information is never sold or shared with third parties.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useSeoBase('https://gradecrest.com/legal/privacy')
 useBreadcrumbs([

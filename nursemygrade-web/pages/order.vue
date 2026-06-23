@@ -157,6 +157,9 @@ useSeoMeta({
   title: 'Place an Order — NurseMyGrade',
   description: 'Order your nursing paper in 3 steps. Care plans, SOAP notes, essays, capstone projects from $24/page. Written by BSN, MSN, and DNP nurses.',
   robots: 'noindex',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] })
 </script>

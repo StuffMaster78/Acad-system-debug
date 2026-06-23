@@ -57,6 +57,9 @@ const categories = [
 useSeoMeta({
   title: 'Frequently Asked Questions | GradeCrest Academic Writing',
   description: 'Answers to the most common questions about GradeCrest — pricing, quality, plagiarism, revisions, privacy, and more.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/faq')

@@ -6,6 +6,9 @@ useSeoMeta({
   description: 'Research papers written by verified PhD and Master\'s specialists — not AI. From $15/page. Grade or money back. 14,700+ papers delivered, 4.8/5 rated.',
   ogTitle: 'ResearchPaperMate — Research Papers by Real Researchers',
   ogDescription: 'Human-written research papers, essays and dissertations across 100+ subjects. Grade or money back. Zero AI content.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://researchpapermate.com/' }],

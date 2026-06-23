@@ -6,6 +6,9 @@ useSeoMeta({
   description: 'Join 2,000+ credentialed writers earning $18–$45 per page. Flexible assignments, bi-weekly payouts, and work matched to your exact academic discipline.',
   ogTitle: 'Writers Creek — Write at the Highest Standard',
   ogDescription: 'Competitive per-page rates, flexible assignments, and reliable bi-weekly payouts for writers who take their craft seriously.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const stats = [

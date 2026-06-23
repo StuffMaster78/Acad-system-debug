@@ -85,6 +85,9 @@ useSeoMeta({
   title: 'Full Class Support — EssayManiacs',
   description: 'We handle your entire course — all assignments, discussions, quizzes, and exams. Dedicated expert for the full semester.',
   robots: 'noindex',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/class-support' }] })
 </script>

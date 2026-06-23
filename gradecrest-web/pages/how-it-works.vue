@@ -7,6 +7,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'How It Works — Place Your Order in 2 Minutes | GradeCrest',
   description: 'Learn how GradeCrest works. Fill your brief, pay securely, communicate with your writer, and download your paper. Grade or money back. From $13/page.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/how-it-works')

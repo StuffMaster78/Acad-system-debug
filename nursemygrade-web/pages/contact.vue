@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Contact NurseMyGrade — Nursing Paper Support',
   description: 'Get in touch with our nursing paper support team. We respond within 1 hour, 7 days a week. WhatsApp, live chat, and email available.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

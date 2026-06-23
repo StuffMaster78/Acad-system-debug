@@ -7,6 +7,9 @@ useSeoMeta({
   title: 'Our Nurse Writers — BSN, MSN & DNP Specialists | NurseMyGrade',
   description: 'Meet the credentialed nurse writers behind NurseMyGrade. Every writer holds an active nursing licence — BSN minimum, with MSN and DNP specialists for graduate work.',
   ogTitle: 'NurseMyGrade Writers — BSN, MSN & DNP Qualified Nurses',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/writers' }] })
 

@@ -77,6 +77,9 @@ useSeoMeta({
   title: 'Custom Quote — Shadow Health, iHuman & Special Projects | NurseMyGrade',
   description: 'Get a custom quote for Shadow Health DCEs, iHuman virtual patients, multi-part nursing projects and other special assignments.',
   robots: 'noindex',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/quote' }] })
 </script>

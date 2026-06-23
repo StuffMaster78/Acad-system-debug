@@ -5,6 +5,9 @@ import { markRaw } from 'vue'
 useSeoMeta({
   title: 'Contact GradeCrest — 24/7 Support | Academic Writing Help',
   description: 'Contact GradeCrest support 24/7 via live chat, email, or our contact form. Average response time under 5 minutes.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase('https://gradecrest.com/contact')

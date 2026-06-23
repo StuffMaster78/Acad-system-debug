@@ -6,6 +6,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Research Paper Pricing — From $15/Page | ResearchPaperMate',
   description: 'Transparent academic writing prices. Research papers from $15/page. No hidden fees. Grade or money back guarantee.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/pricing' }] })
 

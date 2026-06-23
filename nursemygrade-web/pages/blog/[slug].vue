@@ -175,6 +175,9 @@ useSeoMeta({
     const author = cmsArticle.value?.author_name || staticPost?.author?.name
     return author ? [author] : null
   }),
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const ldScripts = computed(() => {

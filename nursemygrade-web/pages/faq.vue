@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Frequently Asked Questions | NurseMyGrade',
   description: 'Answers to the most common questions about NurseMyGrade nursing paper services — quality, privacy, writers, revisions, pricing, and delivery.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/faq' }],

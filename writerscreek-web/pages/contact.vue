@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Contact | Writers Creek',
   description: 'Get in touch with the Writers Creek team. Questions about applying, earnings, or the platform.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const config = useRuntimeConfig()

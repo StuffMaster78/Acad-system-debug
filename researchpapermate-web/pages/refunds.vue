@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script setup lang="ts">,
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ title: 'Refund Policy | ResearchPaperMate', description: 'ResearchPaperMate grade-or-money-back guarantee, revision policy, and full refund process.' })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/refunds' }] })
 </script>

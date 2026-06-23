@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Nursing Paper Pricing — From $24/Page | NurseMyGrade',
   description: 'Transparent nursing paper prices. BSN-level work from $24/page. MSN and DNP writers available. Price by academic level, deadline, and writer tier. No hidden fees.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

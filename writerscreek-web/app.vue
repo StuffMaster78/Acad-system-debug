@@ -9,6 +9,8 @@ useSeoMeta({
   titleTemplate: (title) => title ? `${title} — ${portal.brandName}` : portal.brandName,
   ogSiteName: () => portal.brandName,
   twitterCard: 'summary_large_image',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
 })
 
 onMounted(async () => {

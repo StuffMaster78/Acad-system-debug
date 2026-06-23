@@ -8,7 +8,7 @@ import ExitIntentPopup from '~/components/marketing/ExitIntentPopup.vue'
 const settings = await fetchSiteSettings()
 
 const faviconUrl = settings?.favicon_url ?? '/favicon.svg'
-const ogImageUrl = settings?.og_image_url ?? '/og-default.svg'
+const ogImageUrl = settings?.og_image_url ?? '/og-default.png'
 const ga4Id      = settings?.google_analytics_id ?? ''
 const consent = useCookieConsent()
 

@@ -82,6 +82,9 @@ useSeoMeta({
   title: 'Request a Custom Quote — ResearchPaperMate',
   description: 'Get a custom quote for special academic projects — nursing simulations, coding, Shadow Health, multi-part research, and more.',
   robots: 'noindex',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/quote' }] })
 </script>

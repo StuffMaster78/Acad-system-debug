@@ -3,6 +3,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'About EssayManiacs — Our Writers, Our Standards',
   description: 'EssayManiacs connects students with subject-obsessed essay specialists since 2018. Only writers who genuinely know your subject.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/about' }] })
 

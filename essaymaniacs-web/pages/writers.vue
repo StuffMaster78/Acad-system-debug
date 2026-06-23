@@ -7,6 +7,9 @@ useSeoMeta({
   title: 'Our Subject Specialists — 500+ Verified Essay Writers | EssayManiacs',
   description: 'Meet EssayManiacs subject-specialist writers. Every writer holds a postgraduate degree in their declared field and passed our 4-stage vetting process.',
   ogTitle: 'EssayManiacs Writers — Subject Specialists in 100+ Fields',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/writers' }] })
 

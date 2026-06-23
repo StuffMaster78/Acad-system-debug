@@ -42,6 +42,9 @@ const usps = [
 useSeoMeta({
   title: 'Nursing Writing Services — Care Plans, SOAP Notes, Capstone & More | NurseMyGrade',
   description: 'Expert nursing paper writing by BSN, MSN, and DNP nurses. Care plans, SOAP notes, capstone projects, Shadow Health DCEs, iHuman cases, essays, dissertations. From $24/page.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/services' }] })
 

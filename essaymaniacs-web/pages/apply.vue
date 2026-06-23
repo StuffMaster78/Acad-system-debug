@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Write With Us — Apply as an Academic Researcher',
   description: 'Join 500+ expert writers earning competitive pay on a flexible schedule. Verified degree required. Apply in minutes.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/apply' }] })
 

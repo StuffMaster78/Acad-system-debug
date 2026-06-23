@@ -8,6 +8,9 @@ useSeoMeta({
   description: 'Read verified student reviews of EssayManiacs. 4.8/5 average from 9,400+ reviews. Real grades, real subjects, real writers who know your field.',
   ogTitle: 'EssayManiacs Student Reviews — 4.8/5',
   ogDescription: '9,400+ verified student reviews. Essays matched to subject specialists. Grade or money back.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/reviews' }],

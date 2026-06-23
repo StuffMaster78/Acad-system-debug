@@ -7,6 +7,9 @@ useSeoMeta({
   title: 'Student Reviews — 8,200+ Verified Reviews | ResearchPaperMate',
   description: 'Verified reviews from 8,200+ research paper orders. 4.8/5 average. Read what students from top universities say about ResearchPaperMate.',
   ogTitle: 'ResearchPaperMate Reviews — 4.8/5 from 8,200+ Students',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://researchpapermate.com/reviews' }],

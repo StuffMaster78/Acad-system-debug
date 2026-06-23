@@ -544,8 +544,11 @@ useSeoMeta({
   description:   () => svc.value.metaDesc,
   ogTitle:       () => svc.value.metaTitle,
   ogDescription: () => svc.value.metaDesc,
-  ogImage:       () => svc.value.heroImage ?? '/og-default.svg',
+  ogImage:       () => svc.value.heroImage ?? '/og-default.png',
   ogType:        'website',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useSeoBase(`https://gradecrest.com/services/${slug}`)

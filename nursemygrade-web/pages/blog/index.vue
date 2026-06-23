@@ -5,6 +5,9 @@ useSeoMeta({
   title: 'Nursing Blog — Care Plans, SOAP Notes & Study Guides | NurseMyGrade',
   description: 'Evidence-based guides on care plans, SOAP notes, nursing capstones, and clinical coursework — written by BSN, MSN, and DNP nurses.',
   ogTitle: 'NurseMyGrade Blog — Nursing Study Resources',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/blog' }] })
 

@@ -39,6 +39,9 @@ async function sendMagicLink() {
   }
 }
 
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ title: 'Sign in | ResearchPaperMate', robots: 'noindex' })
 </script>
 

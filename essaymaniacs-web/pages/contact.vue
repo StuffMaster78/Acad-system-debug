@@ -4,6 +4,9 @@ const app = useAppUrl()
 useSeoMeta({
   title: 'Contact EssayManiacs — 24/7 Support',
   description: 'Get in touch with our support team. We respond within 1 hour, 7 days a week. Contact us via form, email, or WhatsApp.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/contact' }] })
 

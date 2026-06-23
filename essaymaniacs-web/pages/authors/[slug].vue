@@ -31,6 +31,9 @@ useSeoMeta({
   description: author.bio,
   ogTitle: author.name,
   ogDescription: author.bio,
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 useHead({

@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Earnings & Dispute Policy | Writers Creek',
   description: 'How Writers Creek handles earning disputes, revision requests, and payout adjustments for writers.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://writerscreek.com/legal/refunds' }],

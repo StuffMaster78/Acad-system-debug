@@ -80,6 +80,9 @@ useSeoMeta({
   title: 'Online Nursing Class Help — Full Course Support | NurseMyGrade',
   description: 'A dedicated nursing expert handles your entire course — all assignments, discussions, quizzes, and exams for the full semester.',
   robots: 'noindex',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/class-support' }] })
 </script>

@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'How It Works | Writers Creek',
   description: 'Learn how Writers Creek works — from application to first payout. Understand our vetting process, assignment matching, and quality standards.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 
 const steps = [

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 const app = useAppUrl()
 
-useHead({ title: 'Sign In | GradeCrest' })
+useHead({ title: 'Sign In | GradeCrest' }),
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 useSeoMeta({ robots: 'noindex, nofollow' })
 
 onMounted(() => { window.location.replace(app.login) })

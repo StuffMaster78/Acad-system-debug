@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'How It Works — Nursing Paper Writing Service | NurseMyGrade',
   description: 'How NurseMyGrade works: submit your nursing brief, get matched with a qualified nurse writer, track progress, and download your completed paper. Takes minutes to start.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://nursemygrade.com/how-it-works' }],

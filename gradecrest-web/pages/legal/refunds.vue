@@ -4,6 +4,9 @@ import { ArrowRight, CheckCircle2 } from '@lucide/vue'
 useSeoMeta({
   title: 'Refund Policy | GradeCrest',
   description: 'GradeCrest Refund Policy — full and partial refund conditions, how to request a refund, and our grade guarantee.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useSeoBase('https://gradecrest.com/legal/refunds')
 useBreadcrumbs([

@@ -2,6 +2,9 @@
 useSeoMeta({
   title: 'Terms of Service | GradeCrest',
   description: 'GradeCrest Terms of Service — how our academic writing service works, your rights, and your responsibilities as a customer.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useSeoBase('https://gradecrest.com/legal/terms')
 useBreadcrumbs([

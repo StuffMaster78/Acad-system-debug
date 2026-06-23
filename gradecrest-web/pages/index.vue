@@ -9,7 +9,7 @@ import PricingCalculator from '~/components/ui/PricingCalculator.vue'
 
 const app = useAppUrl()
 const siteSettings = await fetchSiteSettings()
-const ogImage = siteSettings?.og_image_url ?? '/og-default.svg'
+const ogImage = siteSettings?.og_image_url ?? '/og-default.png'
 
 // ── Structured data ───────────────────────────────────────────────────────────
 useSeoMeta({
@@ -19,6 +19,8 @@ useSeoMeta({
   ogDescription: 'Human-written papers across every subject. Grade or money back guarantee. 50,000+ papers delivered. 4.9/5 rated.',
   ogImage,
   twitterCard: 'summary_large_image',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
 })
 
 useSeoBase('https://gradecrest.com/')

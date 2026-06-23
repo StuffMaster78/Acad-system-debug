@@ -16,6 +16,9 @@ useSeoMeta({
   description: 'Essays written by subject-obsessed specialists — not AI, not generalists. From $10/page. Zero AI. Grade or money back. 20,000+ essays delivered.',
   ogTitle: 'EssayManiacs — Essays Written by People Who Love the Subject',
   ogDescription: 'Expert essays across every subject and level. From $10/page. Zero AI. Grade or money back.',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
 })
 useHead({
   link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/' }],
