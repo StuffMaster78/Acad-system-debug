@@ -63,6 +63,14 @@ const DEADLINES = [
   { id: '7d',  label: '7 days'   },
 ]
 
+const FAQS = [
+  { q: 'What is iHuman?', a: 'iHuman is a clinical simulation platform used in nursing and NP programs. Students complete virtual patient encounters covering history-taking, physical examination, differential diagnosis, assessment, and care planning.' },
+  { q: 'Do you complete the actual iHuman case on the platform?', a: 'Yes, for full encounter orders. For documentation-only orders (SOAP note, DDx write-up) we provide the completed documents — you enter them.' },
+  { q: 'How fast can you complete an iHuman case?', a: 'As fast as 3 hours for a standard single encounter. Complex multi-system cases may take 6–12 hours. Select your deadline when ordering.' },
+  { q: 'Do I need to share my iHuman login?', a: 'Only for full encounter completion. For documentation tasks we only need the case details — chief complaint, patient demographics, and your rubric.' },
+  { q: 'What if my case spans multiple body systems?', a: 'Select "Other / Mixed" and describe the systems in the platform notes field. We\'ll match a writer with cross-system experience.' },
+]
+
 const step        = ref(1)
 const submitted   = ref(false)
 const submitting  = ref(false)
@@ -284,13 +292,7 @@ useHead({
               <section aria-labelledby="faq-heading">
                 <h2 id="faq-heading" class="font-serif text-xl font-bold text-brand-900 mb-5">Common questions about iHuman help</h2>
                 <div class="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-                  <details v-for="faq in [
-                    { q: 'What is iHuman?', a: 'iHuman is a clinical simulation platform used in nursing and NP programs. Students complete virtual patient encounters covering history-taking, physical examination, differential diagnosis, assessment, and care planning.' },
-                    { q: 'Do you complete the actual iHuman case on the platform?', a: 'Yes, for full encounter orders. For documentation-only orders (SOAP note, DDx write-up) we provide the completed documents — you enter them.' },
-                    { q: 'How fast can you complete an iHuman case?', a: 'As fast as 3 hours for a standard single encounter. Complex multi-system cases may take 6–12 hours. Select your deadline when ordering.' },
-                    { q: 'Do I need to share my iHuman login?', a: 'Only for full encounter completion. For documentation tasks we only need the case details — chief complaint, patient demographics, and your rubric.' },
-                    { q: 'What if my case spans multiple body systems?', a: 'Select "Other / Mixed" and describe the systems in the platform notes field. We\'ll match a writer with cross-system experience.' },
-                  ]" :key="faq.q" class="group px-5 py-4">
+                  <details v-for="faq in FAQS" :key="faq.q" class="group px-5 py-4">
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-slate-900">
                       {{ faq.q }}
                       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 transition-transform group-open:rotate-45 text-xs font-bold">+</span>
