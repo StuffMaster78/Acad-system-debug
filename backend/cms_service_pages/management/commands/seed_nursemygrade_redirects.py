@@ -84,6 +84,9 @@ REDIRECTS = [
     ("/apa-format",                        "/services/apa-format-nursing-paper-writing-service"),
     ("/apa-format-nursing",                "/services/apa-format-nursing-paper-writing-service"),
 
+    # ── Blog post flat-URL redirects (pre-/blog/ prefix era) ──────────────────
+    ("/ihuman-tips-help-and-tricks", "/blog/ihuman-tips-help-and-tricks"),
+
     # ── Generic old pages ───────────────────────────────────────────────────
     ("/about-us",    "/about"),
     ("/contact-us",  "/contact"),
