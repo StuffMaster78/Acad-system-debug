@@ -294,8 +294,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/order' }] }
             <template v-if="form.orderType.baseType === 'paper' || form.orderType.baseType === 'combo'">
               <!-- Paper type -->
               <div>
-                <label class="form-label">Paper type</label>
+                <label for="order-paper-type" class="form-label">Paper type</label>
                 <select
+                  id="order-paper-type"
                   class="form-input mt-2"
                   :value="form.paperType.id"
                   @change="form.paperType = paperTypes.find(p => p.id === ($event.target as HTMLSelectElement).value) ?? paperTypes[0]"
@@ -347,9 +348,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/order' }] }
 
               <!-- Subject -->
               <div>
-                <label class="form-label">Subject area</label>
+                <label for="order-subject" class="form-label">Subject area</label>
                 <div class="relative mt-2">
-                  <input v-model="subjectSearch" type="text" class="form-input" style="padding-left:2.25rem" placeholder="Search a subject…" />
+                  <input id="order-subject" v-model="subjectSearch" type="text" class="form-input" style="padding-left:2.25rem" placeholder="Search a subject…" />
                   <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
                 <div class="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white">
@@ -617,8 +618,8 @@ useHead({ link: [{ rel: 'canonical', href: 'https://essaymaniacs.com/order' }] }
                 </div>
               </div>
               <div>
-                <label class="form-label">Citation style</label>
-                <select v-model="form.formatStyle" class="form-input mt-2">
+                <label for="order-citation" class="form-label">Citation style</label>
+                <select id="order-citation" v-model="form.formatStyle" class="form-input mt-2">
                   <option v-for="f in formattingStyles" :key="f.id" :value="f">{{ f.label }}</option>
                 </select>
                 <label class="form-label mt-4">English variant</label>

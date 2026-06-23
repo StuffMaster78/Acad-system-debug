@@ -352,8 +352,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
             <!-- ── PAPER form ── -->
             <template v-if="form.orderType.baseType === 'paper'">
               <div>
-                <label class="form-label">Nursing paper type</label>
+                <label for="order-paper-type" class="form-label">Nursing paper type</label>
                 <select
+                  id="order-paper-type"
                   class="form-input mt-2"
                   :value="form.paperType.id"
                   @change="form.paperType = paperTypes.find(p => p.id === ($event.target as HTMLSelectElement).value) ?? paperTypes[0]"
@@ -363,8 +364,8 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               </div>
 
               <div>
-                <label class="form-label">Program level</label>
-                <select v-model="form.level" class="form-input mt-2">
+                <label for="order-level" class="form-label">Program level</label>
+                <select id="order-level" v-model="form.level" class="form-input mt-2">
                   <option v-for="l in levels" :key="l.id" :value="l">{{ l.label }}</option>
                 </select>
                 <p v-if="form.level.note" class="mt-1.5 text-xs text-slate-400">{{ form.level.note }}</p>
@@ -394,9 +395,9 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               </div>
 
               <div>
-                <label class="form-label">Nursing subject / speciality</label>
+                <label for="order-subject" class="form-label">Nursing subject / speciality</label>
                 <div class="relative mt-2">
-                  <input v-model="subjectSearch" type="text" class="form-input" style="padding-left:2.25rem" placeholder="Search a nursing subject…" />
+                  <input id="order-subject" v-model="subjectSearch" type="text" class="form-input" style="padding-left:2.25rem" placeholder="Search a nursing subject…" />
                   <Icon name="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
                 <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">
@@ -554,20 +555,20 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
 
             <div class="grid gap-4 sm:grid-cols-3">
               <div>
-                <label class="form-label">Type of work</label>
-                <select v-model="form.workType" class="form-input mt-2">
+                <label for="order-work-type" class="form-label">Type of work</label>
+                <select id="order-work-type" v-model="form.workType" class="form-input mt-2">
                   <option v-for="wt in workTypes" :key="wt.id" :value="wt">{{ wt.label }}</option>
                 </select>
               </div>
               <div>
-                <label class="form-label">Citation style</label>
-                <select v-model="form.formatStyle" class="form-input mt-2">
+                <label for="order-citation" class="form-label">Citation style</label>
+                <select id="order-citation" v-model="form.formatStyle" class="form-input mt-2">
                   <option v-for="f in formattingStyles" :key="f.id" :value="f">{{ f.label }}</option>
                 </select>
               </div>
               <div>
-                <label class="form-label">English variant</label>
-                <select v-model="form.englishType" class="form-input mt-2">
+                <label for="order-english" class="form-label">English variant</label>
+                <select id="order-english" v-model="form.englishType" class="form-input mt-2">
                   <option v-for="et in englishTypes" :key="et.id" :value="et">{{ et.label }}</option>
                 </select>
               </div>
@@ -665,11 +666,11 @@ useHead({ link: [{ rel: 'canonical', href: 'https://nursemygrade.com/order' }] }
               <h2 class="mb-4 font-semibold text-slate-800">Your account details</h2>
               <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
-                  <div><label class="form-label">First name</label><input v-model="form.firstName" type="text" class="form-input mt-1" placeholder="Jane" autocomplete="given-name" /></div>
-                  <div><label class="form-label">Last name</label><input v-model="form.lastName" type="text" class="form-input mt-1" placeholder="Smith" autocomplete="family-name" /></div>
+                  <div><label for="order-fname" class="form-label">First name</label><input id="order-fname" v-model="form.firstName" type="text" class="form-input mt-1" placeholder="Jane" autocomplete="given-name" /></div>
+                  <div><label for="order-lname" class="form-label">Last name</label><input id="order-lname" v-model="form.lastName" type="text" class="form-input mt-1" placeholder="Smith" autocomplete="family-name" /></div>
                 </div>
-                <div><label class="form-label">Email address</label><input v-model="form.email" type="email" class="form-input mt-1" placeholder="you@example.com" autocomplete="email" /></div>
-                <div><label class="form-label">Password</label><input v-model="form.password" type="password" class="form-input mt-1" placeholder="At least 8 characters" minlength="8" autocomplete="new-password" /></div>
+                <div><label for="order-email" class="form-label">Email address</label><input id="order-email" v-model="form.email" type="email" class="form-input mt-1" placeholder="you@example.com" autocomplete="email" /></div>
+                <div><label for="order-password" class="form-label">Password</label><input id="order-password" v-model="form.password" type="password" class="form-input mt-1" placeholder="At least 8 characters" minlength="8" autocomplete="new-password" /></div>
                 <div v-if="serverError" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ serverError }}</div>
                 <label class="flex cursor-pointer items-start gap-3">
                   <input v-model="form.agreeToTerms" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600" />

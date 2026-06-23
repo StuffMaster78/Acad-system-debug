@@ -31,7 +31,25 @@ export default defineNuxtConfig({
   // - Static marketing pages pre-rendered at build time (fast, cacheable)
   // - Service pages rendered per-request so Wagtail edits go live immediately
   routeRules: {
-    '/services/**': { isr: 3600 },
+    // Static marketing pages — pre-rendered at build, served as HTML from edge
+    '/':              { prerender: true },
+    '/pricing':       { prerender: true },
+    '/about':         { prerender: true },
+    '/how-it-works':  { prerender: true },
+    '/writers':       { prerender: true },
+    '/reviews':       { prerender: true },
+    '/faq':           { prerender: true },
+    '/contact':       { prerender: true },
+    '/apply':         { prerender: true },
+    '/discounts':     { prerender: true },
+    '/legal/terms':   { prerender: true },
+    '/legal/privacy': { prerender: true },
+    '/legal/refunds': { prerender: true },
+    // Blog index pre-rendered; post pages ISR so Wagtail edits go live fast
+    '/blog':          { prerender: true },
+    '/blog/**':       { isr: 1800 },
+    // Service pages ISR — CMS edits reflect within 1 hour
+    '/services/**':   { isr: 3600 },
   },
 
   nitro: {

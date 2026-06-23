@@ -5,11 +5,11 @@ import AnnouncementBar from '~/components/marketing/AnnouncementBar.vue'
 import CookieConsentBanner from '~/components/privacy/CookieConsentBanner.vue'
 import ExitIntentPopup from '~/components/marketing/ExitIntentPopup.vue'
 
-const settings = await fetchSiteSettings()
+const { data: settings } = await useAsyncData('gc-site-settings', fetchSiteSettings)
 
-const faviconUrl = settings?.favicon_url ?? '/favicon.svg'
-const ogImageUrl = settings?.og_image_url ?? '/og-default.png'
-const ga4Id      = settings?.google_analytics_id ?? ''
+const faviconUrl = computed(() => settings.value?.favicon_url ?? '/favicon.svg')
+const ogImageUrl = computed(() => settings.value?.og_image_url ?? '/og-default.png')
+const ga4Id      = computed(() => settings.value?.google_analytics_id ?? '')
 const consent = useCookieConsent()
 
 useHead({
@@ -18,7 +18,6 @@ useHead({
     { rel: 'shortcut icon', href: faviconUrl },
   ],
   meta: [
-    // Default OG image — individual pages override this with their own ogImage
     { property: 'og:image', content: ogImageUrl },
     { name: 'twitter:image', content: ogImageUrl },
     { name: 'twitter:card', content: 'summary_large_image' },
@@ -27,11 +26,11 @@ useHead({
 
 onMounted(async () => {
   await consent.init()
-  injectConsentAwareGa4(ga4Id, consent.analyticsAllowed.value)
+  injectConsentAwareGa4(ga4Id.value, consent.analyticsAllowed.value)
 })
 
 watch(consent.analyticsAllowed, (allowed) => {
-  injectConsentAwareGa4(ga4Id, allowed)
+  injectConsentAwareGa4(ga4Id.value, allowed)
 })
 </script>
 

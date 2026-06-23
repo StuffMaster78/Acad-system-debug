@@ -495,9 +495,10 @@ function toggleAddon(id: number) {
 
               <!-- Work type (paper + combo) -->
               <div v-if="isWritingOrder">
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Work type</label>
+                <label for="gc-order-work-type" class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Work type</label>
                 <div class="relative">
                   <select
+                    id="gc-order-work-type"
                     v-model="workTypeId"
                     class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   >
@@ -509,9 +510,10 @@ function toggleAddon(id: number) {
 
               <!-- Paper type (paper + combo) -->
               <div v-if="isWritingOrder">
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Paper type</label>
+                <label for="gc-order-paper-type" class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Paper type</label>
                 <div class="relative">
                   <select
+                    id="gc-order-paper-type"
                     v-model="paperCode"
                     class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   >
@@ -551,9 +553,10 @@ function toggleAddon(id: number) {
 
               <!-- Academic level (paper + combo) -->
               <div v-if="isWritingOrder">
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Academic level</label>
+                <label for="gc-order-level" class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Academic level</label>
                 <div class="relative">
                   <select
+                    id="gc-order-level"
                     v-model="levelCode"
                     class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   >
@@ -567,9 +570,10 @@ function toggleAddon(id: number) {
 
               <!-- Deadline (all types) -->
               <div>
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Deadline</label>
+                <label for="gc-order-deadline" class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Deadline</label>
                 <div class="relative">
                   <select
+                    id="gc-order-deadline"
                     v-model.number="deadlineHrs"
                     class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   >
@@ -583,11 +587,12 @@ function toggleAddon(id: number) {
 
               <!-- Subject (paper + combo, optional) -->
               <div v-if="isWritingOrder">
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">
+                <label for="gc-order-subject" class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">
                   Subject <span class="font-normal normal-case text-slate-400">(optional)</span>
                 </label>
                 <div class="relative">
                   <select
+                    id="gc-order-subject"
                     v-model="subjectId"
                     class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   >
@@ -602,9 +607,10 @@ function toggleAddon(id: number) {
 
               <!-- Formatting style (paper + combo) -->
               <div v-if="isWritingOrder">
-                <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Formatting style</label>
+                <label for="gc-order-format" class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Formatting style</label>
                 <div class="relative">
                   <select
+                    id="gc-order-format"
                     v-model="formatStyleId"
                     class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   >
@@ -766,10 +772,11 @@ function toggleAddon(id: number) {
 
         <div class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
+            <label for="gc-order-topic" class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
               Title / topic <span class="text-brand-600">*</span>
             </label>
             <input
+              id="gc-order-topic"
               v-model="topic"
               type="text"
               maxlength="200"
@@ -780,11 +787,12 @@ function toggleAddon(id: number) {
           </div>
 
           <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
+            <label for="gc-order-instructions" class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
               Additional instructions
               <span class="ml-1 font-normal normal-case text-slate-400">(optional — you can add more after logging in)</span>
             </label>
             <textarea
+              id="gc-order-instructions"
               v-model="instructions"
               rows="5"
               placeholder="Rubric requirements, formatting style, specific sources to include, grading criteria, special notes…"
