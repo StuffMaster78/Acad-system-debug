@@ -7,6 +7,25 @@ const app = useAppUrl()
 
 interface Block { type: string; value: unknown }
 
+// GC service slugs — mirrors seed_gradecrest_services.py slugs
+const _gcServiceSlugs = new Set([
+  'essay-writing', 'research-papers', 'dissertations', 'nursing-essays',
+  'editing-proofreading', 'admission-essays', 'term-papers', 'case-studies',
+  'coursework', 'literature-review', 'thesis-writing', 'data-analysis',
+  'online-class-help', 'homework-help', 'presentations',
+])
+const { getAll: getAllBlogPosts } = useBlog()
+const _blogSlugs = new Set(getAllBlogPosts().map(p => p.slug))
+
+function rewriteLinks(html: string): string {
+  if (!html) return html
+  return html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
+    if (_gcServiceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_blogSlugs.has(slug))      return `href="/blog/${slug}"`
+    return _match
+  })
+}
+
 const props = defineProps<{
   blocks: Block[]
   /** Brand-specific inline CTA HTML injected after the 4th paragraph block. */
@@ -160,7 +179,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     <div
       v-else-if="block.type === 'paragraph'"
       class="prose-content"
-      v-html="asStr(block.value)"
+      v-html="rewriteLinks(asStr(block.value))"
     />
 
     <!-- ── Heading ──────────────────────────────────────────────────────── -->

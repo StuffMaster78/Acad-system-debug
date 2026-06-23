@@ -6,6 +6,26 @@ const app = useAppUrl()
 
 interface Block { type: string; value: unknown }
 
+// ── Flat-link rewriter ────────────────────────────────────────────────────────
+// Safety net for scraped Wagtail content where internal links were stored as
+// flat paths (e.g. /essays) before the site moved to /services/<slug>.
+// The backend `fix_cms_links` command is the primary fix; this handles any
+// remaining cases client-side.
+const { getAll: getAllServices } = useServices()
+const { getAll: getAllBlogPosts } = useBlog()
+
+const _serviceSlugs = new Set(getAllServices().map(s => s.slug))
+const _blogSlugs    = new Set(getAllBlogPosts().map(p => p.slug))
+
+function rewriteLinks(html: string): string {
+  if (!html) return html
+  return html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
+    if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
+    return _match
+  })
+}
+
 const props = defineProps<{
   blocks: Block[]
   /** Brand-specific inline CTA HTML injected after the 4th paragraph block. */
@@ -159,7 +179,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     <div
       v-else-if="block.type === 'paragraph'"
       class="prose-content"
-      v-html="asStr(block.value)"
+      v-html="rewriteLinks(asStr(block.value))"
     />
 
     <!-- ── Heading ──────────────────────────────────────────────────────── -->
