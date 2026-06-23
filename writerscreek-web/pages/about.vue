@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { markRaw } from 'vue'
+import { GraduationCap, Scale, Lock, Ruler, CreditCard, Handshake } from '@lucide/vue'
 useSeoMeta({
   title: 'About Writers Creek',
   description: 'Writers Creek is a selective academic writing network connecting credential-verified writers with quality academic assignments. Learn who we are and how we work.',
@@ -10,32 +12,32 @@ useSeoMeta({
 
 const values = [
   {
-    icon: '🎓',
+    icon: markRaw(GraduationCap),
     title: 'Credential-first selectivity',
     desc: 'Every writer on the platform holds a postgraduate degree or active professional credential in their subject area. We verify this before any writer is approved.',
   },
   {
-    icon: '⚖️',
+    icon: markRaw(Scale),
     title: 'Fair, transparent pay',
     desc: 'Rates are set per page and published openly. Writers know exactly what they earn before accepting any assignment. No hidden deductions, no ambiguous bonus schemes.',
   },
   {
-    icon: '🔒',
+    icon: markRaw(Lock),
     title: 'Writer privacy',
     desc: 'Your full name, credentials, and contact details are never shared with clients. You interact with the platform — the platform manages the client relationship.',
   },
   {
-    icon: '📐',
+    icon: markRaw(Ruler),
     title: 'Quality over volume',
     desc: 'We have no minimum assignment quotas. We would rather have 2,000 writers producing consistently excellent work than 20,000 producing variable output.',
   },
   {
-    icon: '💳',
+    icon: markRaw(CreditCard),
     title: 'Reliable payouts',
     desc: 'Earnings are released bi-weekly, every time. You should never have to chase a payment or wonder when you will be paid.',
   },
   {
-    icon: '🤝',
+    icon: markRaw(Handshake),
     title: 'Respect for the craft',
     desc: 'Academic writing is skilled, specialist work. We design the platform to reflect that — in the rates, the vetting process, and how we handle disputes.',
   },
@@ -182,7 +184,7 @@ const disciplines = [
             :key="v.title"
             class="rounded-2xl border border-slate-100 bg-white p-7 shadow-sm"
           >
-            <div class="mb-4 text-3xl">{{ v.icon }}</div>
+            <div class="mb-4"><component :is="v.icon" class="h-7 w-7 text-brand-600" /></div>
             <h3 class="text-base font-bold text-slate-900">{{ v.title }}</h3>
             <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ v.desc }}</p>
           </div>

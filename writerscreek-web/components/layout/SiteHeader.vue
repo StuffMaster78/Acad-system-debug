@@ -36,7 +36,7 @@ watch(() => route.path, () => { mobileOpen.value = false })
           v-for="item in nav"
           :key="item.href"
           :href="item.href"
-          class="text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+          class="rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           active-class="text-brand-600"
         >
           {{ item.label }}
@@ -48,14 +48,14 @@ watch(() => route.path, () => { mobileOpen.value = false })
         <div class="inline-flex items-center overflow-hidden rounded-full border border-slate-200 shadow-sm">
           <a
             :href="appUrl.login"
-            class="flex h-9 items-center px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-brand-700"
+            class="flex h-9 items-center px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
           >
             Sign in
           </a>
           <span class="h-5 w-px flex-shrink-0 bg-slate-200" />
           <NuxtLink
             to="/apply"
-            class="flex h-9 items-center bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+            class="flex h-9 items-center bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
           >
             Apply now
           </NuxtLink>
@@ -63,8 +63,8 @@ watch(() => route.path, () => { mobileOpen.value = false })
       </div>
 
       <!-- Mobile hamburger -->
-      <button class="md:hidden" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
-        <svg class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <button class="md:hidden rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" :aria-expanded="mobileOpen" aria-label="Toggle menu" @click="mobileOpen = !mobileOpen">
+        <svg class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path v-if="!mobileOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
           <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
