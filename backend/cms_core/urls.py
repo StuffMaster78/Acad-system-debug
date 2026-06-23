@@ -20,6 +20,7 @@ via the api_router in cms_core/api.py::
 
 from django.urls import include, path
 from cms_core.views import ContentHealthView, CreatePageDraftView, PublicContactView, PublicSiteSettingsView
+from cms_core.image_manager_views import ImageManagerPageListView, ImageManagerPageImageView
 
 app_name = "cms"
 
@@ -38,4 +39,6 @@ urlpatterns = [
     path("service-pages/", include("cms_service_pages.urls")),
     path("contact/", PublicContactView.as_view(), name="public-contact"),
     path("site-settings/", PublicSiteSettingsView.as_view(), name="site-settings"),
+    path("image-manager/pages/", ImageManagerPageListView.as_view(), name="image-manager-pages"),
+    path("image-manager/pages/<int:page_id>/image/", ImageManagerPageImageView.as_view(), name="image-manager-page-image"),
 ]

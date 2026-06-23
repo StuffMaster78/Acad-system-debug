@@ -348,6 +348,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminContentView.vue"),
       },
       {
+        path: "images",
+        name: "admin-images",
+        component: () => import("@/views/admin/AdminImageManagerView.vue"),
+      },
+      {
         path: "content-graph",
         name: "admin-content-graph",
         component: () => import("@/views/admin/AdminContentGraphView.vue"),
@@ -1010,6 +1015,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "content",
         name: "superadmin-content",
         component: () => import("@/views/admin/AdminContentView.vue"),
+      },
+      {
+        path: "images",
+        name: "superadmin-images",
+        component: () => import("@/views/admin/AdminImageManagerView.vue"),
       },
       {
         path: "content-graph",
