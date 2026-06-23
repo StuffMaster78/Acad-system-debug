@@ -1,0 +1,20 @@
+{
+  "_instructions": "Fill in real image URLs below, then run: python manage.py assign_featured_images --from-file=scripts/image_mappings/gradecrest.json --site gradecrest.com",
+  "_placeholder": "To use auto-generated placeholders instead: python manage.py assign_featured_images --placeholder --site gradecrest.com",
+
+  "blog": {},
+
+  "services": {
+    "essay-writing-service":           "REPLACE_WITH_IMAGE_URL",
+    "research-paper-writing-service":  "REPLACE_WITH_IMAGE_URL",
+    "dissertation-writing-service":    "REPLACE_WITH_IMAGE_URL",
+    "term-papers":                     "REPLACE_WITH_IMAGE_URL",
+    "nursing-essays":                  "REPLACE_WITH_IMAGE_URL",
+    "admission-essays":                "REPLACE_WITH_IMAGE_URL",
+    "case-studies":                    "REPLACE_WITH_IMAGE_URL",
+    "editing-proofreading":            "REPLACE_WITH_IMAGE_URL",
+    "assignment-editing-service":      "REPLACE_WITH_IMAGE_URL",
+    "coursework":                      "REPLACE_WITH_IMAGE_URL",
+    "data-analysis":                   "REPLACE_WITH_IMAGE_URL"
+  }
+}

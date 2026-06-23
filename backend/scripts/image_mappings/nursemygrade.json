@@ -1,0 +1,32 @@
+{
+  "_instructions": "Fill in real image URLs below, then run: python manage.py assign_featured_images --from-file=scripts/image_mappings/nursemygrade.json --site nursemygrade.com",
+  "_placeholder": "To use auto-generated placeholders instead: python manage.py assign_featured_images --placeholder --site nursemygrade.com",
+
+  "blog": {
+    "how-to-write-a-nursing-care-plan-nanda":   "REPLACE_WITH_IMAGE_URL",
+    "how-to-write-a-soap-note":                 "REPLACE_WITH_IMAGE_URL",
+    "nursing-capstone-project-guide":            "REPLACE_WITH_IMAGE_URL",
+    "apa-7th-edition-nursing-referencing":       "REPLACE_WITH_IMAGE_URL",
+    "nursing-school-time-management":            "REPLACE_WITH_IMAGE_URL"
+  },
+
+  "services": {
+    "nursing-essays":            "REPLACE_WITH_IMAGE_URL",
+    "care-plans":                "REPLACE_WITH_IMAGE_URL",
+    "soap-notes":                "REPLACE_WITH_IMAGE_URL",
+    "capstone-projects":         "REPLACE_WITH_IMAGE_URL",
+    "nursing-research-papers":   "REPLACE_WITH_IMAGE_URL",
+    "nursing-dissertations":     "REPLACE_WITH_IMAGE_URL",
+    "nursing-case-studies":      "REPLACE_WITH_IMAGE_URL",
+    "concept-maps":              "REPLACE_WITH_IMAGE_URL",
+    "nursing-coursework":        "REPLACE_WITH_IMAGE_URL",
+    "shadow-health":             "REPLACE_WITH_IMAGE_URL",
+    "ihuman-patients":           "REPLACE_WITH_IMAGE_URL",
+    "online-nursing-classes":    "REPLACE_WITH_IMAGE_URL",
+    "bsn-writing":               "REPLACE_WITH_IMAGE_URL",
+    "msn-help":                  "REPLACE_WITH_IMAGE_URL",
+    "apa-nursing-papers":        "REPLACE_WITH_IMAGE_URL",
+    "nursing-report":            "REPLACE_WITH_IMAGE_URL",
+    "nursing-presentation":      "REPLACE_WITH_IMAGE_URL"
+  }
+}

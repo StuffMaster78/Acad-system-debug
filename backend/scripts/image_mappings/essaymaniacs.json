@@ -1,0 +1,25 @@
+{
+  "_instructions": "Fill in real image URLs below, then run: python manage.py assign_featured_images --from-file=scripts/image_mappings/essaymaniacs.json --site essaymaniacs.com",
+  "_placeholder": "To use auto-generated placeholders instead: python manage.py assign_featured_images --placeholder --site essaymaniacs.com",
+
+  "blog": {
+    "how-to-write-a-perfect-essay-introduction": "REPLACE_WITH_IMAGE_URL",
+    "essay-structure-complete-guide":             "REPLACE_WITH_IMAGE_URL",
+    "how-to-write-a-research-paper":              "REPLACE_WITH_IMAGE_URL",
+    "dissertation-proposal-guide":                "REPLACE_WITH_IMAGE_URL",
+    "academic-writing-style-guide":               "REPLACE_WITH_IMAGE_URL"
+  },
+
+  "services": {
+    "essays":               "REPLACE_WITH_IMAGE_URL",
+    "research-papers":      "REPLACE_WITH_IMAGE_URL",
+    "dissertations":        "REPLACE_WITH_IMAGE_URL",
+    "case-studies":         "REPLACE_WITH_IMAGE_URL",
+    "admission-essays":     "REPLACE_WITH_IMAGE_URL",
+    "proofreading":         "REPLACE_WITH_IMAGE_URL",
+    "term-papers":          "REPLACE_WITH_IMAGE_URL",
+    "coursework":           "REPLACE_WITH_IMAGE_URL",
+    "literature-review":    "REPLACE_WITH_IMAGE_URL",
+    "editing-proofreading": "REPLACE_WITH_IMAGE_URL"
+  }
+}

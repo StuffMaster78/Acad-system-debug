@@ -1,0 +1,22 @@
+{
+  "_instructions": "Fill in real image URLs below, then run: python manage.py assign_featured_images --from-file=scripts/image_mappings/researchpapermate.json --site researchpapermate.com",
+  "_placeholder": "To use auto-generated placeholders instead: python manage.py assign_featured_images --placeholder --site researchpapermate.com",
+
+  "blog": {
+    "how-to-write-a-research-paper-introduction":   "REPLACE_WITH_IMAGE_URL",
+    "mla-9th-edition-citation-guide":               "REPLACE_WITH_IMAGE_URL",
+    "how-to-write-a-literature-review-research-paper": "REPLACE_WITH_IMAGE_URL",
+    "research-paper-methodology-section":            "REPLACE_WITH_IMAGE_URL",
+    "how-to-avoid-plagiarism-research-paper":        "REPLACE_WITH_IMAGE_URL"
+  },
+
+  "services": {
+    "research-paper-writing-service": "REPLACE_WITH_IMAGE_URL",
+    "literature-review":              "REPLACE_WITH_IMAGE_URL",
+    "data-analysis":                  "REPLACE_WITH_IMAGE_URL",
+    "dissertation-writing-service":   "REPLACE_WITH_IMAGE_URL",
+    "thesis-writing":                 "REPLACE_WITH_IMAGE_URL",
+    "essay-writing-service":          "REPLACE_WITH_IMAGE_URL",
+    "coursework":                     "REPLACE_WITH_IMAGE_URL"
+  }
+}
