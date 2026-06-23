@@ -29,6 +29,7 @@ const company = [
   { label: 'Our Writers',     href: '/writers'      },
   { label: 'Reviews',         href: '/reviews'      },
   { label: 'Pricing',         href: '/pricing'      },
+  { label: 'Discounts',      href: '/discounts'    },
   { label: 'Blog',            href: '/blog'         },
   { label: 'Become a Writer', href: '/apply'        },
   { label: 'FAQ',             href: '/faq'          },

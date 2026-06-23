@@ -226,6 +226,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Wallet", to: "/client/wallet", icon: Wallet },
     { label: "Billing", to: "/client/billing", icon: Receipt },
     { label: "Loyalty", to: "/client/loyalty", icon: Star },
+    { label: "Discounts", to: "/client/discounts", icon: Percent },
     { label: "Charts", to: "/client/charts", icon: LineChart },
     { label: "Referrals", to: "/client/referrals", icon: Users2 },
     { label: "Feedback", to: "/client/feedback", icon: Lightbulb },

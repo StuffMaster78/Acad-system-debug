@@ -42,6 +42,7 @@ const company = [
 const quickLinks = [
   { label: 'Place an Order',        href: '/order'         },
   { label: 'Custom Quote',          href: '/quote'         },
+  { label: 'Discounts & Offers',   href: '/discounts'     },
   { label: 'FAQ',                   href: '/faq'           },
   { label: 'Our Authors',           href: '/authors'       },
 ]

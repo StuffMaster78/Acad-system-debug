@@ -39,6 +39,7 @@ const company = [
   { label: 'Our Researchers',  href: '/writers'      },
   { label: 'Reviews',          href: '/reviews'      },
   { label: 'Pricing',          href: '/pricing'      },
+  { label: 'Discounts',       href: '/discounts'    },
   { label: 'About',            href: '/about'        },
   { label: 'Blog',             href: '/blog'         },
   { label: 'FAQ',              href: '/faq'          },
