@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Circle, Plus, Minus, X } from '@lucide/vue'
 
 const app = useAppUrl()
+const _cfg = useRuntimeConfig()
+const _siteUrl = (_cfg.public.siteUrl as string) || ''
 
 interface Block { type: string; value: unknown }
 
@@ -61,6 +63,57 @@ function fixEncoding(s: string): string {
     .replace(/Ã±/g, 'ñ')       // ñ → ñ
 }
 
+// Fix relative src URLs on inline images.
+// /media/  → absolute Django URL in dev (nginx handles it in prod)
+// /assets/ → absolute live-site URL (old static-site assets)
+function processContentImages(html: string): string {
+  if (!html.includes('<img')) return html
+  const isDev = _siteHost.includes('localhost')
+  return html.replace(
+    /<img([^>]*)\bsrc="(\/[^"]+)"([^>]*?)>/gi,
+    (orig, before, src, after) => {
+      let absUrl = src
+      if (src.startsWith('/media/') && isDev) absUrl = `http://localhost:8000${src}`
+      else if (!src.startsWith('/media/')) absUrl = `${_siteUrl}${src}`
+      if (absUrl === src) return orig
+      const hasClass   = /\bclass=/i.test(before + after)
+      const hasLoading = /\bloading=/i.test(before + after)
+      return `<img${before} src="${absUrl}"${after}${hasClass ? '' : ' class="my-4 max-w-full rounded-xl"'}${hasLoading ? '' : ' loading="lazy"'}>`
+    },
+  )
+}
+
+// Style raw <table> HTML from imported content.
+// Wraps each table in an overflow-x:auto container, strips inline style/width attrs,
+// adds Tailwind classes. Also converts <h2>/<h3> inside table cells to <strong>
+// so they are excluded from the page TOC (injectHeadingIds runs after this).
+function processContentTables(html: string): string {
+  if (!/<table/i.test(html)) return html
+  return html.replace(
+    /<table[\s\S]*?<\/table>/gi,
+    (tbl) => tbl
+      .replace(
+        /<table\b[^>]*>/i,
+        '<div class="my-6 overflow-x-auto rounded-xl ring-1 ring-slate-200 shadow-sm not-prose">' +
+        '<table class="w-full border-collapse text-sm">',
+      )
+      .replace(/<\/table>/i, '</table></div>')
+      .replace(/<thead\b[^>]*>/gi, '<thead>')
+      .replace(/<tbody\b[^>]*>/gi, '<tbody class="divide-y divide-slate-100">')
+      .replace(/<tr\b[^>]*>/gi,  '<tr class="hover:bg-slate-50/50 transition-colors">')
+      .replace(
+        /<th\b[^>]*>/gi,
+        '<th class="border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">',
+      )
+      .replace(
+        /<td\b[^>]*>/gi,
+        '<td class="border-t border-slate-100 px-4 py-3 text-slate-700">',
+      )
+      // Demote headings inside table cells → styled inline; keeps them out of TOC
+      .replace(/<h[2-6][^>]*>([\s\S]*?)<\/h[2-6]>/gi, '<strong class="font-semibold text-ink">$1</strong>'),
+  )
+}
+
 // Inject id + scroll-margin into h2/h3 tags so TOC anchor links work.
 // Uses slugifyHeading — must match allTocItems in [slug].vue.
 function injectHeadingIds(html: string): string {
@@ -77,11 +130,10 @@ function injectHeadingIds(html: string): string {
 function rewriteLinks(html: string): string {
   if (!html) return html
 
-  // Fix encoding corruption before any other processing
   html = fixEncoding(html)
-
-  // Inject heading IDs so TOC links scroll to the right place
-  html = injectHeadingIds(html)
+  html = processContentImages(html)  // fix relative src on inline images
+  html = processContentTables(html)  // style tables; demote table h2→strong first
+  html = injectHeadingIds(html)      // inject IDs only on real headings (not table ones)
 
   const sameOriginRe = new RegExp(
     `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',
