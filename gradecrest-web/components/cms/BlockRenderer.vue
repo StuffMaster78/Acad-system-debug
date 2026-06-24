@@ -37,8 +37,20 @@ function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 // same-site absolute URLs that CMS editors sometimes insert.
 const _siteHost = useRequestURL().hostname
 
+function injectHeadingIds(html: string): string {
+  return html.replace(
+    /<(h[23])([^>]*)>([\s\S]*?)<\/h[23]>/gi,
+    (orig, tag, attrs, inner) => {
+      if (/\bid\s*=/.test(attrs)) return orig
+      const id = slugifyHeading(inner.replace(/<[^>]+>/g, '').trim())
+      return id ? `<${tag}${attrs} id="${id}" class="scroll-mt-24">${inner}</${tag}>` : orig
+    },
+  )
+}
+
 function rewriteLinks(html: string): string {
   if (!html) return html
+  html = injectHeadingIds(html)
 
   // Step 0: Convert same-site absolute URLs → relative paths so subsequent
   // steps treat them as internal. Handles trailing slashes too.

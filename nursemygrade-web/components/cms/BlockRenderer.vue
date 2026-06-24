@@ -61,11 +61,27 @@ function fixEncoding(s: string): string {
     .replace(/Ã±/g, 'ñ')       // ñ → ñ
 }
 
+// Inject id + scroll-margin into h2/h3 tags so TOC anchor links work.
+// Uses slugifyHeading — must match allTocItems in [slug].vue.
+function injectHeadingIds(html: string): string {
+  return html.replace(
+    /<(h[23])([^>]*)>([\s\S]*?)<\/h[23]>/gi,
+    (orig, tag, attrs, inner) => {
+      if (/\bid\s*=/.test(attrs)) return orig
+      const id = slugifyHeading(inner.replace(/<[^>]+>/g, '').trim())
+      return id ? `<${tag}${attrs} id="${id}" class="scroll-mt-24">${inner}</${tag}>` : orig
+    },
+  )
+}
+
 function rewriteLinks(html: string): string {
   if (!html) return html
 
   // Fix encoding corruption before any other processing
   html = fixEncoding(html)
+
+  // Inject heading IDs so TOC links scroll to the right place
+  html = injectHeadingIds(html)
 
   const sameOriginRe = new RegExp(
     `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',

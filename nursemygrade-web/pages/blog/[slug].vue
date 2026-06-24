@@ -72,11 +72,25 @@ const { toc, processedBody } = staticPost ? useToc(staticPost.body) : { toc: [],
 
 // ── TOC (unified for CMS + static) ────────────────────────────────────────
 const cmsToc = computed(() => extractToc(cmsArticle.value?.body ?? []))
-const allTocItems = computed(() =>
-  cmsArticle.value
-    ? cmsToc.value
-    : toc.map(t => ({ id: t.anchor, text: t.text, level: t.level }))
-)
+
+const allTocItems = computed(() => {
+  if (cmsArticle.value) {
+    // Prefer structured heading blocks
+    if (cmsToc.value.length >= 3) return cmsToc.value
+    // Fall back: parse h2/h3 directly from paragraph HTML.
+    // Uses slugifyHeading — must match injectHeadingIds in BlockRenderer.vue.
+    const items: { id: string; text: string; level: string }[] = []
+    for (const block of cmsArticle.value.body) {
+      if (block.type !== 'paragraph' || typeof block.value !== 'string') continue
+      for (const m of block.value.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h[23]>/gi)) {
+        const text = m[2].replace(/<[^>]+>/g, '').trim()
+        if (text) items.push({ id: slugifyHeading(text), text, level: `h${m[1]}` })
+      }
+    }
+    return items
+  }
+  return toc.map(t => ({ id: t.anchor, text: t.text, level: t.level }))
+})
 
 const { pageId, stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
   useEngagement(slug)

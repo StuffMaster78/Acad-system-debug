@@ -27,8 +27,20 @@ const _fixedRoutes = new Set([
 function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 const _siteHost = useRequestURL().hostname
 
+function injectHeadingIds(html: string): string {
+  return html.replace(
+    /<(h[23])([^>]*)>([\s\S]*?)<\/h[23]>/gi,
+    (orig, tag, attrs, inner) => {
+      if (/\bid\s*=/.test(attrs)) return orig
+      const id = slugifyHeading(inner.replace(/<[^>]+>/g, '').trim())
+      return id ? `<${tag}${attrs} id="${id}" class="scroll-mt-24">${inner}</${tag}>` : orig
+    },
+  )
+}
+
 function rewriteLinks(html: string): string {
   if (!html) return html
+  html = injectHeadingIds(html)
 
   const sameOriginRe = new RegExp(
     `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',

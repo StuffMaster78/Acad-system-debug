@@ -149,8 +149,20 @@ if (article.value) {
   useHead({ script: gcLdScripts })
 }
 
-// TOC
-const toc = computed(() => extractToc(article.value?.body ?? []))
+// TOC — prefer structured heading blocks; fall back to h2/h3 in paragraph HTML
+const toc = computed(() => {
+  const fromBlocks = extractToc(article.value?.body ?? [])
+  if (fromBlocks.length >= 3) return fromBlocks
+  const items: { id: string; text: string; level: string }[] = []
+  for (const block of (article.value?.body ?? [])) {
+    if (block.type !== 'paragraph' || typeof block.value !== 'string') continue
+    for (const m of block.value.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h[23]>/gi)) {
+      const text = m[2].replace(/<[^>]+>/g, '').trim()
+      if (text) items.push({ id: slugifyHeading(text), text, level: `h${m[1]}` })
+    }
+  }
+  return items
+})
 
 // Reading progress
 const readProgress = ref(0)

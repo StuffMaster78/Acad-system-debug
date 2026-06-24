@@ -88,8 +88,20 @@ const _wcFixedRoutes  = new Set([
   'authors', 'privacy', 'terms', 'refunds', 'resources', 'login', 'register',
 ])
 
+function injectHeadingIds(html: string): string {
+  return html.replace(
+    /<(h[23])([^>]*)>([\s\S]*?)<\/h[23]>/gi,
+    (orig, tag, attrs, inner) => {
+      if (/\bid\s*=/.test(attrs)) return orig
+      const id = slugifyHeading(inner.replace(/<[^>]+>/g, '').trim())
+      return id ? `<${tag}${attrs} id="${id}" class="scroll-mt-24">${inner}</${tag}>` : orig
+    },
+  )
+}
+
 function rewriteLinks(html: string): string {
   if (!html) return html
+  html = injectHeadingIds(html)
   let out = html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
     if (_wcServiceSlugs.has(slug)) return `href="/services/${slug}"`
     if (_wcFixedRoutes.has(slug))  return _match
@@ -164,10 +176,10 @@ const toc = computed<TocItem[]>(() => {
       items.push({ id: slugify(v.text), text: v.text, level: v.level || 'h2' })
     }
     if (block.type === 'rich_text' && typeof block.value === 'string') {
-      const re = /<h([23])[^>]*id="([^"]*)"[^>]*>(.*?)<\/h\1>/gi
-      let m: RegExpExecArray | null
-      while ((m = re.exec(block.value)) !== null) {
-        items.push({ id: m[2], text: m[3].replace(/<[^>]+>/g, ''), level: `h${m[1]}` })
+      // Use slugifyHeading — matches what injectHeadingIds injects into the rendered HTML
+      for (const m of block.value.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h[23]>/gi)) {
+        const text = m[2].replace(/<[^>]+>/g, '').trim()
+        if (text) items.push({ id: slugifyHeading(text), text, level: `h${m[1]}` })
       }
     }
   }
