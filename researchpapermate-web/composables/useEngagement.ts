@@ -68,31 +68,45 @@ export function useEngagement(slug: string) {
     if (!pageId.value) return
     const prev = myReact.value
     const undo = prev === type
-    myReact.value = undo ? null : type
 
+    // Optimistic: update selection
+    myReact.value = undo ? null : type
     if (myReact.value) localStorage.setItem(REACT_KEY, myReact.value)
     else               localStorage.removeItem(REACT_KEY)
 
-    // Optimistic local update
+    // Optimistic: update counts
+    const statsSnapshot = stats.value
     if (stats.value) {
       stats.value = {
         ...stats.value,
         reactions: stats.value.reactions.map(r => {
-          if (r.type === type)  return { ...r, count: r.count + (undo ? -1 : 1) }
-          if (r.type === prev)  return { ...r, count: Math.max(0, r.count - 1) }
+          if (r.type === type) return { ...r, count: r.count + (undo ? -1 : 1) }
+          if (r.type === prev && prev !== type) return { ...r, count: Math.max(0, r.count - 1) }
           return r
         }),
+      }
+    } else {
+      // Stats not loaded yet — seed a minimal object so the count is visible immediately
+      const TYPES: ReactionType[] = ['helpful', 'love', 'insightful']
+      stats.value = {
+        views: 0, shares: 0,
+        reactions: TYPES.map(t => ({ type: t, count: t === type && !undo ? 1 : 0 })),
       }
     }
 
     try {
       await api('/cms-api/engagement/react/', {
         method: 'POST',
-        body: { page_id: pageId.value, reaction: type, undo },
+        body: { page_id: pageId.value, reaction: type },
       })
-      await fetchStats()   // sync server truth
+      // Don't re-fetch: EngagementSummary is a nightly aggregate — fetching
+      // immediately would overwrite the optimistic count with stale data.
     } catch {
-      myReact.value = prev // rollback on error
+      // Rollback both selection and counts
+      myReact.value = prev
+      if (prev) localStorage.setItem(REACT_KEY, prev)
+      else      localStorage.removeItem(REACT_KEY)
+      stats.value = statsSnapshot
     }
   }
 

@@ -20,8 +20,8 @@ export function useEngagement(slug: string) {
   const bookmarked = ref(false)
   const ready     = ref(false)   // true once CMS lookup resolves (pass or fail)
 
-  const REACT_KEY    = `nmg-react-${slug}`
-  const BOOKMARK_KEY = `nmg-bm-${slug}`
+  const REACT_KEY    = `wc-react-${slug}`
+  const BOOKMARK_KEY = `wc-bm-${slug}`
 
   onMounted(async () => {
     myReact.value   = (localStorage.getItem(REACT_KEY) as ReactionType | null)

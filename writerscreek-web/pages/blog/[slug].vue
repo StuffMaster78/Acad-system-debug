@@ -221,6 +221,15 @@ const toc = computed<TocItem[]>(() => {
   return items
 })
 
+// ── Engagement ───────────────────────────────────────────────────────────────
+const { stats, myReact, ready: engReady, react, reactionCount, fmtCount } = useEngagement(slug)
+
+const reactions = [
+  { type: 'helpful'    as const, emoji: '👍', label: 'Helpful'    },
+  { type: 'love'       as const, emoji: '❤️', label: 'Love this'  },
+  { type: 'insightful' as const, emoji: '💡', label: 'Insightful' },
+]
+
 const siteUrl     = config.public.siteUrl || 'https://writerscreek.com'
 const canonicalUrl = `${siteUrl}/blog/${slug}`
 
@@ -332,6 +341,30 @@ useHead({
                  prose-pre:bg-slate-900 prose-code:text-brand-600"
           v-html="bodyHtml"
         />
+
+        <!-- Reaction bar -->
+        <div v-if="engReady && stats" class="mt-10 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm text-center">
+          <p class="mb-4 text-sm font-semibold text-slate-700">Was this article helpful?</p>
+          <div class="flex justify-center gap-3">
+            <button
+              v-for="r in reactions"
+              :key="r.type"
+              class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all"
+              :class="myReact === r.type
+                ? 'border-brand-400 bg-brand-50 text-brand-700 shadow-sm'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700'"
+              @click="react(r.type)"
+            >
+              <span>{{ r.emoji }}</span>
+              <span>{{ r.label }}</span>
+              <span
+                v-if="reactionCount(r.type) > 0"
+                class="rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+                :class="myReact === r.type ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'"
+              >{{ fmtCount(reactionCount(r.type)) }}</span>
+            </button>
+          </div>
+        </div>
 
         <!-- End-of-article CTA -->
         <div class="mt-12 rounded-2xl bg-slate-900 p-8">
