@@ -78,30 +78,8 @@ const activeTocItems = computed(() =>
   cmsArticle.value ? cmsToc.value : toc.map(t => ({ id: t.anchor, text: t.text, level: t.level }))
 )
 
-const tocOpen    = ref(false)
-const activeTocId = ref('')
-let tocObserver: IntersectionObserver | null = null
 let updateReadProgress: (() => void) | null = null
 let updateBackToTop: (() => void) | null = null
-
-onMounted(() => {
-  tocOpen.value = window.innerWidth >= 1024
-  // Active section tracking
-  const items = activeTocItems.value
-  if (!items.length) return
-  tocObserver = new IntersectionObserver(
-    entries => {
-      for (const e of entries) {
-        if (e.isIntersecting) { activeTocId.value = e.target.id; break }
-      }
-    },
-    { rootMargin: '-80px 0px -60% 0px' },
-  )
-  items.forEach(item => {
-    const el = document.getElementById(item.id)
-    if (el) tocObserver?.observe(el)
-  })
-})
 
 // Reading progress
 const readProgress = ref(0)
@@ -387,31 +365,12 @@ useHead({
           </ClientOnly>
         </div>
 
-        <!-- TOC (unified) -->
-        <nav v-if="activeTocItems.length >= 3" class="mt-8 rounded-xl border border-slate-200 bg-slate-50" aria-label="Table of contents">
-          <button class="flex w-full items-center justify-between px-5 py-4 text-left" :aria-expanded="tocOpen" @click="tocOpen = !tocOpen">
-            <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/></svg>
-              In this article
-              <span class="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{{ activeTocItems.length }}</span>
-            </span>
-            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 max-h-0" enter-to-class="opacity-100 max-h-[600px]" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 max-h-[600px]" leave-to-class="opacity-0 max-h-0">
-            <div v-if="tocOpen" class="overflow-hidden border-t border-slate-200 px-5 pb-5 pt-4">
-              <ol class="space-y-1.5">
-                <li v-for="item in activeTocItems" :key="item.id" :class="item.level === 'h3' ? 'ml-4' : ''">
-                  <a
-                    :href="`#${item.id}`"
-                    class="text-sm transition-colors"
-                    :class="activeTocId === item.id ? 'font-semibold text-claret-700' : 'text-brand-600 hover:underline'"
-                    @click="tocOpen = false"
-                  >{{ item.text }}</a>
-                </li>
-              </ol>
-            </div>
-          </Transition>
-        </nav>
+        <!-- Article TOC -->
+        <ArticleToc
+          v-if="activeTocItems.length >= 3"
+          :items="activeTocItems"
+          variant="progress"
+        />
 
         <!-- CMS body -->
         <div

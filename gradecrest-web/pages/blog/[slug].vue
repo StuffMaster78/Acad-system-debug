@@ -151,31 +151,6 @@ if (article.value) {
 
 // TOC
 const toc = computed(() => extractToc(article.value?.body ?? []))
-const tocOpen = ref(true)
-const activeTocId = ref('')
-const activeTocIndex = computed(() => toc.value.findIndex(t => t.id === activeTocId.value))
-const tocProgress = computed(() => {
-  const total = toc.value.length
-  if (!total) return 0
-  const idx = activeTocIndex.value
-  return idx < 0 ? 0 : Math.round((idx / Math.max(total - 1, 1)) * 100)
-})
-onMounted(() => {
-  if (!toc.value.length) return
-  const observer = new IntersectionObserver(
-    entries => {
-      for (const e of entries) {
-        if (e.isIntersecting) { activeTocId.value = e.target.id; break }
-      }
-    },
-    { rootMargin: '-80px 0px -60% 0px' },
-  )
-  toc.value.forEach(item => {
-    const el = document.getElementById(item.id)
-    if (el) observer.observe(el)
-  })
-  onUnmounted(() => observer.disconnect())
-})
 
 // Reading progress
 const readProgress = ref(0)
@@ -385,33 +360,13 @@ const tags             = computed(() => article.value?.tag_names ?? [])
             <!-- Main content -->
             <div class="min-w-0">
 
-              <!-- Inline TOC (mobile + medium screens) -->
-              <div v-if="toc.length >= 3" class="mb-8 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden print:hidden">
-                <button
-                  class="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-ink hover:bg-slate-100 transition-colors"
-                  @click="tocOpen = !tocOpen"
-                >
-                  <span>Table of Contents</span>
-                  <span class="text-graphite text-xs transition-transform duration-200" :class="tocOpen ? 'rotate-180' : ''">▾</span>
-                </button>
-                <nav v-show="tocOpen" class="px-5 pb-4">
-                  <ol class="space-y-1.5 text-sm list-none">
-                    <li
-                      v-for="(item, i) in toc" :key="item.id"
-                      :class="item.level === 'h3' ? 'pl-4' : item.level === 'h4' ? 'pl-8' : ''"
-                    >
-                      <a
-                        :href="`#${item.id}`"
-                        class="flex items-baseline gap-2 group transition-colors"
-                        :class="activeTocId === item.id ? 'text-gc-600 font-semibold' : 'text-graphite hover:text-gc-600'"
-                      >
-                        <span class="shrink-0 text-xs text-slate-400 group-hover:text-gc-400 tabular-nums w-4">{{ i + 1 }}.</span>
-                        <span class="leading-snug">{{ item.text }}</span>
-                      </a>
-                    </li>
-                  </ol>
-                </nav>
-              </div>
+              <!-- Article TOC -->
+              <ArticleToc
+                v-if="toc.length >= 3"
+                :items="toc"
+                variant="cards"
+                class="mb-8 print:hidden"
+              />
 
               <!-- Article body: CMS (StreamField blocks) or static (HTML) -->
               <div class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-headings:scroll-mt-24 prose-a:text-gc-600 prose-a:underline prose-a:decoration-gc-300 hover:prose-a:decoration-gc-600 prose-p:text-graphite prose-p:leading-relaxed prose-li:text-graphite prose-strong:text-ink">
