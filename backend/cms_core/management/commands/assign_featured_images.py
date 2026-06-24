@@ -65,10 +65,12 @@ class Command(BaseCommand):
         mode.add_argument("--report",      action="store_true",  help="List pages missing featured images.")
         mode.add_argument("--placeholder", action="store_true",  help="Assign picsum.photos placeholders.")
         mode.add_argument("--from-file",   dest="from_file",     metavar="PATH", help="JSON mapping file.")
+        mode.add_argument("--scrape-live", action="store_true",  help="Scrape og:image from each page's live URL.")
 
         parser.add_argument("--site",    default=None, help="Filter by domain (e.g. nursemygrade.com).")
         parser.add_argument("--force",   action="store_true", help="Overwrite existing images.")
         parser.add_argument("--dry-run", action="store_true", help="Print actions without saving.")
+        parser.add_argument("--delay",   type=float, default=0.5, help="Seconds between requests (default 0.5).")
 
     # ── entry point ──────────────────────────────────────────────────────────
 
@@ -76,6 +78,7 @@ class Command(BaseCommand):
         site_domain: Optional[str] = options["site"]
         force:       bool          = options["force"]
         dry_run:     bool          = options["dry_run"]
+        delay:       float         = options["delay"]
 
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY RUN — no changes will be saved.\n"))
@@ -94,6 +97,9 @@ class Command(BaseCommand):
         if options["from_file"]:
             mapping = self._load_mapping(options["from_file"])
             self._assign_from_mapping(blog_pages, service_pages, mapping, force, dry_run)
+
+        if options["scrape_live"]:
+            self._scrape_live(blog_pages, service_pages, dry_run, delay)
 
     # ── mode: report ─────────────────────────────────────────────────────────
 
@@ -202,12 +208,121 @@ class Command(BaseCommand):
 
         self.stdout.write(f"\nDone — {ok} assigned, {err} errors, {skip} skipped.")
 
+    # ── mode: scrape-live ────────────────────────────────────────────────────
+
+    def _scrape_live(self, blog_pages, service_pages, dry_run: bool, delay: float) -> None:
+        """
+        For each page, hit its live URL, parse og:image from the <head>,
+        download that image, and assign it as featured_image / og_image.
+        """
+        import re
+        import time
+        import requests
+
+        OG_RE = re.compile(
+            r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+            re.IGNORECASE,
+        )
+        # Also handle reversed attribute order: content=... property=...
+        OG_RE2 = re.compile(
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+            re.IGNORECASE,
+        )
+
+        def extract_og_image(html_head: str) -> str | None:
+            m = OG_RE.search(html_head) or OG_RE2.search(html_head)
+            return m.group(1) if m else None
+
+        pages = [("blog", p) for p in blog_pages] + [("svc", p) for p in service_pages]
+        total = len(pages)
+        ok = err = skip = 0
+
+        self.stdout.write(f"Scraping {total} live pages (delay={delay}s)…\n")
+
+        for i, (kind, page) in enumerate(pages, 1):
+            try:
+                site     = page.get_site()
+                hostname = site.hostname
+            except Exception:
+                self.stdout.write(self.style.WARNING(f"  – [{i}/{total}] {page.slug}: no site found"))
+                skip += 1
+                continue
+
+            prefix   = "blog" if kind == "blog" else "services"
+            live_url = f"https://{hostname}/{prefix}/{page.slug}/"
+            label    = f"[{i}/{total}] {kind} {page.slug}"
+
+            # Fetch only the first 20 KB — og:image is always in <head>
+            try:
+                resp = requests.get(
+                    live_url, timeout=15, stream=True,
+                    headers={"User-Agent": "WritingSystemBot/1.0"},
+                )
+                resp.raise_for_status()
+                chunk = b""
+                for part in resp.iter_content(4096):
+                    chunk += part
+                    if len(chunk) >= 20_000:
+                        break
+                resp.close()
+                html_head = chunk.decode("utf-8", errors="replace")
+            except Exception as exc:
+                self.stdout.write(self.style.WARNING(f"  – {label}: fetch failed — {exc}"))
+                err += 1
+                time.sleep(delay)
+                continue
+
+            img_url = extract_og_image(html_head)
+            if not img_url:
+                self.stdout.write(self.style.WARNING(f"  – {label}: no og:image in <head>"))
+                skip += 1
+                time.sleep(delay)
+                continue
+
+            if dry_run:
+                self.stdout.write(f"  {label}  →  {img_url}")
+                ok += 1
+                time.sleep(delay * 0.2)
+                continue
+
+            try:
+                fname = self._filename_from_url(img_url, page.slug)
+                img   = self._download_and_create_image(
+                    url=img_url,
+                    title=f"Featured image — {page.title}",
+                    filename=fname,
+                )
+                self._assign_image(kind, page, img)
+                self.stdout.write(self.style.SUCCESS(f"  ✓ {label}"))
+                ok += 1
+            except Exception as exc:
+                self.stdout.write(self.style.ERROR(f"  ✗ {label}: {exc}"))
+                err += 1
+
+            time.sleep(delay)
+
+        self.stdout.write(f"\nDone — {ok} assigned, {err} errors, {skip} no-image.\n")
+
     # ── helpers ───────────────────────────────────────────────────────────────
 
     def _get_blog_pages(self, site_domain: Optional[str], force: bool):
         from cms_blog.models import BlogPostPage
+        from django.db import connection as _conn
         from wagtail.models import Site
-        qs = BlogPostPage.objects.live()
+
+        # Defer fields that may not exist in partially-migrated DBs
+        with _conn.cursor() as cur:
+            cur.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name='cms_blog_blogpostpage'"
+            )
+            existing_cols = {r[0] for r in cur.fetchall()}
+        defer_fields = [
+            f.name for f in BlogPostPage._meta.get_fields()
+            if hasattr(f, 'column') and f.column not in existing_cols
+        ]
+
+        qs = BlogPostPage.objects.live().defer(*defer_fields) if defer_fields else BlogPostPage.objects.live()
         if site_domain:
             try:
                 site = Site.objects.get(hostname=site_domain)
