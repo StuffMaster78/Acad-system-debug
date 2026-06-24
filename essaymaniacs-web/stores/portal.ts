@@ -61,7 +61,7 @@ const FALLBACK: PortalContext = {
     secondary_color: '#4c1d95',
     accent_color: '#a78bfa',
     homepage_headline: 'Nursing Papers Written by Real Nurses',
-    homepage_subheadline: 'Academic writers craft your essays, research papers, and assignments from scratch.
+    homepage_subheadline: 'Academic writers craft your essays, research papers, and assignments from scratch.',
     social_twitter_url: '',
     social_facebook_url: '',
     social_instagram_url: '',
