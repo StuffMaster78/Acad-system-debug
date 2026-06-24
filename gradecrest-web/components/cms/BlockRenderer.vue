@@ -203,6 +203,22 @@ function tableHasColHeader(v: unknown): boolean {
   return asBool(asObj(v).first_col_is_header)
 }
 
+// Table style system — 4 variants the editor picks in Wagtail CMS.
+// Tailwind JIT scans these string literals at build time so all classes are emitted.
+const _TBL = {
+  default:    { wrap: 'overflow-hidden rounded-2xl border border-slate-200 shadow-sm', head: 'bg-slate-900 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-300 whitespace-nowrap', row: 'border-t border-slate-100 transition-colors hover:bg-slate-50/60', col: 'border-r border-slate-100 bg-slate-50 px-5 py-3.5 text-left text-[13px] font-semibold text-ink whitespace-nowrap', cell: 'px-5 py-3.5 text-[13px] leading-relaxed text-slate-600' },
+  zebra:      { wrap: 'overflow-hidden rounded-2xl border border-slate-200', head: 'bg-slate-100 px-5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap', row: 'border-t border-slate-100 even:bg-slate-50/80', col: 'border-r border-slate-200 bg-slate-100/60 px-5 py-3 text-left text-[13px] font-semibold text-ink whitespace-nowrap', cell: 'px-5 py-3 text-[13px] leading-relaxed text-slate-600' },
+  comparison: { wrap: 'overflow-hidden rounded-2xl border border-brand-100 shadow-sm', head: 'bg-brand-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white whitespace-nowrap', row: 'border-t border-slate-100 transition-colors hover:bg-brand-50/40', col: 'border-r border-brand-100 bg-brand-50 px-5 py-3.5 text-left text-[13px] font-semibold text-brand-800 whitespace-nowrap', cell: 'px-5 py-3.5 text-[13px] leading-relaxed text-slate-600' },
+  minimal:    { wrap: '', head: 'border-b-2 border-slate-900 bg-transparent px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap', row: 'border-b border-slate-100', col: 'border-r border-slate-100 px-4 py-3 text-left text-[13px] font-semibold text-ink whitespace-nowrap', cell: 'px-4 py-3 text-[13px] leading-relaxed text-slate-600' },
+} as const
+type _TblKey = keyof typeof _TBL
+function _tbl(s: string) { return _TBL[(s as _TblKey) in _TBL ? (s as _TblKey) : 'default'] }
+function tblWrap(s: string)    { return _tbl(s).wrap }
+function tblHead(s: string)    { return _tbl(s).head }
+function tblRow(s: string)     { return _tbl(s).row }
+function tblColHead(s: string) { return _tbl(s).col }
+function tblCell(s: string)    { return _tbl(s).cell }
+
 // ── Mid-article CTA injection ─────────────────────────────────────────────────
 // Injects the inline CTA HTML after the 4th paragraph block.
 const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
@@ -667,35 +683,34 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
     </div>
 
     <!-- ── Table ─────────────────────────────────────────────────────────── -->
-    <figure v-else-if="block.type === 'table'" class="my-6 not-prose overflow-x-auto">
-      <table class="w-full text-sm border-collapse">
-        <template v-for="(row, rIdx) in tableData(asObj(block.value).table)" :key="rIdx">
-          <thead v-if="rIdx === 0 && tableHasHeader(asObj(block.value).table)">
-            <tr>
-              <th
-                v-for="(cell, cIdx) in row"
-                :key="cIdx"
-                class="border border-slate-200 bg-slate-100 px-4 py-2 text-left font-semibold text-ink"
-              >{{ cell }}</th>
-            </tr>
-          </thead>
-          <tbody v-else-if="rIdx > 0 || !tableHasHeader(asObj(block.value).table)">
-            <tr class="even:bg-slate-50">
-              <template v-for="(cell, cIdx) in row" :key="cIdx">
-                <th
-                  v-if="cIdx === 0 && tableHasColHeader(asObj(block.value).table)"
-                  class="border border-slate-200 bg-slate-100 px-4 py-2 text-left font-semibold text-ink"
-                >{{ cell }}</th>
-                <td v-else class="border border-slate-200 px-4 py-2 text-ink">{{ cell }}</td>
-              </template>
-            </tr>
-          </tbody>
-        </template>
-      </table>
-      <figcaption
-        v-if="asStr(asObj(block.value).caption)"
-        class="mt-2 text-center text-xs text-slate-400"
-      >{{ asStr(asObj(block.value).caption) }}</figcaption>
+    <figure v-else-if="block.type === 'table'" class="my-8 not-prose">
+      <p v-if="asStr(asObj(block.value).caption)"
+        class="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+        {{ asStr(asObj(block.value).caption) }}
+      </p>
+      <div :class="tblWrap(asStr(asObj(block.value).style))">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <template v-for="(row, rIdx) in tableData(asObj(block.value).table)" :key="rIdx">
+              <thead v-if="rIdx === 0 && tableHasHeader(asObj(block.value).table)">
+                <tr>
+                  <th v-for="(cell, cIdx) in row" :key="cIdx"
+                    :class="tblHead(asStr(asObj(block.value).style))">{{ cell }}</th>
+                </tr>
+              </thead>
+              <tbody v-else-if="rIdx > 0 || !tableHasHeader(asObj(block.value).table)">
+                <tr :class="tblRow(asStr(asObj(block.value).style))">
+                  <template v-for="(cell, cIdx) in row" :key="cIdx">
+                    <th v-if="cIdx === 0 && tableHasColHeader(asObj(block.value).table)"
+                      :class="tblColHead(asStr(asObj(block.value).style))">{{ cell }}</th>
+                    <td v-else :class="tblCell(asStr(asObj(block.value).style))">{{ cell }}</td>
+                  </template>
+                </tr>
+              </tbody>
+            </template>
+          </table>
+        </div>
+      </div>
     </figure>
 
     <!-- ── Code Block ────────────────────────────────────────────────────── -->

@@ -96,6 +96,10 @@ const _wcFixedRoutes  = new Set([
   'authors', 'privacy', 'terms', 'refunds', 'resources', 'login', 'register',
 ])
 
+function slugifyHeading(text: string): string {
+  return text.toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-')
+}
+
 function injectHeadingIds(html: string): string {
   return html.replace(
     /<(h[23])([^>]*)>([\s\S]*?)<\/h[23]>/gi,
@@ -168,6 +172,26 @@ function renderBlock(b: Block): string {
   if (type === 'code') {
     const v = value as { code: string; language?: string }
     return `<pre><code class="language-${v.language ?? 'text'}">${v.code}</code></pre>`
+  }
+
+  if (type === 'table') {
+    const v = value as { style?: string; caption?: string; table?: { data?: string[][]; first_row_is_table_header?: boolean; first_col_is_header?: boolean } }
+    const rows = v.table?.data ?? []
+    if (!rows.length) return ''
+    const hasHead = v.table?.first_row_is_table_header
+    const hasCol  = v.table?.first_col_is_header
+    const cap     = v.caption ? `<p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">${v.caption}</p>` : ''
+    const thead   = hasHead && rows[0]
+      ? `<thead><tr>${rows[0].map(c => `<th class="bg-slate-900 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-300 whitespace-nowrap">${c}</th>`).join('')}</tr></thead>`
+      : ''
+    const body = rows.slice(hasHead ? 1 : 0).map(row =>
+      `<tr class="border-t border-slate-100 transition-colors hover:bg-slate-50/60">${row.map((c, ci) =>
+        ci === 0 && hasCol
+          ? `<th class="border-r border-slate-100 bg-slate-50 px-5 py-3.5 text-left text-[13px] font-semibold whitespace-nowrap">${c}</th>`
+          : `<td class="px-5 py-3.5 text-[13px] leading-relaxed text-slate-600">${c}</td>`,
+      ).join('')}</tr>`,
+    ).join('')
+    return `${cap}<div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm"><div class="overflow-x-auto"><table class="w-full border-collapse text-sm">${thead}<tbody>${body}</tbody></table></div></div>`
   }
 
   // Unsupported block types are silently skipped

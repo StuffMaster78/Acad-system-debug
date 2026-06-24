@@ -880,16 +880,27 @@ class DisclaimerBlock(StructBlock):
 
 class TableDataBlock(StructBlock):
     """
-    Editable data table with an optional caption.
+    Editable data table with an optional caption and visual style.
 
     The inner TableBlock is backed by Handsontable in the Wagtail admin.
     Editors can set whether the first row and/or first column are headers.
     Data is stored as a 2-D array of strings.
     """
+    style = ChoiceBlock(
+        choices=[
+            ("default",    "Default — dark header, clean rows"),
+            ("zebra",      "Zebra — alternating row shading"),
+            ("comparison", "Comparison — brand-coloured header"),
+            ("minimal",    "Minimal — borderless, dividers only"),
+        ],
+        default="default",
+        required=False,
+        help_text="Visual style of the table.",
+    )
     caption = CharBlock(
         required=False,
         max_length=255,
-        help_text="Optional caption displayed below the table.",
+        help_text="Optional caption displayed above the table.",
     )
     table = TableBlock(
         table_options={

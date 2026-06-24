@@ -90,20 +90,20 @@ function processContentTables(html: string): string {
     (tbl) => tbl
       .replace(
         /<table\b[^>]*>/i,
-        '<div class="my-6 overflow-x-auto rounded-xl ring-1 ring-slate-200 shadow-sm not-prose">' +
-        '<table class="w-full border-collapse text-sm">',
+        '<div class="my-8 not-prose overflow-hidden rounded-2xl border border-slate-200 shadow-sm">' +
+        '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm">',
       )
-      .replace(/<\/table>/i, '</table></div>')
+      .replace(/<\/table>/i, '</table></div></div>')
       .replace(/<thead\b[^>]*>/gi, '<thead>')
-      .replace(/<tbody\b[^>]*>/gi, '<tbody class="divide-y divide-slate-100">')
-      .replace(/<tr\b[^>]*>/gi,  '<tr class="hover:bg-slate-50/50 transition-colors">')
+      .replace(/<tbody\b[^>]*>/gi, '<tbody>')
+      .replace(/<tr\b[^>]*>/gi,  '<tr class="border-t border-slate-100 transition-colors hover:bg-slate-50/60">')
       .replace(
         /<th\b[^>]*>/gi,
-        '<th class="border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">',
+        '<th class="bg-slate-900 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-300 whitespace-nowrap">',
       )
       .replace(
         /<td\b[^>]*>/gi,
-        '<td class="border-t border-slate-100 px-4 py-3 text-slate-700">',
+        '<td class="px-5 py-3.5 text-[13px] leading-relaxed text-slate-600">',
       )
       // Demote headings inside table cells → styled inline; keeps them out of TOC
       .replace(/<h[2-6][^>]*>([\s\S]*?)<\/h[2-6]>/gi, '<strong class="font-semibold text-ink">$1</strong>'),
