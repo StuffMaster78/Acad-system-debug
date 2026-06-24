@@ -95,7 +95,7 @@ export default defineNuxtConfig({
         headers: { Host: 'researchpapermate.com' },
       },
       '/assets/pages': {
-        target: 'https://nursemygrade.com',
+        target: 'https://researchpapermate.com',
         changeOrigin: true,
       },
     },

@@ -69,7 +69,7 @@ export default defineNuxtConfig({
         headers: { Host: 'gradecrest.com' },
       },
       '/assets/pages': {
-        target: 'https://nursemygrade.com',
+        target: 'https://gradecrest.com',
         changeOrigin: true,
       },
     },

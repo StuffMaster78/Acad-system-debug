@@ -62,7 +62,7 @@ export default defineNuxtConfig({
         headers: { Host: 'essaymaniacs.com' },
       },
       '/assets/pages': {
-        target: 'https://nursemygrade.com',
+        target: 'https://essaymaniacs.com',
         changeOrigin: true,
       },
     },

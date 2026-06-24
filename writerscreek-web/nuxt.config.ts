@@ -46,7 +46,7 @@ export default defineNuxtConfig({
         headers: { Host: 'writerscreek.com' },
       },
       '/assets/pages': {
-        target: 'https://nursemygrade.com',
+        target: 'https://writerscreek.com',
         changeOrigin: true,
       },
     },
