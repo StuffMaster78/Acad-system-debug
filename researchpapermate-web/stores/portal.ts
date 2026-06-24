@@ -61,7 +61,7 @@ const FALLBACK: PortalContext = {
     secondary_color: '#1e3a8a',
     accent_color: '#93c5fd',
     homepage_headline: 'Nursing Papers Written by Real Nurses',
-    homepage_subheadline: 'Research specialists write your papers — APA, MLA, Harvard. From $15/page.
+    homepage_subheadline: 'Research specialists write your papers — APA, MLA, Harvard. From $15/page.',
     social_twitter_url: '',
     social_facebook_url: '',
     social_instagram_url: '',

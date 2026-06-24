@@ -25,6 +25,7 @@ interface CmsArticle {
   author_bio: string
   canonical_published_at: string | null
   last_substantive_update: string | null
+  lead_magnet: { slug: string; title: string; description: string } | null
 }
 
 // ── Try CMS first ──────────────────────────────────────────────────────────
@@ -119,7 +120,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  tocObserver?.disconnect()
   if (updateReadProgress) window.removeEventListener('scroll', updateReadProgress)
   if (updateBackToTop) window.removeEventListener('scroll', updateBackToTop)
 })
