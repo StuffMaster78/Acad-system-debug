@@ -40,6 +40,11 @@ export interface PortalContext {
   allowed_roles: string[]
   ga4_measurement_id: string | null
   promo_bar: { enabled: boolean; code: string; message: string; suffix: string } | null
+  seo: {
+    og_image_url:        string | null
+    schema_org_logo_url: string | null
+    schema_org_name:     string | null
+  } | null
 }
 
 // Shown before the real context loads — always has valid strings
@@ -49,14 +54,14 @@ const FALLBACK: PortalContext = {
   website: { id: 0, name: 'ResearchPaperMate', slug: 'researchpapermate', domain: 'researchpapermate.com' },
   branding: {
     brand_name: 'ResearchPaperMate',
-    tagline: 'Reliable academic writing by humans, from $15/page.',
+    tagline: 'Expert research papers and dissertations from $15/page.',
     logo_url: '',
     favicon_url: '',
-    primary_color: '#163e88',
-    secondary_color: '#0d2455',
-    accent_color: '#14b8a6',
-    homepage_headline: 'Get Research Papers, Essays & Assignments Done!',
-    homepage_subheadline: 'Reliable research paper writing service from $15/page — written by human experts across 100+ subjects.',
+    primary_color: '#2563eb',
+    secondary_color: '#1e3a8a',
+    accent_color: '#93c5fd',
+    homepage_headline: 'Nursing Papers Written by Real Nurses',
+    homepage_subheadline: 'Research specialists write your papers — APA, MLA, Harvard. From $15/page.
     social_twitter_url: '',
     social_facebook_url: '',
     social_instagram_url: '',
@@ -77,6 +82,7 @@ const FALLBACK: PortalContext = {
   allowed_roles: ['client'],
   ga4_measurement_id: null,
   promo_bar: null,
+  seo: null,
 }
 
 export const usePortalStore = defineStore('portal', {
@@ -106,9 +112,12 @@ export const usePortalStore = defineStore('portal', {
         { name: 'LinkedIn',    href: b.social_linkedin_url,  icon: 'linkedin'  },
       ].filter(l => !!l.href)
     },
-    disclosure:   (s) => s.ctx.payment_disclosure,
-    ga4Id:        (s) => s.ctx.ga4_measurement_id,
-    surface:      (s) => s.ctx.surface,
+    disclosure:      (s) => s.ctx.payment_disclosure,
+    ga4Id:           (s) => s.ctx.ga4_measurement_id,
+    surface:         (s) => s.ctx.surface,
+    ogImage:         (s) => s.ctx.seo?.og_image_url        ?? null,
+    schemaOrgLogo:   (s) => s.ctx.seo?.schema_org_logo_url ?? null,
+    schemaOrgName:   (s) => s.ctx.seo?.schema_org_name     ?? s.ctx.branding?.brand_name ?? null,
   },
 
   actions: {

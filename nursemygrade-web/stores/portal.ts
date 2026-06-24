@@ -40,6 +40,11 @@ export interface PortalContext {
   allowed_roles: string[]
   ga4_measurement_id: string | null
   promo_bar: { enabled: boolean; code: string; message: string; suffix: string } | null
+  seo: {
+    og_image_url:        string | null
+    schema_org_logo_url: string | null
+    schema_org_name:     string | null
+  } | null
 }
 
 // Shown before the real context loads — always has valid strings
@@ -77,6 +82,7 @@ const FALLBACK: PortalContext = {
   allowed_roles: ['client'],
   ga4_measurement_id: null,
   promo_bar: null,
+  seo: null,
 }
 
 export const usePortalStore = defineStore('portal', {
@@ -106,9 +112,12 @@ export const usePortalStore = defineStore('portal', {
         { name: 'LinkedIn',    href: b.social_linkedin_url,  icon: 'linkedin'  },
       ].filter(l => !!l.href)
     },
-    disclosure:   (s) => s.ctx.payment_disclosure,
-    ga4Id:        (s) => s.ctx.ga4_measurement_id,
-    surface:      (s) => s.ctx.surface,
+    disclosure:      (s) => s.ctx.payment_disclosure,
+    ga4Id:           (s) => s.ctx.ga4_measurement_id,
+    surface:         (s) => s.ctx.surface,
+    ogImage:         (s) => s.ctx.seo?.og_image_url        ?? null,
+    schemaOrgLogo:   (s) => s.ctx.seo?.schema_org_logo_url ?? null,
+    schemaOrgName:   (s) => s.ctx.seo?.schema_org_name     ?? s.ctx.branding?.brand_name ?? null,
   },
 
   actions: {

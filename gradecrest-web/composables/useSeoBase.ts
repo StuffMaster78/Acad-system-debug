@@ -1,37 +1,44 @@
 // Site-wide structured data + canonical helpers
+// Organization and WebSite LD+JSON are data-driven from TenantSEOSettings
+// (fetched in the layout via fetchSiteSettings). Per-page overrides add to these.
 
-const ORG_LD = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  '@id': 'https://gradecrest.com/#org',
-  name: 'GradeCrest',
-  url: 'https://gradecrest.com',
-  logo: 'https://gradecrest.com/logo.png',
-  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'English' },
-  sameAs: ['https://www.trustpilot.com/review/gradecrest.com'],
-}
+export function useSeoBase(canonical: string, settings?: Awaited<ReturnType<typeof fetchSiteSettings>>) {
+  // Fall back to the cached settings the layout already fetched — no extra request
+  const cached  = useNuxtData<Awaited<ReturnType<typeof fetchSiteSettings>>>('gc-site-settings')
+  const s       = settings ?? cached.data.value ?? null
+  const orgName = s?.schema_org_name || 'GradeCrest'
+  const siteUrl = canonical.replace(/\/[^/]*$/, '') || 'https://gradecrest.com'
+  const logoUrl = s?.schema_org_logo_url || undefined
 
-const WEBSITE_LD = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  '@id': 'https://gradecrest.com/#website',
-  url: 'https://gradecrest.com',
-  name: 'GradeCrest',
-  description: 'Academic writing service — essays, research papers, dissertations written by human experts.',
-  publisher: { '@id': 'https://gradecrest.com/#org' },
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: { '@type': 'EntryPoint', urlTemplate: 'https://gradecrest.com/services?q={search_term_string}' },
-    'query-input': 'required name=search_term_string',
-  },
-}
+  const org: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#org`,
+    name: orgName,
+    url: siteUrl,
+    ...(logoUrl ? { logo: logoUrl } : {}),
+    contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'English' },
+  }
 
-export function useSeoBase(canonical: string) {
+  const website: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteUrl}/#website`,
+    url: siteUrl,
+    name: orgName,
+    publisher: { '@id': `${siteUrl}/#org` },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${siteUrl}/services?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  }
+
   useHead({
     link: [{ rel: 'canonical', href: canonical }],
     script: [
-      { type: 'application/ld+json', innerHTML: JSON.stringify(ORG_LD) },
-      { type: 'application/ld+json', innerHTML: JSON.stringify(WEBSITE_LD) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(org) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(website) },
     ],
   })
 }

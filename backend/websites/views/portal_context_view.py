@@ -117,24 +117,38 @@ class PortalContextView(APIView):
                     ),
                 }
 
-        # Resolve GA4 + promo bar from TenantSEOSettings (Wagtail site setting)
+        # Resolve SEO fields from TenantSEOSettings (Wagtail site setting)
         ga4_measurement_id = None
         promo_bar = None
+        og_image_url = None
+        schema_org_logo_url = None
+        schema_org_name = None
         if website:
             try:
                 from wagtail.models import Site as WagtailSite
                 from cms_core.models import TenantSEOSettings
-                wagtail_site = WagtailSite.objects.filter(
-                    hostname__iexact=website.domain.replace("https://", "").replace("http://", "").split("/")[0]
-                ).first()
+                hostname = website.domain.replace("https://", "").replace("http://", "").split("/")[0]
+                wagtail_site = WagtailSite.objects.filter(hostname__iexact=hostname).first()
                 if wagtail_site:
-                    seo_settings = TenantSEOSettings.for_site(wagtail_site)
-                    ga4_measurement_id = getattr(seo_settings, "google_analytics_id", None) or None
+                    seo = TenantSEOSettings.for_site(wagtail_site)
+
+                    def _img_url(fk, spec="original"):
+                        if not fk:
+                            return None
+                        try:
+                            return fk.get_rendition(spec).url
+                        except Exception:
+                            return getattr(getattr(fk, "file", None), "url", None)
+
+                    ga4_measurement_id = getattr(seo, "google_analytics_id", None) or None
+                    og_image_url       = _img_url(getattr(seo, "default_og_image", None), "width-1200")
+                    schema_org_logo_url = _img_url(getattr(seo, "schema_org_logo", None), "max-512x512")
+                    schema_org_name    = getattr(seo, "schema_org_name", None) or None
                     promo_bar = {
-                        "enabled": getattr(seo_settings, "promo_bar_enabled", True),
-                        "code":    getattr(seo_settings, "promo_code", "") or "",
-                        "message": getattr(seo_settings, "promo_message", "") or "",
-                        "suffix":  getattr(seo_settings, "promo_suffix", "") or "",
+                        "enabled": getattr(seo, "promo_bar_enabled", True),
+                        "code":    getattr(seo, "promo_code", "") or "",
+                        "message": getattr(seo, "promo_message", "") or "",
+                        "suffix":  getattr(seo, "promo_suffix", "") or "",
                     }
             except Exception:
                 pass
@@ -149,5 +163,10 @@ class PortalContextView(APIView):
                 "allowed_roles": allowed_roles,
                 "ga4_measurement_id": ga4_measurement_id,
                 "promo_bar": promo_bar,
+                "seo": {
+                    "og_image_url":        og_image_url,
+                    "schema_org_logo_url": schema_org_logo_url,
+                    "schema_org_name":     schema_org_name,
+                },
             }
         )

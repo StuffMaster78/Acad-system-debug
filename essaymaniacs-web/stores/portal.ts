@@ -40,6 +40,11 @@ export interface PortalContext {
   allowed_roles: string[]
   ga4_measurement_id: string | null
   promo_bar: { enabled: boolean; code: string; message: string; suffix: string } | null
+  seo: {
+    og_image_url:        string | null
+    schema_org_logo_url: string | null
+    schema_org_name:     string | null
+  } | null
 }
 
 // Shown before the real context loads — always has valid strings
@@ -49,14 +54,14 @@ const FALLBACK: PortalContext = {
   website: { id: 0, name: 'EssayManiacs', slug: 'essaymaniacs', domain: 'essaymaniacs.com' },
   branding: {
     brand_name: 'EssayManiacs',
-    tagline: 'Expert essays written by subject maniacs. From $10/page.',
+    tagline: 'Professional essays written by academic experts — from $13/page.',
     logo_url: '',
     favicon_url: '',
     primary_color: '#7c3aed',
     secondary_color: '#4c1d95',
-    accent_color: '#14b8a6',
-    homepage_headline: 'Essays Written by People Who Actually Love the Subject',
-    homepage_subheadline: 'Expert essay writing across every subject and level. From $10/page. Zero AI. Grade or money back.',
+    accent_color: '#a78bfa',
+    homepage_headline: 'Nursing Papers Written by Real Nurses',
+    homepage_subheadline: 'Academic writers craft your essays, research papers, and assignments from scratch.
     social_twitter_url: '',
     social_facebook_url: '',
     social_instagram_url: '',
@@ -77,6 +82,7 @@ const FALLBACK: PortalContext = {
   allowed_roles: ['client'],
   ga4_measurement_id: null,
   promo_bar: null,
+  seo: null,
 }
 
 export const usePortalStore = defineStore('portal', {
@@ -91,7 +97,7 @@ export const usePortalStore = defineStore('portal', {
     tagline:      (s) => s.ctx.branding?.tagline        ?? '',
     logo:         (s) => s.ctx.branding?.logo_url       ?? null,
     favicon:      (s) => s.ctx.branding?.favicon_url    ?? null,
-    primaryColor: (s) => s.ctx.branding?.primary_color  ?? '#7c3aed',
+    primaryColor: (s) => s.ctx.branding?.primary_color  ?? '#163e88',
     heroHeadline: (s) => s.ctx.branding?.homepage_headline    || FALLBACK.branding!.homepage_headline,
     heroSub:      (s) => s.ctx.branding?.homepage_subheadline || FALLBACK.branding!.homepage_subheadline,
     socialLinks:  (s) => {
@@ -106,9 +112,12 @@ export const usePortalStore = defineStore('portal', {
         { name: 'LinkedIn',    href: b.social_linkedin_url,  icon: 'linkedin'  },
       ].filter(l => !!l.href)
     },
-    disclosure:   (s) => s.ctx.payment_disclosure,
-    ga4Id:        (s) => s.ctx.ga4_measurement_id,
-    surface:      (s) => s.ctx.surface,
+    disclosure:      (s) => s.ctx.payment_disclosure,
+    ga4Id:           (s) => s.ctx.ga4_measurement_id,
+    surface:         (s) => s.ctx.surface,
+    ogImage:         (s) => s.ctx.seo?.og_image_url        ?? null,
+    schemaOrgLogo:   (s) => s.ctx.seo?.schema_org_logo_url ?? null,
+    schemaOrgName:   (s) => s.ctx.seo?.schema_org_name     ?? s.ctx.branding?.brand_name ?? null,
   },
 
   actions: {
