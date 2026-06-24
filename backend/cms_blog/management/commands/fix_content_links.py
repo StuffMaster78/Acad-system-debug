@@ -64,6 +64,10 @@ def _fix_href(href: str) -> str:
     for bad, good in SLUG_TYPOS:
         href = href.replace(bad, good)
 
+    # 6. Known wrong-route aliases
+    if href == "/place-order":
+        href = "/order"
+
     return href if href != orig else orig
 
 
