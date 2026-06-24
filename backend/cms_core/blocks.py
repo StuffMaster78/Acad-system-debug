@@ -67,7 +67,20 @@ class HeadingBlock(StructBlock):
 
 
 class ParagraphBlock(RichTextBlock):
-    """Rich text paragraph. Supports bold, italic, links."""
+    """Rich text paragraph with full formatting and custom inline styles."""
+
+    FEATURES = [
+        "h2", "h3", "h4",
+        "bold", "italic", "link",
+        "ol", "ul", "blockquote",
+        "superscript", "subscript", "strikethrough",
+        # Custom inline styles (font weight + colour)
+        "inline-semibold", "inline-brand", "inline-muted", "inline-highlight",
+    ]
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("features", self.FEATURES)
+        super().__init__(**kwargs)
 
     class Meta:
         icon = "pilcrow"

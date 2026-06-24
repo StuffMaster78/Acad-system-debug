@@ -68,3 +68,28 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 .em-fade { animation: em-fade-in 0.18s ease-out both; }
+
+/* ── Inline rich-text styles ────────────────────────────────────────────────
+   Applied via Wagtail Draftail custom inline style features.
+   Selectors use .prose and .prose-content to ensure they survive Tailwind
+   typography resets. The brand colour resolves to each site's own palette.  */
+
+.prose .inline-semibold,
+.prose-content .inline-semibold {
+  @apply font-semibold;
+}
+
+.prose .inline-brand,
+.prose-content .inline-brand {
+  @apply font-medium text-brand-600;
+}
+
+.prose .inline-muted,
+.prose-content .inline-muted {
+  @apply text-slate-400;
+}
+
+.prose .inline-highlight,
+.prose-content .inline-highlight {
+  @apply rounded bg-yellow-100 px-0.5 not-italic;
+}

@@ -7,6 +7,8 @@ export default defineNuxtConfig({
 
   devServer: { port: 3001 },
 
+  css: ['~/assets/css/main.css'],
+
   components: [
     { path: '~/components/layout',    prefix: '' },
     { path: '~/components/marketing', prefix: '' },

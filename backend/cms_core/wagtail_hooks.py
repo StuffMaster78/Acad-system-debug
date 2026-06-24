@@ -244,3 +244,81 @@ def customize_main_menu(request, menu_items):
 def global_admin_css():
     """Add custom CSS to the Wagtail admin."""
     return '<link rel="stylesheet" href="/static/cms_core/css/admin.css">'
+
+
+# ===========================================================================
+# CUSTOM INLINE RICH-TEXT STYLES
+# Adds font-weight and colour toolbar buttons to the Draftail editor.
+# Each style wraps selected text in a <span class="..."> in the stored HTML.
+# The frontend renders these via CSS in each site's prose context.
+# ===========================================================================
+
+_INLINE_STYLES = [
+    {
+        "feature":     "inline-semibold",
+        "type":        "INLINE_SEMIBOLD",
+        "label":       "𝗦",
+        "description": "Semibold — slightly heavier than normal, softer than bold",
+        "editor_style": {"fontWeight": "600"},
+        "css_class":   "inline-semibold",
+    },
+    {
+        "feature":     "inline-brand",
+        "type":        "INLINE_BRAND",
+        "label":       "●",
+        "description": "Brand colour — highlight key terms in the site accent colour",
+        "editor_style": {"color": "#16a34a", "fontWeight": "500"},
+        "css_class":   "inline-brand",
+    },
+    {
+        "feature":     "inline-muted",
+        "type":        "INLINE_MUTED",
+        "label":       "—",
+        "description": "Muted — secondary / parenthetical text, lower visual weight",
+        "editor_style": {"color": "#94a3b8"},
+        "css_class":   "inline-muted",
+    },
+    {
+        "feature":     "inline-highlight",
+        "type":        "INLINE_HIGHLIGHT",
+        "label":       "◩",
+        "description": "Highlight — yellow marker for very important terms",
+        "editor_style": {"backgroundColor": "#fef9c3", "borderRadius": "2px", "padding": "0 2px"},
+        "css_class":   "inline-highlight",
+    },
+]
+
+
+@hooks.register("register_rich_text_features")
+def register_custom_inline_styles(features):
+    from wagtail.admin.rich_text.converters.html_to_contentstate import InlineStyleElementHandler
+    from wagtail.admin.rich_text.editors.draftail.features import InlineStyleFeature
+
+    for s in _INLINE_STYLES:
+        features.register_editor_plugin(
+            "draftail",
+            s["feature"],
+            InlineStyleFeature({
+                "type":        s["type"],
+                "label":       s["label"],
+                "description": s["description"],
+                "style":       s["editor_style"],
+            }),
+        )
+        features.register_converter_rule(
+            "contentstate",
+            s["feature"],
+            {
+                "from_database_format": {
+                    f'span[class="{s["css_class"]}"]': InlineStyleElementHandler(s["type"]),
+                },
+                "to_database_format": {
+                    "style_map": {
+                        s["type"]: {
+                            "element": "span",
+                            "props":   {"class": s["css_class"]},
+                        },
+                    },
+                },
+            },
+        )
