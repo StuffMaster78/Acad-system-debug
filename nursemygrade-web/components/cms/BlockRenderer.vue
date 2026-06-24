@@ -3,8 +3,6 @@ import { computed } from 'vue'
 import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Circle, Plus, Minus, X } from '@lucide/vue'
 
 const app = useAppUrl()
-const _cfg = useRuntimeConfig()
-const _siteUrl = (_cfg.public.siteUrl as string) || ''
 
 interface Block { type: string; value: unknown }
 
@@ -63,22 +61,20 @@ function fixEncoding(s: string): string {
     .replace(/Ã±/g, 'ñ')       // ñ → ñ
 }
 
-// Fix relative src URLs on inline images.
-// /media/  → absolute Django URL in dev (nginx handles it in prod)
-// /assets/ → absolute live-site URL (old static-site assets)
+// Rewrite inline /media/ image src to absolute in dev — the wagtail proxy handles
+// JSON fields but paragraph HTML is a raw string so it may still have relative URLs.
+// /assets/ paths are Nuxt public files served at same origin; no rewrite needed.
 function processContentImages(html: string): string {
   if (!html.includes('<img')) return html
-  const isDev = _siteHost.includes('localhost')
+  if (!_siteHost.includes('localhost')) return html
   return html.replace(
-    /<img([^>]*)\bsrc="(\/[^"]+)"([^>]*?)>/gi,
-    (orig, before, src, after) => {
-      let absUrl = src
-      if (src.startsWith('/media/') && isDev) absUrl = `http://localhost:8000${src}`
-      else if (!src.startsWith('/media/')) absUrl = `${_siteUrl}${src}`
-      if (absUrl === src) return orig
-      const hasClass   = /\bclass=/i.test(before + after)
-      const hasLoading = /\bloading=/i.test(before + after)
-      return `<img${before} src="${absUrl}"${after}${hasClass ? '' : ' class="my-4 max-w-full rounded-xl"'}${hasLoading ? '' : ' loading="lazy"'}>`
+    /<img([^>]*)\bsrc="(\/media\/[^"]+)"([^>]*?)>/gi,
+    (_orig, before, src, rawAfter) => {
+      const after     = rawAfter.replace(/\s*\/\s*$/, '')  // strip XHTML self-closing slash
+      const absUrl    = `http://localhost:8000${src}`
+      const hasClass  = /\bclass=/i.test(before + after)
+      const hasLoad   = /\bloading=/i.test(before + after)
+      return `<img${before} src="${absUrl}"${after}${hasClass ? '' : ' class="my-4 max-w-full rounded-xl"'}${hasLoad ? '' : ' loading="lazy"'}>`
     },
   )
 }
