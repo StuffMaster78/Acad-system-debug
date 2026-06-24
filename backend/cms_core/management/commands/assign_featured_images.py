@@ -349,25 +349,79 @@ class Command(BaseCommand):
 
     @staticmethod
     def _download_and_create_image(url: str, title: str, filename: str):
+        """
+        Download image → convert to JPEG via PIL → save to media storage →
+        insert wagtailimages_image row via raw SQL (bypassing Wagtail's save()
+        which resets width/height to None when it can't re-open the file).
+        """
+        import hashlib
+        import io
+        import os
         import requests
+        from PIL import Image as PILImage
+        from django.conf import settings
+        from django.db import connection
+        from django.utils import timezone
         from wagtail.images import get_image_model
-
-        Image = get_image_model()
 
         resp = requests.get(url, timeout=30, headers={"User-Agent": "WritingSystemBot/1.0"})
         resp.raise_for_status()
 
-        img = Image(title=title)
-        img.file.save(filename, ContentFile(resp.content), save=True)
-        return img
+        # Convert any format (webp, png, avif…) → JPEG
+        pil    = PILImage.open(io.BytesIO(resp.content)).convert("RGB")
+        width, height = pil.size
+        buf    = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=85, optimize=True)
+        jpeg_bytes = buf.getvalue()
+
+        safe_name   = filename.rsplit(".", 1)[0] + ".jpg"
+        upload_path = f"original_images/{safe_name}"
+        file_hash   = hashlib.md5(jpeg_bytes).hexdigest()
+
+        # Write to media root directly
+        full_path = os.path.join(settings.MEDIA_ROOT, upload_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "wb") as fh:
+            fh.write(jpeg_bytes)
+
+        # Insert image record — skip Wagtail's save() to avoid dimension reset
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM wagtailcore_collection ORDER BY id LIMIT 1"
+            )
+            collection_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                INSERT INTO wagtailimages_image
+                  (title, file, width, height, created_at,
+                   collection_id, file_size, file_hash, description)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, '')
+                RETURNING id
+                """,
+                [title, upload_path, width, height,
+                 timezone.now(), collection_id,
+                 len(jpeg_bytes), file_hash],
+            )
+            image_id = cur.fetchone()[0]
+
+        WagtailImage = get_image_model()
+        return WagtailImage.objects.get(pk=image_id)
 
     @staticmethod
     def _assign_image(kind: str, page, img) -> None:
+        from django.db import connection
         if kind == "blog":
-            page.featured_image = img
+            with connection.cursor() as cur:
+                cur.execute(
+                    "UPDATE cms_blog_blogpostpage SET featured_image_id=%s WHERE page_ptr_id=%s",
+                    [img.pk, page.pk],
+                )
         else:
-            page.og_image = img
-        page.save_revision().publish()
+            with connection.cursor() as cur:
+                cur.execute(
+                    "UPDATE cms_service_pages_servicepage SET og_image_id=%s WHERE page_ptr_id=%s",
+                    [img.pk, page.pk],
+                )
 
     @staticmethod
     def _load_mapping(filepath: str) -> dict:
