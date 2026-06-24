@@ -120,6 +120,18 @@ class BlogPostDetailSerializer(serializers.Serializer):
             page, "last_substantive_update", None
         )
 
+        # Lead magnet (staff-selected cheat sheet / resource for this article)
+        lead_magnet = getattr(page, "lead_magnet", None)
+        if lead_magnet and lead_magnet.status == "published":
+            data["lead_magnet"] = {
+                "slug": lead_magnet.slug,
+                "title": lead_magnet.title,
+                "description": lead_magnet.description,
+                "gate_type": lead_magnet.gate_type,
+            }
+        else:
+            data["lead_magnet"] = None
+
         # TOC
         if hasattr(page, "toc"):
             data["toc"] = page.toc

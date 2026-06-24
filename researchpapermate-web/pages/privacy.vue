@@ -16,7 +16,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/privac
       </div>
     </div>
     <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-h3:text-base prose-h3:text-slate-800 prose-a:text-amber-700 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
+      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-h3:text-base prose-h3:text-slate-800 prose-a:text-amber-700 prose-a:underline prose-a:decoration-amber-300 hover:prose-a:decoration-amber-600 prose-strong:text-slate-900">
         <h2>1. Who we are</h2>
         <p>ResearchPaperMate operates at <a href="https://researchpapermate.com">researchpapermate.com</a> and is the data controller for personal information collected through this website. Contact us at <a href="mailto:privacy@researchpapermate.com">privacy@researchpapermate.com</a> for any privacy matter.</p>
         <h2>2. Information we collect</h2>

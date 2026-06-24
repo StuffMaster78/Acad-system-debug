@@ -82,6 +82,27 @@ function authorInitials(name: string | undefined) {
   return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name[0].toUpperCase()
 }
 
+// ── Link rewriting ────────────────────────────────────────────────────────────
+const { getAll: getAllServices } = useServices()
+const _wcServiceSlugs = new Set(getAllServices().map(s => s.slug))
+const _wcFixedRoutes  = new Set([
+  'order', 'pricing', 'contact', 'about', 'faq', 'blog', 'services',
+  'authors', 'privacy', 'terms', 'refunds', 'resources', 'login', 'register',
+])
+
+function rewriteLinks(html: string): string {
+  if (!html) return html
+  let out = html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
+    if (_wcServiceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_wcFixedRoutes.has(slug))  return _match
+    return `href="/blog/${slug}"`
+  })
+  out = out.replace(/(<a\s[^>]*href="https?:\/\/[^"]*"[^>]*)>/gi, (m, attrs) =>
+    /target=/i.test(attrs) ? m : `${attrs} target="_blank" rel="noopener noreferrer">`
+  )
+  return out
+}
+
 // ── Render body blocks ────────────────────────────────────────────────────────
 function renderBlocks(blocks: Block[]): string {
   return blocks.map(b => renderBlock(b)).join('')
@@ -95,7 +116,7 @@ function renderBlock(b: Block): string {
   const { type, value } = b
 
   if (type === 'rich_text') {
-    return typeof value === 'string' ? value : ''
+    return typeof value === 'string' ? rewriteLinks(value) : ''
   }
 
   if (type === 'heading') {
@@ -120,7 +141,7 @@ function renderBlock(b: Block): string {
 
   if (type === 'callout') {
     const v = value as { body: string; style?: string }
-    return `<div class="callout callout-${v.style ?? 'note'}">${v.body}</div>`
+    return `<div class="callout callout-${v.style ?? 'note'}">${rewriteLinks(v.body)}</div>`
   }
 
   if (type === 'code') {
@@ -299,7 +320,7 @@ useHead({
         <div
           class="prose prose-slate prose-lg mt-10 max-w-none
                  prose-headings:font-bold prose-headings:tracking-tight
-                 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+                 prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
                  prose-strong:text-slate-900
                  prose-blockquote:border-brand-400 prose-blockquote:text-slate-700
                  prose-pre:bg-slate-900 prose-code:text-brand-600"
@@ -441,3 +462,14 @@ useHead({
 
   </div>
 </template>
+
+<style scoped>
+:deep(a[target="_blank"][href^="http"])::after {
+  content: '\2197';
+  display: inline-block;
+  font-size: 0.65em;
+  vertical-align: super;
+  margin-left: 0.15em;
+  opacity: 0.7;
+}
+</style>

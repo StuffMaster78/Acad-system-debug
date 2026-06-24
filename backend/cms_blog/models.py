@@ -190,6 +190,19 @@ class BlogPostPage(Page):
         help_text="Expert who reviewed this post for accuracy — shown in editorial transparency section.",
     )
 
+    # --- Lead magnet ---
+    lead_magnet = models.ForeignKey(
+        "cms_attachments.Attachment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="blog_posts",
+        help_text=(
+            "Optional: attach a gated resource (cheat sheet, template, guide) that "
+            "appears after the article body. Leave blank to show no download offer."
+        ),
+    )
+
     # --- Content migration ---
     original_published_at = models.DateTimeField(
         null=True,
@@ -254,6 +267,10 @@ class BlogPostPage(Page):
         ),
         FieldPanel("last_substantive_update"),
         FieldPanel("reviewer"),
+        FieldPanel(
+            "lead_magnet",
+            help_text="Choose a cheat sheet or guide to offer readers after this article. Leave blank to hide the download form.",
+        ),
         MultiFieldPanel(
             [
                 FieldPanel("original_published_at"),

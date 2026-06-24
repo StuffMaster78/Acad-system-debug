@@ -845,6 +845,14 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 
+# ── Cheat sheets (lead-gen PDF delivery) ──────────────────────────────────────
+# RESEND_API_KEY: primary transactional email provider for cheat sheet delivery.
+# Falls back to Django email backend if not set.
+RESEND_API_KEY = env("RESEND_API_KEY", "")
+# SITE_URL: base URL used to build cheat sheet download links in emails.
+# Defaults to WAGTAILADMIN_BASE_URL in development.
+SITE_URL = env("SITE_URL", "")
+
 # ── Stripe ────────────────────────────────────────────────────────────────────
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")

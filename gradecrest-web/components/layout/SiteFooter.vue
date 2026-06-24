@@ -111,8 +111,8 @@ const legal = [
 
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-      <!-- ── Row 2: Account · Legal · Trust ──────────────────────────────── -->
-      <div class="grid gap-8 border-t border-white/10 py-10 sm:grid-cols-3">
+      <!-- ── Row 2: Account · Legal · Free Tools · Trust ─────────────────── -->
+      <div class="grid gap-8 border-t border-white/10 py-10 sm:grid-cols-2 lg:grid-cols-4">
 
         <!-- Account -->
         <div>
@@ -132,6 +132,23 @@ const legal = [
               <NuxtLink :to="item.href" class="text-sm transition-colors hover:text-white">{{ item.label }}</NuxtLink>
             </li>
           </ul>
+        </div>
+
+        <!-- Free Tools -->
+        <div>
+          <p class="mb-4 text-xs font-semibold uppercase tracking-widest text-gold-400">Free Tools</p>
+          <ul class="space-y-2">
+            <li><NuxtLink to="/tools/citation-generator"   class="text-sm transition-colors hover:text-white">Citation Generator</NuxtLink></li>
+            <li><NuxtLink to="/tools/thesis-generator"     class="text-sm transition-colors hover:text-white">Thesis Generator</NuxtLink></li>
+            <li><NuxtLink to="/tools/outline-generator"    class="text-sm transition-colors hover:text-white">Outline Generator</NuxtLink></li>
+            <li><NuxtLink to="/tools/title-page-generator" class="text-sm transition-colors hover:text-white">Title Page Generator</NuxtLink></li>
+            <li><NuxtLink to="/tools/word-counter"         class="text-sm transition-colors hover:text-white">Word Counter</NuxtLink></li>
+            <li><NuxtLink to="/tools/words-to-pages"       class="text-sm transition-colors hover:text-white">Words to Pages</NuxtLink></li>
+            <li><NuxtLink to="/tools/gpa-calculator"       class="text-sm transition-colors hover:text-white">GPA Calculator</NuxtLink></li>
+            <li><NuxtLink to="/tools/plagiarism-checker"      class="text-sm transition-colors hover:text-white">Plagiarism Checker</NuxtLink></li>
+            <li><NuxtLink to="/tools/research-gap-identifier" class="text-sm transition-colors hover:text-white">Research Gap Identifier</NuxtLink></li>
+          </ul>
+          <NuxtLink to="/tools" class="mt-3 block text-xs font-semibold text-gold-400 hover:text-gold-300 transition-colors">All tools →</NuxtLink>
         </div>
 
         <!-- Trust & payments -->

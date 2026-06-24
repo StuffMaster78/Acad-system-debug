@@ -3,6 +3,37 @@ import type { CmsBlock } from '~/composables/useServiceCms'
 
 defineProps<{ blocks: CmsBlock[] }>()
 
+const { getAll: getAllServices } = useServices()
+const { getAll: getAllBlogPosts } = useBlog()
+const _serviceSlugs = new Set(getAllServices().map(s => s.slug))
+const _blogSlugs    = new Set(getAllBlogPosts().map(p => p.slug))
+
+const _fixedRoutes = new Set([
+  'order', 'pricing', 'contact', 'about', 'faq', 'blog', 'services',
+  'authors', 'privacy', 'terms', 'refunds', 'resources', 'login', 'register',
+])
+
+function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
+const _siteHost = useRequestURL().hostname
+
+function rewriteLinks(html: string): string {
+  if (!html) return html
+  const sameOriginRe = new RegExp(
+    `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',
+  )
+  let out = html.replace(sameOriginRe, 'href="$1"')
+  out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
+    if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
+    if (_fixedRoutes.has(slug))  return `href="/${slug}"`
+    return _match
+  })
+  out = out.replace(/(<a\s[^>]*href="https?:\/\/[^"]*"[^>]*)>/gi, (m, attrs) =>
+    /target=/i.test(attrs) ? m : `${attrs} target="_blank" rel="noopener noreferrer">`
+  )
+  return out
+}
+
 // ── Block value type helpers ──────────────────────────────────────
 type HeadingVal   = { text: string; level: 'h2' | 'h3' | 'h4' }
 type ParagraphVal = string
@@ -91,9 +122,9 @@ const CALLOUT_STYLES: Record<string, string> = {
         <div
           class="prose prose-slate max-w-none
                  prose-headings:font-serif prose-headings:break-after-avoid
-                 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+                 prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
                  prose-strong:text-slate-900 prose-p:mb-4 prose-p:leading-relaxed"
-          v-html="cleanHtml(block.value as ParagraphVal)"
+          v-html="rewriteLinks(cleanHtml(block.value as ParagraphVal))"
         />
       </template>
 
@@ -106,7 +137,7 @@ const CALLOUT_STYLES: Record<string, string> = {
             :class="(block.value as ListVal).style === 'numbered' ? 'list-decimal' : 'list-disc'"
           >
             <li v-for="item in (block.value as ListVal).items" :key="item"
-              class="leading-relaxed" v-html="item" />
+              class="leading-relaxed" v-html="rewriteLinks(item)" />
           </component>
         </div>
       </template>
@@ -136,7 +167,7 @@ const CALLOUT_STYLES: Record<string, string> = {
               class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
               <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
                 class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
-              <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+              <div class="text-sm text-slate-700 leading-relaxed" v-html="rewriteLinks(item)" />
             </div>
           </div>
           <div v-else-if="(block.value as any).style === 'cards'" class="space-y-2">
@@ -144,14 +175,14 @@ const CALLOUT_STYLES: Record<string, string> = {
               class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
               <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
                 class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
-              <div class="text-sm text-slate-700 leading-relaxed" v-html="item" />
+              <div class="text-sm text-slate-700 leading-relaxed" v-html="rewriteLinks(item)" />
             </div>
           </div>
           <ul v-else class="space-y-3">
             <li v-for="(item, i) in (block.value as any).items || []" :key="i" class="flex items-start gap-3 text-sm text-slate-700">
               <Icon :name="({ check: 'check-circle', arrow: 'arrow-right', star: 'star', lightning: 'zap', shield: 'shield', dot: 'circle' } as Record<string, string>)[(block.value as any).icon] || 'check-circle'"
                 class="h-4 w-4 shrink-0 mt-0.5 text-brand-600" />
-              <div class="leading-relaxed" v-html="item" />
+              <div class="leading-relaxed" v-html="rewriteLinks(item)" />
             </li>
           </ul>
         </div>
@@ -517,4 +548,5 @@ const CALLOUT_STYLES: Record<string, string> = {
   font-size: 0.875rem;
 }
 :deep(.prose tr:hover), :deep(tr:hover) { background: #f8fafc; }
+:deep(a[target="_blank"][href^="http"])::after { content: '\2197'; display: inline-block; font-size: 0.65em; vertical-align: super; margin-left: 0.15em; opacity: 0.7; }
 </style>

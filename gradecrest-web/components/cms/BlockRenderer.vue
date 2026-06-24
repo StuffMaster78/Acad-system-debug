@@ -17,20 +17,55 @@ const _gcServiceSlugs = new Set([
 const { getAll: getAllBlogPosts } = useBlog()
 const _blogSlugs = new Set(getAllBlogPosts().map(p => p.slug))
 
-function rewriteLinks(html: string): string {
-  if (!html) return html
-  return html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
-    if (_gcServiceSlugs.has(slug)) return `href="/services/${slug}"`
-    if (_blogSlugs.has(slug))      return `href="/blog/${slug}"`
-    return _match
-  })
-}
-
 const props = defineProps<{
   blocks: Block[]
   /** Brand-specific inline CTA HTML injected after the 4th paragraph block. */
   inlineCta?: string
+  /** Fallback prefix for unrecognised slugs in rewriteLinks. */
+  linkContext?: 'blog' | 'service'
 }>()
+
+const _fixedRoutes = new Set([
+  'order', 'pricing', 'contact', 'about', 'faq', 'blog', 'services',
+  'authors', 'privacy', 'terms', 'refunds', 'resources', 'login', 'register',
+])
+
+// Escape special regex characters in a string
+function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
+
+// Current site hostname (e.g. gradecrest.com or localhost) — used to detect
+// same-site absolute URLs that CMS editors sometimes insert.
+const _siteHost = useRequestURL().hostname
+
+function rewriteLinks(html: string): string {
+  if (!html) return html
+
+  // Step 0: Convert same-site absolute URLs → relative paths so subsequent
+  // steps treat them as internal. Handles trailing slashes too.
+  // e.g. href="https://gradecrest.com/slug/" → href="/slug/"
+  const sameOriginRe = new RegExp(
+    `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`,
+    'gi',
+  )
+  let out = html.replace(sameOriginRe, 'href="$1"')
+
+  // Step 1: Rewrite relative single-segment paths to /blog/ or /services/.
+  // Allow optional trailing slash: /slug/  as well as /slug
+  out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
+    if (_gcServiceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_blogSlugs.has(slug))      return `href="/blog/${slug}"`
+    if (_fixedRoutes.has(slug))    return `href="/${slug}"`
+    if (props.linkContext === 'blog')    return `href="/blog/${slug}"`
+    if (props.linkContext === 'service') return `href="/services/${slug}"`
+    return `href="/${slug}"`
+  })
+
+  // Step 2: Add target="_blank" only to genuinely external links (not same-site).
+  out = out.replace(/(<a\s[^>]*href="https?:\/\/[^"]*"[^>]*)>/gi, (m, attrs) =>
+    /target=/i.test(attrs) ? m : `${attrs} target="_blank" rel="noopener noreferrer">`
+  )
+  return out
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function asStr(v: unknown): string { return typeof v === 'string' ? v : '' }
@@ -254,14 +289,14 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
         <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
           class="flex items-start gap-3 text-base leading-relaxed text-ink">
           <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gc-600 text-xs font-bold text-white mt-0.5">{{ j + 1 }}</span>
-          <span v-html="asStr(item)" />
+          <span v-html="rewriteLinks(asStr(item))" />
         </li>
       </ol>
       <ul v-else class="space-y-2">
         <li v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
           class="flex items-start gap-3 text-base leading-relaxed text-ink">
           <span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-gc-500"></span>
-          <span v-html="asStr(item)" />
+          <span v-html="rewriteLinks(asStr(item))" />
         </li>
       </ul>
     </div>
@@ -299,7 +334,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           </span>
           <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-5 w-5 shrink-0 rounded-full bg-gc-600 text-[10px] font-bold text-white items-center justify-center">{{ j + 1 }}</span>
           <CheckCircle2 v-else class="size-3.5 text-gc-600" />
-          <span v-html="asStr(item)" />
+          <span v-html="rewriteLinks(asStr(item))" />
         </span>
       </div>
       <!-- 3-column grid -->
@@ -314,7 +349,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           </span>
           <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-7 w-7 shrink-0 rounded-full bg-gc-600 text-xs font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
           <CheckCircle2 v-else class="size-4 shrink-0 mt-0.5 text-gc-600" />
-          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+          <div class="text-sm text-ink leading-relaxed" v-html="rewriteLinks(asStr(item))" />
         </div>
       </div>
       <!-- 2-column grid -->
@@ -326,7 +361,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           </span>
           <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-7 w-7 shrink-0 rounded-full bg-gc-600 text-xs font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
           <CheckCircle2 v-else class="size-4 shrink-0 mt-0.5 text-gc-600" />
-          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+          <div class="text-sm text-ink leading-relaxed" v-html="rewriteLinks(asStr(item))" />
         </div>
       </div>
       <!-- Cards with left border -->
@@ -338,7 +373,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           </span>
           <span v-else-if="asStr(asObj(block.value).icon) === 'number_auto'" class="flex h-6 w-6 shrink-0 rounded-full bg-gc-600 text-[10px] font-bold text-white items-center justify-center mt-0.5">{{ j + 1 }}</span>
           <CheckCircle2 v-else class="size-4 shrink-0 mt-0.5 text-gc-600" />
-          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+          <div class="text-sm text-ink leading-relaxed" v-html="rewriteLinks(asStr(item))" />
         </div>
       </div>
       <!-- Cards (bordered) -->
@@ -358,7 +393,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           <Plus         v-else-if="asStr(asObj(block.value).icon) === 'plus'" class="size-4 shrink-0 mt-0.5 text-gc-600" />
           <Minus        v-else-if="asStr(asObj(block.value).icon) === 'minus'" class="size-4 shrink-0 mt-0.5 text-gc-600" />
           <Circle       v-else class="size-2.5 shrink-0 mt-1.5 fill-gc-500 text-gc-500" />
-          <div class="text-sm text-ink leading-relaxed" v-html="asStr(item)" />
+          <div class="text-sm text-ink leading-relaxed" v-html="rewriteLinks(asStr(item))" />
         </div>
       </div>
       <!-- Simple (default) -->
@@ -380,7 +415,7 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
           <Plus         v-else-if="asStr(asObj(block.value).icon) === 'plus'" class="size-4 shrink-0 mt-0.5 text-gc-600" />
           <Minus        v-else-if="asStr(asObj(block.value).icon) === 'minus'" class="size-4 shrink-0 mt-0.5 text-gc-600" />
           <Circle       v-else class="size-2.5 shrink-0 mt-1.5 fill-gc-500 text-gc-500" />
-          <div class="leading-relaxed" v-html="asStr(item)" />
+          <div class="leading-relaxed" v-html="rewriteLinks(asStr(item))" />
         </li>
       </ul>
     </div>
@@ -434,28 +469,28 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
         <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
           class="rounded-xl px-5 py-3.5 text-sm leading-relaxed"
           :class="hlColor(asStr(asObj(block.value).color), 'boxed')"
-          v-html="asStr(item)" />
+          v-html="rewriteLinks(asStr(item))" />
       </div>
       <!-- Border left -->
       <div v-else-if="asStr(asObj(block.value).style) === 'border_left'" class="space-y-2">
         <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
           class="border-l-4 bg-slate-50 pl-4 pr-4 py-3 rounded-r-xl text-sm text-ink leading-relaxed"
           :class="hlColor(asStr(asObj(block.value).color), 'border')"
-          v-html="asStr(item)" />
+          v-html="rewriteLinks(asStr(item))" />
       </div>
       <!-- Full highlight -->
       <div v-else-if="asStr(asObj(block.value).style) === 'highlight'" class="space-y-1.5">
         <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
           class="rounded-xl px-5 py-3 text-sm font-medium leading-relaxed"
           :class="hlColor(asStr(asObj(block.value).color), 'full')"
-          v-html="asStr(item)" />
+          v-html="rewriteLinks(asStr(item))" />
       </div>
       <!-- Zebra (default) -->
       <div v-else class="divide-y divide-slate-100 rounded-2xl border border-slate-100 overflow-hidden">
         <div v-for="(item, j) in asArr(asObj(block.value).items)" :key="j"
           class="px-5 py-3.5 text-sm text-ink leading-relaxed"
           :class="j % 2 === 0 ? hlColor(asStr(asObj(block.value).color), 'zebra') : 'bg-white'"
-          v-html="asStr(item)" />
+          v-html="rewriteLinks(asStr(item))" />
       </div>
     </div>
 
@@ -997,3 +1032,14 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
 
   </template>
 </template>
+
+<style scoped>
+:deep(a[target="_blank"][href^="http"])::after {
+  content: '\2197';
+  display: inline-block;
+  font-size: 0.65em;
+  vertical-align: super;
+  margin-left: 0.15em;
+  opacity: 0.7;
+}
+</style>

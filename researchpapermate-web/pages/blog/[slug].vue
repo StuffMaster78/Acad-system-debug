@@ -418,10 +418,10 @@ useHead({
           v-if="cmsArticle"
           class="prose prose-slate prose-lg mt-10 max-w-none
                  prose-headings:font-serif prose-headings:font-bold
-                 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+                 prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
                  prose-strong:text-slate-900"
         >
-          <BlockRenderer :blocks="cmsArticle.body" :inline-cta="inlineCta" />
+          <BlockRenderer :blocks="cmsArticle.body" :inline-cta="inlineCta" link-context="blog" />
         </div>
 
         <!-- Static body -->
@@ -429,10 +429,19 @@ useHead({
           v-else
           class="prose prose-slate prose-lg mt-10 max-w-none
                  prose-headings:font-serif prose-headings:font-bold
-                 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+                 prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
                  prose-strong:text-slate-900"
           v-html="bodyWithInlineCta"
         />
+
+        <!-- Lead magnet — shown only when staff attaches a resource in Wagtail -->
+        <div v-if="cmsArticle?.lead_magnet" class="mt-10 not-prose">
+          <LeadMagnet
+            :attachment-slug="cmsArticle.lead_magnet.slug"
+            :title="cmsArticle.lead_magnet.title"
+            :description="cmsArticle.lead_magnet.description"
+          />
+        </div>
 
         <!-- Reactions -->
         <ClientOnly>

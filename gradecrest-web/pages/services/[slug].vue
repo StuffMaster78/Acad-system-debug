@@ -524,13 +524,38 @@ const serviceFromCms = (page: CmsServicePage): ServiceView => {
 
 const svc = computed(() => cmsService.value ? serviceFromCms(cmsService.value) : fallbackService)
 
+const _gcServiceSlugs = new Set([
+  'essay-writing', 'research-papers', 'dissertations', 'nursing-essays',
+  'editing-proofreading', 'admission-essays', 'term-papers', 'case-studies',
+  'coursework', 'literature-review', 'thesis-writing', 'data-analysis',
+  'online-class-help', 'homework-help', 'presentations',
+])
+const { getAll: getAllBlogPosts } = useBlog()
+const _gcBlogSlugs = new Set(getAllBlogPosts().map(p => p.slug))
+
+const _gcFixedRoutes = new Set([
+  'order', 'pricing', 'contact', 'about', 'faq', 'blog', 'services',
+  'authors', 'privacy', 'terms', 'refunds', 'resources', 'login', 'register',
+])
+
+function rewriteBodyLinks(html: string): string {
+  if (!html) return html
+  return html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
+    if (_gcServiceSlugs.has(slug))  return `href="/services/${slug}"`
+    if (_gcBlogSlugs.has(slug))     return `href="/blog/${slug}"`
+    if (_gcFixedRoutes.has(slug))   return _match
+    return _match
+  })
+}
+
 // Extract paragraph body HTML from CMS blocks — all scraped pages are stored as a single paragraph block.
 const bodyHtml = computed(() => {
   if (!cmsService.value?.body?.length) return ''
-  return cmsService.value.body
+  const raw = cmsService.value.body
     .filter(b => b.type === 'paragraph')
     .map(b => String(b.value ?? ''))
     .join('\n')
+  return rewriteBodyLinks(raw)
 })
 
 const ctaOrderUrl = computed(() => {
@@ -839,7 +864,7 @@ useHead({
                  prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3
                  prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2
                  prose-p:text-graphite prose-p:leading-relaxed prose-p:text-[0.9375rem]
-                 prose-a:text-gc-700 prose-a:no-underline hover:prose-a:underline
+                 prose-a:text-gc-700 prose-a:underline prose-a:decoration-gc-300 hover:prose-a:decoration-gc-600
                  prose-strong:text-ink
                  prose-li:text-graphite prose-li:text-[0.9375rem]"
           v-html="bodyHtml"

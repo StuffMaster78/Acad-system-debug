@@ -159,8 +159,8 @@ const social = computed(() => portal.socialLinks)
 
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-      <!-- ── Row 2: Account · Legal · Guarantees ─────────────────────────── -->
-      <div class="grid gap-8 border-t border-claret-900 py-10 sm:grid-cols-3">
+      <!-- ── Row 2: Account · Legal · Free Tools · Guarantees ─────────────── -->
+      <div class="grid gap-8 border-t border-claret-900 py-10 sm:grid-cols-2 lg:grid-cols-4">
 
         <div>
           <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Account</p>
@@ -178,6 +178,22 @@ const social = computed(() => portal.socialLinks)
               <NuxtLink :href="s.href" class="text-sm text-claret-400 transition-colors hover:text-white">{{ s.label }}</NuxtLink>
             </li>
           </ul>
+        </div>
+
+        <div>
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-700">Free Tools</p>
+          <ul class="space-y-2">
+            <li><NuxtLink href="/tools/citation-generator"   class="text-sm text-claret-400 transition-colors hover:text-white">Citation Generator</NuxtLink></li>
+            <li><NuxtLink href="/tools/thesis-generator"     class="text-sm text-claret-400 transition-colors hover:text-white">Thesis Generator</NuxtLink></li>
+            <li><NuxtLink href="/tools/outline-generator"    class="text-sm text-claret-400 transition-colors hover:text-white">Outline Generator</NuxtLink></li>
+            <li><NuxtLink href="/tools/title-page-generator" class="text-sm text-claret-400 transition-colors hover:text-white">Title Page Generator</NuxtLink></li>
+            <li><NuxtLink href="/tools/word-counter"         class="text-sm text-claret-400 transition-colors hover:text-white">Word Counter</NuxtLink></li>
+            <li><NuxtLink href="/tools/words-to-pages"       class="text-sm text-claret-400 transition-colors hover:text-white">Words to Pages</NuxtLink></li>
+            <li><NuxtLink href="/tools/gpa-calculator"       class="text-sm text-claret-400 transition-colors hover:text-white">GPA Calculator</NuxtLink></li>
+            <li><NuxtLink href="/tools/plagiarism-checker"      class="text-sm text-claret-400 transition-colors hover:text-white">Plagiarism Checker</NuxtLink></li>
+            <li><NuxtLink href="/tools/research-gap-identifier" class="text-sm text-claret-400 transition-colors hover:text-white">Research Gap Identifier</NuxtLink></li>
+          </ul>
+          <NuxtLink href="/tools" class="mt-3 block text-xs font-semibold text-amber-700 hover:text-amber-600 transition-colors">All tools →</NuxtLink>
         </div>
 
         <div>

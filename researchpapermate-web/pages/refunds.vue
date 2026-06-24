@@ -18,7 +18,7 @@ useHead({ link: [{ rel: 'canonical', href: 'https://researchpapermate.com/refund
       </div>
     </div>
     <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-h3:text-base prose-h3:text-slate-800 prose-a:text-amber-700 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
+      <div class="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-bold prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900 prose-h3:text-base prose-h3:text-slate-800 prose-a:text-amber-700 prose-a:underline prose-a:decoration-amber-300 hover:prose-a:decoration-amber-600 prose-strong:text-slate-900">
         <h2>1. Grade or money-back guarantee</h2>
         <p>If you receive a grade lower than specified in your order brief, and the shortfall is attributable to our work, contact us within <strong>14 days</strong> of receiving your graded work. Email <a href="mailto:support@researchpapermate.com">support@researchpapermate.com</a> with your order number, grade received, and any instructor feedback. We will either <strong>rewrite the relevant sections free of charge</strong> or issue a <strong>partial or full refund</strong>.</p>
         <h2>2. Free revision policy</h2>

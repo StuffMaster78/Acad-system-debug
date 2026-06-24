@@ -8,6 +8,7 @@ Public listing, detail, download (with gating), and rating endpoints.
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import HttpResponseRedirect
 
 from cms_attachments.models import Attachment, AttachmentRating
 from cms_attachments.serializers import (
@@ -140,3 +141,37 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
             "average_rating": attachment.average_rating,
             "rating_count": attachment.rating_count,
         })
+
+    @action(detail=True, methods=["get"], url_path="serve")
+    def serve(self, request, slug=None):
+        """GET /cms-api/attachments/{slug}/serve/?token=<signed-token>
+        Validates a signed download token and redirects to the file URL.
+        Used for email-delivered download links.
+        """
+        from cms_attachments.services.download_service import DownloadService
+
+        token = request.query_params.get("token", "")
+        if not token:
+            return Response({"error": "Token required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        attachment = DownloadService.redeem_token(token)
+        if not attachment:
+            return Response(
+                {"error": "This link has expired or is invalid. Please request a new download."},
+                status=status.HTTP_410_GONE,
+            )
+
+        file_url = None
+        if attachment.managed_file:
+            file_url = attachment.managed_file.public_url
+
+        if not file_url:
+            return Response(
+                {"error": "File is not available. Please contact support."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        attachment.download_count += 1
+        attachment.save(update_fields=["download_count"])
+
+        return HttpResponseRedirect(file_url)

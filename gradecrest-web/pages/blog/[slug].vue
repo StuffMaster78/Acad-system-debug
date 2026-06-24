@@ -414,13 +414,22 @@ const tags             = computed(() => article.value?.tag_names ?? [])
               </div>
 
               <!-- Article body: CMS (StreamField blocks) or static (HTML) -->
-              <div class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-headings:scroll-mt-24 prose-a:text-gc-600 prose-a:no-underline hover:prose-a:underline prose-p:text-graphite prose-p:leading-relaxed prose-li:text-graphite prose-strong:text-ink">
-                <BlockRenderer v-if="article?.body?.length" :blocks="article.body" :inline-cta="gcInlineCta" />
+              <div class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-ink prose-headings:scroll-mt-24 prose-a:text-gc-600 prose-a:underline prose-a:decoration-gc-300 hover:prose-a:decoration-gc-600 prose-p:text-graphite prose-p:leading-relaxed prose-li:text-graphite prose-strong:text-ink">
+                <BlockRenderer v-if="article?.body?.length" :blocks="article.body" :inline-cta="gcInlineCta" link-context="blog" />
                 <div v-else-if="staticPost">
                   <p class="lead">{{ staticPost.excerpt }}</p>
                   <div class="not-prose my-8 rounded-xl border border-gc-100 bg-gc-50 px-5 py-4 text-sm text-gc-800">
                     📖 This is a preview of a full article. The complete guide is available once our CMS is connected.
                   </div>
+                </div>
+
+                <!-- Lead magnet — shown only when staff attaches a resource in Wagtail -->
+                <div v-if="article?.lead_magnet" class="mt-10 not-prose">
+                  <LeadMagnet
+                    :attachment-slug="article.lead_magnet.slug"
+                    :title="article.lead_magnet.title"
+                    :description="article.lead_magnet.description"
+                  />
                 </div>
               </div>
 

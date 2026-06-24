@@ -42,7 +42,7 @@ useHead({
                   prose-headings:font-serif prose-headings:font-bold
                   prose-h2:mt-10 prose-h2:text-xl prose-h2:text-slate-900
                   prose-h3:text-base prose-h3:text-slate-800
-                  prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+                  prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
                   prose-strong:text-slate-900">
 
         <h2>1. Grade or money-back guarantee</h2>

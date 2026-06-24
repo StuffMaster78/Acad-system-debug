@@ -73,3 +73,6 @@ sentry-sdk[django]==2.14.0
 
 # Compression
 django-compression-middleware==0.5.0
+
+# Cheat sheet email delivery (lead-gen PDF system)
+resend==2.10.0
