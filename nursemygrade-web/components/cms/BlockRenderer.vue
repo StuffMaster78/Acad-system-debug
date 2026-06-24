@@ -27,8 +27,45 @@ const _fixedRoutes = new Set([
 function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 const _siteHost = useRequestURL().hostname
 
+// Fix UTF-8 mojibake — characters stored with Latin-1 misencoding (e.g. Word paste-ins)
+// Each pattern is the Latin-1 misread of the corresponding UTF-8 byte sequence.
+function fixEncoding(s: string): string {
+  if (!s) return s
+  return s
+    .replace(/â/g, '’') // ' → '
+    .replace(/â/g, '‘') // ' → '
+    .replace(/â/g, '“') // " → "
+    .replace(/â/g, '”') // " → "
+    .replace(/â/g, '–') // – → –
+    .replace(/â/g, '—') // — → —
+    .replace(/â¦/g, '…') // … → …
+    .replace(/â¢/g, '•') // • → •
+    .replace(/â¢/g, '™') // ™ → ™
+    .replace(/Â©/g, '©')       // © → ©
+    .replace(/Â®/g, '®')       // ® → ®
+    .replace(/Â°/g, '°')       // ° → °
+    .replace(/Â /g, ' ')            // NBSP → regular space
+    .replace(/Ã©/g, 'é')       // é → é
+    .replace(/Ã¨/g, 'è')       // è → è
+    .replace(/Ãª/g, 'ê')       // ê → ê
+    .replace(/Ã«/g, 'ë')       // ë → ë
+    .replace(/Ã /g, 'à')       // à → à
+    .replace(/Ã¢/g, 'â')       // â → â
+    .replace(/Ã®/g, 'î')       // î → î
+    .replace(/Ã¯/g, 'ï')       // ï → ï
+    .replace(/Ã´/g, 'ô')       // ô → ô
+    .replace(/Ã¹/g, 'ù')       // ù → ù
+    .replace(/Ã»/g, 'û')       // û → û
+    .replace(/Ã¼/g, 'ü')       // ü → ü
+    .replace(/Ã§/g, 'ç')       // ç → ç
+    .replace(/Ã±/g, 'ñ')       // ñ → ñ
+}
+
 function rewriteLinks(html: string): string {
   if (!html) return html
+
+  // Fix encoding corruption before any other processing
+  html = fixEncoding(html)
 
   const sameOriginRe = new RegExp(
     `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',
