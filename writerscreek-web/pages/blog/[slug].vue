@@ -110,6 +110,9 @@ function injectHeadingIds(html: string): string {
 function rewriteLinks(html: string): string {
   if (!html) return html
   html = injectHeadingIds(html)
+  // Strip legacy .php extension from internal relative links before slug routing.
+  html = html.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
+    (_, path, qs) => `href="${path}${qs ?? ''}"`)
   let out = html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
     if (_wcServiceSlugs.has(slug)) return `href="/services/${slug}"`
     if (_wcFixedRoutes.has(slug))  return _match

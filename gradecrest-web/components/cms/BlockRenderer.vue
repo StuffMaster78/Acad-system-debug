@@ -61,6 +61,10 @@ function rewriteLinks(html: string): string {
   )
   let out = html.replace(sameOriginRe, 'href="$1"')
 
+  // Strip legacy .php extension from internal relative links before slug routing.
+  out = out.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
+    (_, path, qs) => `href="${path}${qs ?? ''}"`)
+
   // Step 1: Rewrite relative single-segment paths to /blog/ or /services/.
   // Allow optional trailing slash: /slug/  as well as /slug
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {

@@ -136,6 +136,10 @@ function rewriteLinks(html: string): string {
   )
   let out = html.replace(sameOriginRe, 'href="$1"')
 
+  // Strip legacy .php extension from internal relative links before slug routing.
+  out = out.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
+    (_, path, qs) => `href="${path}${qs ?? ''}"`)
+
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
     if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
     if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
