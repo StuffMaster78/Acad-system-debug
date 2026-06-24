@@ -28,9 +28,12 @@ export default defineEventHandler(async (event) => {
         const chunks: Buffer[] = []
         res.on('data', (c: Buffer) => chunks.push(c))
         res.on('end', () => {
-          const body = Buffer.concat(chunks).toString('utf8')
+          const raw = Buffer.concat(chunks).toString('utf8')
           setResponseStatus(event, res.statusCode ?? 200)
           setResponseHeader(event, 'content-type', 'application/json')
+          const body = django.includes('localhost')
+            ? raw.replace(/(?<=")(\/media\/[^"]+)/g, `${django}$1`)
+            : raw
           try { resolve(JSON.parse(body)) } catch { resolve(body) }
         })
       },

@@ -40,6 +40,11 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'writerscreek.com' },
       },
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        headers: { Host: 'writerscreek.com' },
+      },
     },
   },
 

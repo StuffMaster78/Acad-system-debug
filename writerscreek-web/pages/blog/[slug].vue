@@ -2,7 +2,13 @@
 const route   = useRoute()
 const slug    = route.params.slug as string
 const config  = useRuntimeConfig()
-const apiBase = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+const apiBase    = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+// Rewrite relative /media/ URLs to absolute so the browser can load images.
+// On the server apiBase is the internal Django URL; in prod media is on CDN.
+function absMedia(url: string | null | undefined): string | null {
+  if (!url || !url.startsWith('/media/') || !apiBase.includes('localhost')) return url ?? null
+  return `${apiBase}${url}`
+}
 
 interface Block { type: string; value: unknown }
 
@@ -33,7 +39,9 @@ const { data: post } = await useAsyncData<CmsPost | null>(
         `${apiBase}/api/v2/pages/`,
         { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
       )
-      return res.items?.[0] ?? null
+      const item = res.items?.[0] ?? null
+      if (item?.thumbnail?.url) item.thumbnail.url = absMedia(item.thumbnail.url) ?? item.thumbnail.url
+      return item
     } catch { return null }
   },
 )

@@ -113,6 +113,11 @@ export default defineNuxtConfig({
       siteUrl: 'https://gradecrest.com',
       tawktoPropertyId: '',
       tawktoWidgetId: '',
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        headers: { Host: 'gradecrest.com' },
+      },
     },
   },
 

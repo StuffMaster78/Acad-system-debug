@@ -22,10 +22,15 @@ export default defineEventHandler(async (event) => {
         const chunks: Buffer[] = []
         res.on('data', (c: Buffer) => chunks.push(c))
         res.on('end', () => {
-          const body = Buffer.concat(chunks).toString('utf8')
+          const raw = Buffer.concat(chunks).toString('utf8')
           setResponseStatus(event, res.statusCode ?? 200)
-          // Parse JSON so Nuxt's internal SSR fetch receives an object,
-          // not a raw string (which would make data.value?.items undefined)
+          // Rewrite relative /media/ URLs to absolute so the browser can fetch
+          // images directly from Django without needing a separate /media proxy.
+          // Only applies when Django is on localhost (dev). In production, media
+          // is served by nginx on the same domain so relative URLs work fine.
+          const body = django.includes('localhost')
+            ? raw.replace(/(?<=")(\/media\/[^"]+)/g, `${django}$1`)
+            : raw
           try { resolve(JSON.parse(body)) } catch { resolve(body) }
         })
       },

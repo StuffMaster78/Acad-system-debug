@@ -89,6 +89,11 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'researchpapermate.com' },
       },
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        headers: { Host: 'researchpapermate.com' },
+      },
     },
   },
 

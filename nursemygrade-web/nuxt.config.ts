@@ -73,6 +73,11 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'nursemygrade.com' },
       },
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        headers: { Host: 'nursemygrade.com' },
+      },
     },
   },
 
