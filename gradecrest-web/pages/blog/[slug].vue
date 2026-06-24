@@ -56,6 +56,7 @@ interface ArticleDetail {
   reviewer?: { name: string; credentials?: string } | null
   views_count?: number
   likes_count?: number
+  lead_magnet?: { slug: string; title: string; description: string } | null
 }
 
 const { data: article, error } = await useAsyncData<ArticleDetail | null>(
@@ -164,18 +165,55 @@ const toc = computed(() => {
   return items
 })
 
-// Reading progress
-const readProgress = ref(0)
+// Reading progress + active TOC section tracking
+const readProgress  = ref(0)
+const activeTocId   = ref('')
+const activeTocIndex = computed(() => toc.value.findIndex(t => t.id === activeTocId.value))
+const tocProgress   = computed(() => {
+  const i = activeTocIndex.value
+  if (i < 0 || toc.value.length === 0) return 0
+  return Math.round((i / Math.max(toc.value.length - 1, 1)) * 100)
+})
+const showStickyBar = computed(() => readProgress.value >= 3)
+const minsLeft = computed(() => {
+  const total = article.value?.reading_time_minutes || staticPost?.readTime?.replace(/[^0-9].*/, '') || 0
+  const left  = Math.max(1, Math.round(Number(total) * (1 - readProgress.value / 100)))
+  return `${left} min left`
+})
+
 onMounted(() => {
-  const update = () => {
+  // Scroll progress
+  const updateProgress = () => {
     const el = document.getElementById('article-body')
     if (!el) return
     const { top, height } = el.getBoundingClientRect()
     const scrolled = Math.max(0, -top)
     readProgress.value = Math.min(100, Math.round((scrolled / (height - window.innerHeight)) * 100))
   }
-  window.addEventListener('scroll', update, { passive: true })
-  onUnmounted(() => window.removeEventListener('scroll', update))
+  window.addEventListener('scroll', updateProgress, { passive: true })
+  onUnmounted(() => window.removeEventListener('scroll', updateProgress))
+
+  // Active TOC section via IntersectionObserver
+  const observe = () => {
+    if (!toc.value.length) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        // Pick the topmost heading that just entered the viewport
+        const visible = entries.filter(e => e.isIntersecting).sort(
+          (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+        )
+        if (visible.length) activeTocId.value = visible[0].target.id
+      },
+      { rootMargin: '-15% 0px -70% 0px', threshold: 0 },
+    )
+    for (const item of toc.value) {
+      const el = document.getElementById(item.id)
+      if (el) io.observe(el)
+    }
+    onUnmounted(() => io.disconnect())
+  }
+  // Wait a tick so BlockRenderer has injected heading IDs
+  setTimeout(observe, 300)
 })
 
 // Back-to-top
@@ -273,11 +311,68 @@ const tags             = computed(() => article.value?.tag_names ?? [])
 <template>
   <div class="pt-16">
 
-    <!-- Reading progress bar -->
-    <div
-      class="fixed top-16 left-0 z-50 h-0.5 bg-gc-500 transition-all duration-100 print:hidden"
-      :style="{ width: `${readProgress}%` }"
-    />
+    <!-- Sticky reading bar — slides in after scrolling into the article -->
+    <Transition
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="-translate-y-full opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="-translate-y-full opacity-0"
+    >
+      <div
+        v-if="showStickyBar"
+        class="fixed top-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm shadow-sm print:hidden"
+        aria-hidden="true"
+      >
+        <div class="mx-auto flex h-11 max-w-5xl items-center gap-4 px-4 sm:px-6">
+
+          <!-- Article title -->
+          <p class="hidden min-w-0 flex-1 truncate text-[13px] font-semibold text-ink sm:block">
+            {{ displayTitle }}
+          </p>
+
+          <!-- Chapter pills -->
+          <div v-if="toc.length >= 2" class="flex min-w-0 flex-1 items-center gap-1 sm:flex-none sm:w-48">
+            <template v-for="(item, i) in toc" :key="item.id">
+              <a
+                :href="`#${item.id}`"
+                :title="item.text"
+                class="h-1.5 flex-1 rounded-full transition-all duration-300 focus:outline-none"
+                :class="
+                  i < activeTocIndex  ? 'bg-gc-500' :
+                  i === activeTocIndex ? 'bg-gc-400 scale-y-150 origin-center' :
+                                         'bg-slate-200 hover:bg-slate-300'
+                "
+              />
+            </template>
+          </div>
+
+          <!-- Active chapter label (desktop) -->
+          <p
+            v-if="toc.length && activeTocIndex >= 0"
+            class="hidden max-w-[180px] truncate text-[11px] text-slate-400 sm:block"
+          >
+            {{ toc[activeTocIndex]?.text }}
+          </p>
+
+          <!-- Reading stats -->
+          <div class="ml-auto flex shrink-0 items-center gap-3">
+            <span class="text-[11px] tabular-nums font-medium text-slate-400">{{ readProgress }}%</span>
+            <span class="hidden text-[11px] text-slate-300 sm:block">·</span>
+            <span class="hidden text-[11px] tabular-nums text-slate-400 sm:block">{{ minsLeft }}</span>
+          </div>
+
+        </div>
+        <!-- Thin colour line at the very bottom of the bar -->
+        <div class="h-[3px] bg-slate-100">
+          <div
+            class="h-full bg-gradient-to-r from-gc-400 to-gc-600 transition-all duration-150"
+            :style="{ width: `${readProgress}%` }"
+          />
+        </div>
+      </div>
+    </Transition>
 
     <!-- 404 -->
     <div v-if="(error || !article) && !staticPost" class="min-h-[60vh] flex items-center justify-center">

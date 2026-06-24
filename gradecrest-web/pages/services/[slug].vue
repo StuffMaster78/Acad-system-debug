@@ -28,6 +28,7 @@ type ServiceView = {
   related: string[]
   ctaText?: string
   ctaUrl?: string
+  heroImage?: string | null
 }
 
 const SERVICE_MAP: Record<string, ServiceView> = {
