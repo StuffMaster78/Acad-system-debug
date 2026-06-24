@@ -94,10 +94,6 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'researchpapermate.com' },
       },
-      '/assets/pages': {
-        target: 'https://researchpapermate.com',
-        changeOrigin: true,
-      },
     },
   },
 

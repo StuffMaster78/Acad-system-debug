@@ -45,10 +45,6 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'writerscreek.com' },
       },
-      '/assets/pages': {
-        target: 'https://writerscreek.com',
-        changeOrigin: true,
-      },
     },
   },
 

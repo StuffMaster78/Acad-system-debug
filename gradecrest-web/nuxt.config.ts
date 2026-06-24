@@ -68,10 +68,6 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'gradecrest.com' },
       },
-      '/assets/pages': {
-        target: 'https://gradecrest.com',
-        changeOrigin: true,
-      },
     },
     prerender: {
       crawlLinks: true,

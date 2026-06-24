@@ -61,10 +61,6 @@ export default defineNuxtConfig({
         changeOrigin: true,
         headers: { Host: 'essaymaniacs.com' },
       },
-      '/assets/pages': {
-        target: 'https://essaymaniacs.com',
-        changeOrigin: true,
-      },
     },
   },
 
