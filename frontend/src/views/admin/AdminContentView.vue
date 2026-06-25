@@ -767,6 +767,166 @@
       </div>
     </template>
 
+    <!-- ── Exit popup ─────────────────────────────────────────────────────────── -->
+    <template v-else-if="tab === 'popup'">
+      <div v-if="!popupCfg" class="flex items-center gap-2 py-8 text-sm text-graphite">
+        <Loader2 class="h-4 w-4 animate-spin" /> Loading…
+      </div>
+
+      <form v-else class="space-y-6 max-w-2xl" @submit.prevent="savePopupConfig">
+
+        <!-- Enable toggle -->
+        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5">
+          <div>
+            <p class="font-semibold text-ink">Enable exit popup</p>
+            <p class="mt-0.5 text-xs text-graphite">Show the popup when a visitor moves their cursor toward leaving.</p>
+          </div>
+          <button
+            type="button"
+            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none"
+            :class="popupCfg.is_enabled ? 'bg-signal' : 'bg-slate-200'"
+            @click="popupCfg.is_enabled = !popupCfg.is_enabled"
+            :aria-checked="popupCfg.is_enabled"
+            role="switch"
+          >
+            <span
+              class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+              :class="popupCfg.is_enabled ? 'translate-x-5' : 'translate-x-0'"
+            />
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+          <p class="text-sm font-semibold text-ink border-b border-slate-100 pb-3">Content</p>
+
+          <div>
+            <label class="mb-1 block text-xs font-medium text-graphite">Headline</label>
+            <input
+              v-model="popupCfg.title"
+              type="text"
+              maxlength="140"
+              placeholder="Wait — before you go!"
+              class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink placeholder:text-slate-300"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1 block text-xs font-medium text-graphite">Body text</label>
+            <textarea
+              v-model="popupCfg.body"
+              rows="3"
+              placeholder="Describe the offer or reason to stay…"
+              class="focus-ring w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink placeholder:text-slate-300"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1 block text-xs font-medium text-graphite">Image URL <span class="font-normal text-slate-400">(optional — leave blank for text-only)</span></label>
+            <input
+              v-model="popupCfg.image_url"
+              type="url"
+              placeholder="https://…"
+              class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink placeholder:text-slate-300"
+            />
+            <div v-if="popupCfg.image_url" class="mt-2 overflow-hidden rounded-lg border border-slate-100">
+              <img :src="popupCfg.image_url" alt="Preview" class="h-32 w-full object-cover" />
+            </div>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+          <p class="text-sm font-semibold text-ink border-b border-slate-100 pb-3">Call to action</p>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-graphite">Primary button label</label>
+              <input v-model="popupCfg.primary_cta_label" type="text" maxlength="80" placeholder="Place my order"
+                class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink placeholder:text-slate-300" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-graphite">Primary button URL</label>
+              <input v-model="popupCfg.primary_cta_url" type="text" placeholder="/order"
+                class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink placeholder:text-slate-300" />
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-xs font-medium text-graphite">Dismiss label <span class="font-normal text-slate-400">(optional)</span></label>
+            <input v-model="popupCfg.secondary_cta_label" type="text" maxlength="80" placeholder="Maybe later"
+              class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink placeholder:text-slate-300" />
+          </div>
+        </div>
+
+        <!-- Trigger -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+          <p class="text-sm font-semibold text-ink border-b border-slate-100 pb-3">Trigger</p>
+
+          <div class="flex gap-3">
+            <label
+              v-for="opt in TRIGGER_OPTS"
+              :key="opt.value"
+              class="flex flex-1 cursor-pointer flex-col items-center gap-1 rounded-xl border p-3 text-center text-xs font-medium transition-colors"
+              :class="popupCfg.trigger === opt.value
+                ? 'border-signal bg-signal/5 text-signal'
+                : 'border-slate-200 text-graphite hover:border-slate-300'"
+            >
+              <input type="radio" :value="opt.value" v-model="popupCfg.trigger" class="sr-only" />
+              <span class="text-xl">{{ opt.icon }}</span>
+              {{ opt.label }}
+            </label>
+          </div>
+
+          <div v-if="popupCfg.trigger === 'delay'">
+            <label class="mb-1 block text-xs font-medium text-graphite">Delay (seconds)</label>
+            <input v-model.number="popupCfg.delay_seconds" type="number" min="1" max="120"
+              class="focus-ring w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink" />
+          </div>
+
+          <div v-if="popupCfg.trigger === 'scroll_depth'">
+            <label class="mb-1 block text-xs font-medium text-graphite">Scroll depth (%)</label>
+            <input v-model.number="popupCfg.scroll_depth_percent" type="number" min="10" max="100"
+              class="focus-ring w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink" />
+          </div>
+        </div>
+
+        <!-- Frequency -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+          <p class="text-sm font-semibold text-ink border-b border-slate-100 pb-3">Frequency</p>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-graphite">Cooldown after dismiss (hours)</label>
+              <input v-model.number="popupCfg.cooldown_hours" type="number" min="0"
+                class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-graphite">Max shows per session</label>
+              <input v-model.number="popupCfg.max_shows_per_session" type="number" min="1"
+                class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-ink" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Save -->
+        <div class="flex items-center gap-3">
+          <button
+            type="submit"
+            :disabled="popupSaving"
+            class="focus-ring inline-flex items-center gap-2 rounded-lg bg-signal px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            <Loader2 v-if="popupSaving" class="h-3.5 w-3.5 animate-spin" />
+            {{ popupSaving ? 'Saving…' : 'Save popup' }}
+          </button>
+          <p v-if="popupSuccess" class="flex items-center gap-1.5 text-sm text-emerald-600">
+            <CheckCircle2 class="h-4 w-4" /> Saved
+          </p>
+          <p v-if="popupError" class="text-sm text-red-600">{{ popupError }}</p>
+        </div>
+
+      </form>
+    </template>
+
   </div>
 </template>
 
@@ -790,8 +950,9 @@ const TABS = [
   { key: "pages"     as const, label: "Static pages" },
   { key: "blog"      as const, label: "Blog & authors" },
   { key: "citations" as const, label: "Citation density" },
+  { key: "popup"     as const, label: "Exit popup" },
 ];
-const tab = ref<"legal" | "help" | "pages" | "blog" | "citations">("legal");
+const tab = ref<"legal" | "help" | "pages" | "blog" | "citations" | "popup">("legal");
 const auth = useAuthStore();
 const isSuperAdmin = (auth.user as Record<string, unknown>)?.role === "superadmin"
   || !!(auth.user as Record<string, unknown>)?.is_superuser;
@@ -1152,5 +1313,66 @@ async function loadCitationDensity() {
 }
 
 // Load on tab switch
-watch(tab, (t) => { if (t === "citations" && !citationData.value) loadCitationDensity(); });
+watch(tab, (t) => {
+  if (t === "citations" && !citationData.value) loadCitationDensity();
+  if (t === "popup") loadPopupConfig();
+});
+
+// ── Exit popup ───────────────────────────────────────────────────────────────
+interface PopupCfg {
+  is_enabled: boolean;
+  trigger: "exit_intent" | "delay" | "scroll_depth";
+  title: string;
+  body: string;
+  image_url: string;
+  primary_cta_label: string;
+  primary_cta_url: string;
+  secondary_cta_label: string;
+  delay_seconds: number;
+  scroll_depth_percent: number;
+  cooldown_hours: number;
+  max_shows_per_session: number;
+}
+
+const TRIGGER_OPTS = [
+  { value: "exit_intent" as const, icon: "🖱️", label: "Exit intent" },
+  { value: "delay"       as const, icon: "⏱️", label: "Time delay" },
+  { value: "scroll_depth" as const, icon: "📜", label: "Scroll depth" },
+];
+
+const popupCfg     = ref<PopupCfg | null>(null);
+const popupSaving  = ref(false);
+const popupSuccess = ref(false);
+const popupError   = ref("");
+
+async function loadPopupConfig() {
+  popupCfg.value = null;
+  try {
+    const { data } = await api.get<PopupCfg>(
+      apiPath("/privacy/admin/exit-popup/"),
+      { params: wsParam() },
+    );
+    popupCfg.value = data;
+  } catch { popupError.value = "Could not load popup config."; }
+}
+
+async function savePopupConfig() {
+  if (!popupCfg.value) return;
+  popupSaving.value = true;
+  popupSuccess.value = false;
+  popupError.value = "";
+  try {
+    const { data } = await api.patch<PopupCfg>(
+      apiPath("/privacy/admin/exit-popup/"),
+      { ...popupCfg.value, ...wsParam() },
+    );
+    popupCfg.value = data;
+    popupSuccess.value = true;
+    setTimeout(() => { popupSuccess.value = false; }, 3000);
+  } catch {
+    popupError.value = "Save failed. Please try again.";
+  } finally {
+    popupSaving.value = false;
+  }
+}
 </script>
