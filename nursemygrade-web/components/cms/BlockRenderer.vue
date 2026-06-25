@@ -26,6 +26,7 @@ const _fixedRoutes = new Set([
 
 function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 const _siteHost = useRequestURL().hostname
+const _prodHostname = 'nursemygrade.com'
 
 // Fix UTF-8 mojibake — characters stored with Latin-1 misencoding (e.g. Word paste-ins)
 // Each pattern is the Latin-1 misread of the corresponding UTF-8 byte sequence.
@@ -131,9 +132,10 @@ function rewriteLinks(html: string): string {
   html = processContentTables(html)  // style tables; demote table h2→strong first
   html = injectHeadingIds(html)      // inject IDs only on real headings (not table ones)
 
-  const sameOriginRe = new RegExp(
-    `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',
-  )
+  const _hostPat = _siteHost === _prodHostname
+    ? _escRe(_siteHost)
+    : `(?:${_escRe(_siteHost)}|${_escRe(_prodHostname)})`
+  const sameOriginRe = new RegExp(`href="https?://${_hostPat}(?::\\d+)?(/[^"]*)"`, 'gi')
   let out = html.replace(sameOriginRe, 'href="$1"')
 
   // Strip legacy .php extension from internal relative links before slug routing.

@@ -111,15 +111,22 @@ function injectHeadingIds(html: string): string {
   )
 }
 
+const _siteHost   = import.meta.server ? useRequestURL().hostname : (typeof window !== 'undefined' ? window.location.hostname : '')
+const _prodDomain = 'writerscreek.com'
+
 function rewriteLinks(html: string): string {
   if (!html) return html
   html = injectHeadingIds(html)
-  // Strip legacy .php extension from internal relative links before slug routing.
+  // Strip same-site absolute URLs (both current host and production domain).
+  const hosts = [_siteHost, _prodDomain].filter(Boolean)
+  const hostPat = hosts.map(h => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+  html = html.replace(new RegExp(`href="https?://(?:${hostPat})(?::\\d+)?(/[^"]*)"`, 'gi'), 'href="$1"')
+  // Strip legacy .php extension.
   html = html.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
     (_, path, qs) => `href="${path}${qs ?? ''}"`)
-  let out = html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
+  let out = html.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
     if (_wcServiceSlugs.has(slug)) return `href="/services/${slug}"`
-    if (_wcFixedRoutes.has(slug))  return _match
+    if (_wcFixedRoutes.has(slug))  return `href="/${slug}"`
     return `href="/blog/${slug}"`
   })
   out = out.replace(/(<a\s[^>]*href="https?:\/\/[^"]*"[^>]*)>/gi, (m, attrs) =>
@@ -140,7 +147,7 @@ function slugify(text: string) {
 function renderBlock(b: Block): string {
   const { type, value } = b
 
-  if (type === 'rich_text') {
+  if (type === 'paragraph' || type === 'rich_text') {
     return typeof value === 'string' ? rewriteLinks(value) : ''
   }
 
@@ -194,6 +201,35 @@ function renderBlock(b: Block): string {
     return `${cap}<div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm"><div class="overflow-x-auto"><table class="w-full border-collapse text-sm">${thead}<tbody>${body}</tbody></table></div></div>`
   }
 
+  if (type === 'key_takeaways') {
+    const v = value as { heading?: string; items?: { type: string; value: string }[] }
+    const heading = v.heading || 'Key Takeaways'
+    const items = (v.items ?? [])
+    const lis = items.map(i => {
+      const text = (typeof i === 'object' && 'value' in i) ? String(i.value) : String(i)
+      return `<li class="flex items-start gap-2 text-sm text-slate-700"><svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span>${text}</span></li>`
+    }).join('')
+    return `<div class="my-6 rounded-2xl border border-brand-200 bg-brand-50 p-5 not-prose"><p class="mb-3 text-xs font-bold uppercase tracking-widest text-brand-600">${heading}</p><ul class="space-y-2">${lis}</ul></div>`
+  }
+
+  if (type === 'cta') {
+    const v = value as { text?: string; url?: string; style?: string }
+    if (!v.text) return ''
+    const href = v.url || '/apply'
+    return `<div class="my-6 not-prose"><a href="${href}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700 transition-colors">${v.text} <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></a></div>`
+  }
+
+  if (type === 'checklist') {
+    const v = value as { title?: string; items?: { type: string; value: { text: string; detail?: string } }[] }
+    const title = v.title ? `<p class="mb-3 text-sm font-semibold text-slate-800">${v.title}</p>` : ''
+    const lis = (v.items ?? []).map(i => {
+      const item = (typeof i === 'object' && 'value' in i) ? (i.value as { text: string; detail?: string }) : { text: String(i), detail: '' }
+      const detail = item.detail ? `<span class="block text-xs text-slate-400 mt-0.5">${item.detail}</span>` : ''
+      return `<li class="flex items-start gap-2.5 text-sm"><svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><div><span class="text-slate-700">${item.text}</span>${detail}</div></li>`
+    }).join('')
+    return `<div class="my-6 not-prose">${title}<ul class="space-y-2">${lis}</ul></div>`
+  }
+
   // Unsupported block types are silently skipped
   return ''
 }
@@ -210,8 +246,7 @@ const toc = computed<TocItem[]>(() => {
       const v = block.value as { text: string; level?: string }
       items.push({ id: slugify(v.text), text: v.text, level: v.level || 'h2' })
     }
-    if (block.type === 'rich_text' && typeof block.value === 'string') {
-      // Use slugifyHeading — matches what injectHeadingIds injects into the rendered HTML
+    if ((block.type === 'rich_text' || block.type === 'paragraph') && typeof block.value === 'string') {
       for (const m of block.value.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h[23]>/gi)) {
         const text = m[2].replace(/<[^>]+>/g, '').trim()
         if (text) items.push({ id: slugifyHeading(text), text, level: `h${m[1]}` })

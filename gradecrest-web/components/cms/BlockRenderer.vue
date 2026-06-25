@@ -33,9 +33,10 @@ const _fixedRoutes = new Set([
 // Escape special regex characters in a string
 function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 
-// Current site hostname (e.g. gradecrest.com or localhost) — used to detect
-// same-site absolute URLs that CMS editors sometimes insert.
 const _siteHost = useRequestURL().hostname
+// Always strip the production domain even when running on localhost so CMS
+// content with absolute https://gradecrest.com/... links is treated as internal.
+const _prodHostname = 'gradecrest.com'
 
 function injectHeadingIds(html: string): string {
   return html.replace(
@@ -53,12 +54,12 @@ function rewriteLinks(html: string): string {
   html = injectHeadingIds(html)
 
   // Step 0: Convert same-site absolute URLs → relative paths so subsequent
-  // steps treat them as internal. Handles trailing slashes too.
-  // e.g. href="https://gradecrest.com/slug/" → href="/slug/"
-  const sameOriginRe = new RegExp(
-    `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`,
-    'gi',
-  )
+  // steps treat them as internal. Matches both current hostname and the
+  // production domain so dev-served content doesn't leak live-site links.
+  const _hostPat = _siteHost === _prodHostname
+    ? _escRe(_siteHost)
+    : `(?:${_escRe(_siteHost)}|${_escRe(_prodHostname)})`
+  const sameOriginRe = new RegExp(`href="https?://${_hostPat}(?::\\d+)?(/[^"]*)"`, 'gi')
   let out = html.replace(sameOriginRe, 'href="$1"')
 
   // Strip legacy .php extension from internal relative links before slug routing.

@@ -25,6 +25,7 @@ from django.core.management.base import BaseCommand
 
 from cms_blog.models import BlogPostPage
 from cms_service_pages.models import ServicePage
+from wagtail.models import Site
 
 DOMAINS = [
     "nursemygrade.com",
@@ -88,22 +89,34 @@ _LEGACY_PATHS = [
     ("/take-my-online-class",        "/services/coursework"),
 ]
 
-# Matches href="/{slug}" where slug is a root-level slug (no subdirectory, no
-# query string, no trailing content). Must end immediately at the closing quote.
-_ROOT_HREF_PAT = re.compile(r'href="/([\w-]+)"')
+# Matches href="/{slug}" (and the JSON-escaped form href=\"/{slug}\") with an
+# optional trailing slash.  The two (\\?) groups capture any backslash that
+# json.dumps inserts before each quote so the replacement can mirror it.
+_ROOT_HREF_PAT = re.compile(r'href=(\\?)"/([\w-]+)/?(\\?)"')
+
+
+def _site_root(hostname):
+    try:
+        return Site.objects.get(hostname=hostname).root_page
+    except Site.DoesNotExist:
+        return None
 
 
 def _build_service_slugs(site_filter=None):
     qs = ServicePage.objects.filter(live=True)
     if site_filter:
-        qs = qs.filter(get_site__hostname=site_filter)
+        root = _site_root(site_filter)
+        if root:
+            qs = qs.descendant_of(root)
     return set(qs.values_list("slug", flat=True))
 
 
 def _build_blog_slugs(site_filter=None):
     qs = BlogPostPage.objects.filter(live=True)
     if site_filter:
-        qs = qs.filter(get_site__hostname=site_filter)
+        root = _site_root(site_filter)
+        if root:
+            qs = qs.descendant_of(root)
     return set(qs.values_list("slug", flat=True))
 
 
@@ -126,11 +139,11 @@ def _fix(raw: str, blog_slugs: set, service_slugs: set) -> str:
     # 3 & 4. Remap root-level hrefs: href="/{slug}" → /services/ or /blog/
     #    _ROOT_HREF_PAT already anchors on the closing quote, so no prefix risk.
     def _remap(m):
-        slug = m.group(1)
+        q1, slug, q2 = m.group(1), m.group(2), m.group(3)
         if slug in service_slugs:
-            return f'href="/services/{slug}"'
+            return f'href={q1}"/services/{slug}{q2}"'
         if slug in blog_slugs:
-            return f'href="/blog/{slug}"'
+            return f'href={q1}"/blog/{slug}{q2}"'
         return m.group(0)
 
     raw = _ROOT_HREF_PAT.sub(_remap, raw)
@@ -181,8 +194,10 @@ class Command(BaseCommand):
         qs_svc  = ServicePage.objects.filter(live=True)
         qs_blog = BlogPostPage.objects.filter(live=True)
         if site_filter:
-            qs_svc  = qs_svc.filter(get_site__hostname=site_filter)
-            qs_blog = qs_blog.filter(get_site__hostname=site_filter)
+            root = _site_root(site_filter)
+            if root:
+                qs_svc  = qs_svc.descendant_of(root)
+                qs_blog = qs_blog.descendant_of(root)
 
         pages = list(qs_svc) + list(qs_blog)
         self.stdout.write(f"Pages to scan: {len(pages)}")

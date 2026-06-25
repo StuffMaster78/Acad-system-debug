@@ -225,57 +225,14 @@ onMounted(() => {
 })
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-// ── Engagement: view tracking + star rating feedback ─────────────────────
-const viewsDisplay = ref(article.value?.views_count ?? 0)
+// ── Engagement ────────────────────────────────────────────────────────────
+const { stats: engStats, myReact, ready: engReady, react, reactionCount, fmtCount } = useEngagement(slug)
 
-onMounted(async () => {
-  const a = article.value
-  if (!a?.id || !a.page_content_type_id) return
-  const base = config.public.apiBase || ''
-  if (!base) return
-  try {
-    await $fetch(`${base}/cms-api/engagement/track-view/`, {
-      method: 'POST',
-      body: { content_type_id: a.page_content_type_id, object_id: a.id },
-    })
-    viewsDisplay.value = (a.views_count ?? 0) + 1
-  } catch { /* non-critical */ }
-})
-
-// Star rating feedback
-const hoverRating    = ref(0)
-const selectedRating = ref(0)
-const feedbackState  = ref<'idle' | 'rating' | 'done'>('idle')
-const selectedTags   = ref<Set<string>>(new Set())
-const feedbackComment = ref('')
-const feedbackTags   = ['Very helpful', 'Easy to understand', 'Well-structured', 'Needs examples', 'Missing info', 'Too long']
-
-function selectRating(star: number) {
-  selectedRating.value = star
-  feedbackState.value  = 'rating'
-}
-function toggleTag(tag: string) {
-  const s = new Set(selectedTags.value)
-  s.has(tag) ? s.delete(tag) : s.add(tag)
-  selectedTags.value = s
-}
-async function submitFeedback() {
-  feedbackState.value = 'done'
-  const a = article.value
-  if (!a?.id || !a.page_content_type_id) return
-  const base = config.public.apiBase || ''
-  if (!base) return
-  try {
-    await $fetch(`${base}/cms-api/engagement/react/`, {
-      method: 'POST',
-      body: {
-        content_type_id: a.page_content_type_id,
-        object_id: a.id,
-        reaction_type: selectedRating.value >= 3 ? 'thumbs_up' : 'thumbs_down',
-      },
-    })
-  } catch { /* non-critical */ }
-}
+const reactions = [
+  { type: 'helpful'    as const, emoji: '👍', label: 'Helpful'    },
+  { type: 'love'       as const, emoji: '❤️', label: 'Love this'  },
+  { type: 'insightful' as const, emoji: '💡', label: 'Insightful' },
+]
 
 // Sharing
 const pageUrl = computed(() => `https://gradecrest.com/blog/${slug}`)
@@ -551,72 +508,27 @@ const tags             = computed(() => article.value?.tag_names ?? [])
                 </button>
               </div>
 
-              <!-- Star rating feedback -->
-              <div class="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white print:hidden">
-                <div class="border-b border-slate-100 px-5 py-4">
-                  <p class="text-sm font-semibold text-ink">Rate this article</p>
-                  <p class="mt-0.5 text-xs text-graphite">
-                    <template v-if="viewsDisplay">
-                      <span class="font-semibold text-slate-600">{{ viewsDisplay.toLocaleString() }}</span> students read this ·
-                    </template>
-                    Your feedback helps us improve
-                  </p>
-                </div>
-                <div class="p-5 space-y-4">
-                  <!-- Idle / rating state -->
-                  <template v-if="feedbackState !== 'done'">
-                    <!-- Stars -->
-                    <div class="flex items-center gap-1">
-                      <button
-                        v-for="star in 5" :key="star"
-                        class="text-3xl leading-none transition-all hover:scale-110 focus:outline-none"
-                        :class="(hoverRating || selectedRating) >= star ? 'text-amber-400' : 'text-slate-200'"
-                        @mouseenter="hoverRating = star"
-                        @mouseleave="hoverRating = 0"
-                        @click="selectRating(star)"
-                        :aria-label="`Rate ${star} out of 5`"
-                      >★</button>
-                      <span v-if="selectedRating" class="ml-2 text-xs text-slate-500">
-                        {{ ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'][selectedRating] }}
-                      </span>
-                    </div>
-                    <!-- Quick tags + comment after rating is selected -->
-                    <template v-if="feedbackState === 'rating'">
-                      <p class="text-xs font-medium text-graphite">What did you think? <span class="text-slate-400 font-normal">(optional)</span></p>
-                      <div class="flex flex-wrap gap-2">
-                        <button
-                          v-for="tag in feedbackTags" :key="tag"
-                          class="rounded-full border px-3 py-1 text-xs transition-colors"
-                          :class="selectedTags.has(tag)
-                            ? 'border-gc-400 bg-gc-50 text-gc-700 font-semibold'
-                            : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'"
-                          @click="toggleTag(tag)"
-                        >{{ tag }}</button>
-                      </div>
-                      <textarea
-                        v-model="feedbackComment"
-                        placeholder="Any other thoughts? (optional)"
-                        rows="2"
-                        class="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-xs text-ink placeholder:text-slate-400 focus:border-gc-300 focus:outline-none focus:ring-2 focus:ring-gc-100"
-                      />
-                      <button
-                        class="rounded-xl bg-gc-600 px-5 py-2 text-xs font-bold text-white hover:bg-gc-700 transition-colors"
-                        @click="submitFeedback"
-                      >Submit feedback</button>
-                    </template>
-                  </template>
-                  <!-- Done state -->
-                  <div v-else class="flex items-center gap-3 py-1">
-                    <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gc-100">
-                      <svg class="size-4 text-gc-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-ink">Thanks for your feedback!</p>
-                      <p class="text-xs text-graphite">It helps us write better guides for students like you.</p>
-                    </div>
-                  </div>
+              <!-- Reaction bar -->
+              <div v-if="engReady && engStats" class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm text-center print:hidden">
+                <p class="mb-4 text-sm font-semibold text-ink">Was this article helpful?</p>
+                <div class="flex justify-center gap-3">
+                  <button
+                    v-for="r in reactions"
+                    :key="r.type"
+                    class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all"
+                    :class="myReact === r.type
+                      ? 'border-gc-400 bg-gc-50 text-gc-700 shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-gc-300 hover:bg-gc-50 hover:text-gc-700'"
+                    @click="react(r.type)"
+                  >
+                    <span>{{ r.emoji }}</span>
+                    <span>{{ r.label }}</span>
+                    <span
+                      v-if="reactionCount(r.type) > 0"
+                      class="rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+                      :class="myReact === r.type ? 'bg-gc-100 text-gc-700' : 'bg-slate-100 text-slate-500'"
+                    >{{ fmtCount(reactionCount(r.type)) }}</span>
+                  </button>
                 </div>
               </div>
 

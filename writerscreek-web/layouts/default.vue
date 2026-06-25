@@ -8,6 +8,5 @@
     <main id="main-content" class="flex-1"><slot /></main>
     <SiteFooter />
     <CookieConsentBanner />
-    <ExitIntentPopup />
   </div>
 </template>

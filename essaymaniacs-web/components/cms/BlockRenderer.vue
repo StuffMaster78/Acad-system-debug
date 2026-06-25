@@ -32,6 +32,7 @@ const _fixedRoutes = new Set([
 
 function _escRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 const _siteHost = useRequestURL().hostname
+const _prodHostname = 'essaymaniacs.com'
 
 function injectHeadingIds(html: string): string {
   return html.replace(
@@ -48,11 +49,12 @@ function rewriteLinks(html: string): string {
   if (!html) return html
   html = injectHeadingIds(html)
 
-  // Step 0: Collapse same-site absolute URLs to relative paths so the CMS
-  // editors' habit of using full URLs doesn't trip up the remaining steps.
-  const sameOriginRe = new RegExp(
-    `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',
-  )
+  // Step 0: Collapse same-site absolute URLs to relative paths. Matches both
+  // current hostname and the production domain so dev links don't leak to live site.
+  const _hostPat = _siteHost === _prodHostname
+    ? _escRe(_siteHost)
+    : `(?:${_escRe(_siteHost)}|${_escRe(_prodHostname)})`
+  const sameOriginRe = new RegExp(`href="https?://${_hostPat}(?::\\d+)?(/[^"]*)"`, 'gi')
   let out = html.replace(sameOriginRe, 'href="$1"')
 
   // Strip legacy .php extension from internal relative links before slug routing.
