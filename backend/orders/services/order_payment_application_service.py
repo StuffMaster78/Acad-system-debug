@@ -51,6 +51,7 @@ class OrderPaymentApplicationService:
         entered_code: Optional[str] = None,
         lifetime_spend: Optional[Decimal] = None,
         has_prior_paid_purchase: bool = False,
+        preauth_reference: Optional[str] = None,
     ) -> Any:
         """
         Create an external payment intent for the current outstanding
@@ -92,6 +93,53 @@ class OrderPaymentApplicationService:
             raise ValidationError(
                 {"order": "Order does not require external payment."}
             )
+
+        # Fast path: re-use a pre-warmed PaymentIntent if the amount still matches.
+        # The frontend pre-creates the Stripe session when the client selects card
+        # payment, before submitting the form. If a coupon changed the price the
+        # amounts won't match and we fall through to create a fresh session.
+        if preauth_reference:
+            from payments_processor.models import PaymentIntent as _PI
+            from payments_processor.enums import PaymentIntentStatus as _PIS
+            from django.contrib.contenttypes.models import ContentType
+            try:
+                existing = _PI.objects.select_for_update().get(
+                    reference=preauth_reference,
+                    client=order.client,
+                    provider=provider,
+                    status=_PIS.PENDING,
+                    payable_id__isnull=True,
+                )
+                if existing.amount == amount_to_charge:
+                    ct = ContentType.objects.get_for_model(order)
+                    existing.content_type = ct
+                    existing.object_id = order.pk
+                    existing.metadata = {
+                        "order_id": order.pk,
+                        "service_family": order.service_family,
+                        "service_code": order.service_code,
+                        **(existing.metadata or {}),
+                        **(metadata or {}),
+                    }
+                    existing.save(update_fields=["content_type", "object_id", "metadata", "updated_at"])
+                    if order.status != OrderStatus.PENDING_PAYMENT:
+                        order.status = OrderStatus.PENDING_PAYMENT
+                        order.save(update_fields=["status", "updated_at"])
+                    cls._create_timeline_event(
+                        order=order,
+                        actor=triggered_by,
+                        event_type=cls.TIMELINE_EVENT_PAYMENT_INITIATED,
+                        metadata={
+                            "payment_intent_reference": preauth_reference,
+                            "amount": str(amount_to_charge),
+                            "provider": provider,
+                            "prewarmed": True,
+                            **discount_metadata,
+                        },
+                    )
+                    return existing
+            except _PI.DoesNotExist:
+                pass  # pre-auth expired or not found — fall through to fresh session
 
         payment_intent = PaymentIntentService.create_intent(
             client=order.client,

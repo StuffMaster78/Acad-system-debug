@@ -9,6 +9,24 @@ import type {
   WalletHold,
 } from "@/types/wallet";
 
+export interface PrewarmCheckoutResult {
+  reference: string;
+  checkout_url: string;
+  amount: string;
+}
+
+export const paymentsApi = {
+  /** Pre-warm a Stripe Checkout Session before the order is submitted.
+   *  Call when the client selects "Pay by card" and a quote exists.
+   *  Pass the returned reference as preauth_reference on order creation
+   *  to skip the second Stripe API call. */
+  prewarmOrderCheckout: (amount: number, currency = "USD") =>
+    api.post<{ payment_intent: { reference: string; checkout_url: string; amount: string }; provider_data: Record<string, unknown> }>(
+      apiPath("/payments/checkout/"),
+      { provider: "stripe", purpose: "ORDER", amount, currency },
+    ),
+};
+
 type ListResponse<T> = T[] | { results: T[] };
 
 export const walletsApi = {

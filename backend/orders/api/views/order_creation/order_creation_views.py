@@ -121,6 +121,9 @@ class CreateOrderView(GenericAPIView):
         )
 
         provider = self._get_checkout_provider(request=request)
+        preauth_reference = (
+            str(request.data.get("preauth_reference", "")).strip() or None
+        )
         if provider and not order.is_fully_paid:
             payment_intent = (
                 OrderPaymentApplicationService.start_checkout(
@@ -132,6 +135,7 @@ class CreateOrderView(GenericAPIView):
                     triggered_by=user,
                     entered_code=entered_code,
                     has_prior_paid_purchase=has_prior_paid_purchase,
+                    preauth_reference=preauth_reference,
                     metadata={
                         "source": "order_creation_api",
                     },

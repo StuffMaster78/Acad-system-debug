@@ -11,6 +11,7 @@ import { useOrderConfigStore } from "@/stores/orderConfig";
 import { useOrderStore } from "@/stores/orders";
 import { useWalletStore } from "@/stores/wallets";
 import { ordersApi } from "@/api/orders";
+import { paymentsApi } from "@/api/wallets";
 import type { DesignQuotePayload, DiagramQuotePayload, PaperQuotePayload } from "@/types/orders";
 import { useAnalytics } from "@/composables/useAnalytics";
 
@@ -25,6 +26,34 @@ const files = useFilesStore();
 
 const error = ref("");
 const paymentMethod = ref<PaymentMethod>("wallet");
+const redirectingToStripe = ref(false);
+
+// Pre-warm: Stripe session fetched in background when card payment is selected
+const prewarm = ref<{ reference: string; checkout_url: string; forAmount: number } | null>(null);
+const prewarmPending = ref(false);
+
+async function triggerPrewarm() {
+  const rawPrice = orders.latestQuote?.calculated_price;
+  const price = rawPrice != null ? Number(rawPrice) : null;
+  if (!price || isNaN(price) || prewarmPending.value) return;
+  prewarmPending.value = true;
+  try {
+    const { data } = await paymentsApi.prewarmOrderCheckout(price);
+    const pi = data.payment_intent;
+    if (pi?.reference && pi?.checkout_url) {
+      prewarm.value = { reference: pi.reference, checkout_url: pi.checkout_url, forAmount: price };
+    }
+  } catch {
+    // Silent — falls back to standard flow on submit
+  } finally {
+    prewarmPending.value = false;
+  }
+}
+
+watch(paymentMethod, (method) => {
+  if (method === "stripe") triggerPrewarm();
+  else prewarm.value = null;
+});
 
 // Preferred writer
 const preferredWriterInput = ref("");
@@ -555,6 +584,21 @@ async function submit() {
   error.value = "";
   try {
     const provider = providerFor[paymentMethod.value];
+
+    // Use pre-warmed session if: stripe selected, no coupon (coupon changes price),
+    // and the pre-warm was for the same quoted amount.
+    const submitPrice = orders.latestQuote?.calculated_price != null
+      ? Number(orders.latestQuote.calculated_price)
+      : null;
+    const preauthRef =
+      paymentMethod.value === "stripe" &&
+      !couponCode.value.trim() &&
+      prewarm.value &&
+      submitPrice != null &&
+      prewarm.value.forAmount === submitPrice
+        ? prewarm.value.reference
+        : null;
+
     const baseOrder = {
       topic: form.topic,
       order_instructions: form.order_instructions,
@@ -563,6 +607,7 @@ async function submit() {
       ...provider,
       ...(couponCode.value.trim() ? { entered_code: couponCode.value.trim() } : {}),
       ...(preferredWriterResolved.value ? { preferred_writer_id: preferredWriterResolved.value.id } : {}),
+      ...(preauthRef ? { preauth_reference: preauthRef } : {}),
     };
 
     if (orders.isCreating) return;
@@ -626,8 +671,14 @@ async function submit() {
     }
 
     if (created.checkout_started) {
-      const checkoutUrl = (created.payment_intent as Record<string, unknown> | null)?.checkout_url;
+      // Prefer the pre-warmed URL (already fetched, no extra round-trip).
+      // Fall back to the URL from the order creation response.
+      const prewarmedUrl = preauthRef ? prewarm.value?.checkout_url : null;
+      const serverUrl = (created.payment_intent as Record<string, unknown> | null)?.checkout_url;
+      const checkoutUrl = (typeof prewarmedUrl === "string" ? prewarmedUrl : null) ?? serverUrl;
       if (typeof checkoutUrl === "string") {
+        redirectingToStripe.value = true;
+        prewarm.value = null;
         window.location.href = checkoutUrl;
         return;
       }
@@ -1301,12 +1352,12 @@ watch(() => form.service_code, loadAddons);
           <PaymentDisclosureBanner v-model="paymentDisclosureAccepted" context="new_order_checkout" />
           <button
             class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="!canQuote || orders.isCreating || !paymentDisclosureAccepted"
+            :disabled="!canQuote || orders.isCreating || redirectingToStripe || !paymentDisclosureAccepted"
             type="submit"
           >
-            <Loader2 v-if="orders.isCreating" class="h-4 w-4 animate-spin" />
+            <Loader2 v-if="orders.isCreating || redirectingToStripe" class="h-4 w-4 animate-spin" />
             <Send v-else class="h-4 w-4" />
-            {{ orders.isCreating ? "Placing order…" : "Place order" }}
+            {{ redirectingToStripe ? "Redirecting to payment…" : orders.isCreating ? "Placing order…" : "Place order" }}
           </button>
 
           <p v-if="files.uploadQueue.length" class="text-center text-xs text-graphite">
