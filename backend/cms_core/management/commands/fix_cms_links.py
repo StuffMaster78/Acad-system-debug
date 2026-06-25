@@ -52,41 +52,38 @@ _LEGACY_PATHS = [
     # Other static page aliases
     ("/services.php",     "/services"),
     ("/blog.php",         "/blog"),
-    # Common old service URL patterns that are EXACT paths differing from current slugs.
-    # Only list paths that are the COMPLETE old URL, not prefixes.
-    ("/essay-writing",               "/services/essays"),
-    ("/essay-writing-service",       "/services/essays"),
-    ("/write-my-essay",              "/services/essays"),
-    ("/buy-essay",                   "/services/essays"),
-    ("/research-paper-writing",      "/services/research-papers"),
-    ("/research-paper-writing-service", "/services/research-papers"),
-    ("/write-my-research-paper",     "/services/research-papers"),
-    ("/dissertation-writing",        "/services/dissertations"),
-    ("/dissertation-writing-service","/services/dissertations"),
-    ("/thesis-writing-service",      "/services/dissertations"),
-    ("/nursing-essay-writing",       "/services/online-nursing-essays-help"),
-    ("/nursing-essay-writing-service", "/services/online-nursing-essays-help"),
-    ("/nursing-assignment-help",     "/services/online-nursing-essays-help"),
-    ("/nursing-care-plan-writing",   "/services/nursing-care-plan-writing-services"),
-    ("/soap-note-writing",           "/services/nursing-soap-note-writing-help"),
-    ("/term-paper-writing",          "/services/term-papers"),
-    ("/term-paper-writing-service",  "/services/term-papers"),
-    ("/case-study-writing",          "/services/case-studies"),
-    ("/case-study-writing-service",  "/services/case-studies"),
-    ("/coursework-writing-service",  "/services/coursework"),
-    ("/do-my-coursework",            "/services/coursework"),
-    ("/literature-review-writing",   "/services/literature-reviews"),
-    ("/literature-review-writing-service", "/services/literature-reviews"),
-    ("/editing-proofreading-service", "/services/proofreading"),
-    ("/essay-editing-service",       "/services/proofreading"),
-    ("/proofreading-service",        "/services/proofreading"),
-    ("/admission-essay-writing",     "/services/admission-essays"),
-    ("/personal-statement-writing",  "/services/personal-statements"),
-    ("/college-essay-writing-service", "/services/admission-essays"),
-    ("/data-analysis-help",          "/services/data-analysis"),
-    ("/statistical-analysis-service", "/services/data-analysis"),
-    ("/presentation-writing-service", "/services/presentations"),
-    ("/take-my-online-class",        "/services/coursework"),
+    # Old service URL aliases — map to the canonical service slug (flat, no /services/ prefix).
+    ("/essay-writing-service",       "/essays"),
+    ("/write-my-essay",              "/essays"),
+    ("/buy-essay",                   "/essays"),
+    ("/research-paper-writing",      "/research-papers"),
+    ("/research-paper-writing-service", "/research-papers"),
+    ("/write-my-research-paper",     "/research-papers"),
+    ("/dissertation-writing",        "/dissertations"),
+    ("/dissertation-writing-service","/dissertations"),
+    ("/thesis-writing-service",      "/dissertations"),
+    ("/nursing-essay-writing",       "/online-nursing-essays-help"),
+    ("/nursing-essay-writing-service", "/online-nursing-essays-help"),
+    ("/nursing-care-plan-writing",   "/nursing-care-plan-writing-services"),
+    ("/soap-note-writing",           "/nursing-soap-note-writing-help"),
+    ("/term-paper-writing",          "/term-papers"),
+    ("/term-paper-writing-service",  "/term-papers"),
+    ("/case-study-writing",          "/case-studies"),
+    ("/case-study-writing-service",  "/case-studies"),
+    ("/coursework-writing-service",  "/coursework"),
+    ("/do-my-coursework",            "/coursework"),
+    ("/literature-review-writing",   "/literature-reviews"),
+    ("/literature-review-writing-service", "/literature-reviews"),
+    ("/editing-proofreading-service", "/editing-proofreading"),
+    ("/essay-editing-service",       "/editing-proofreading"),
+    ("/proofreading-service",        "/editing-proofreading"),
+    ("/admission-essay-writing",     "/admission-essays"),
+    ("/personal-statement-writing",  "/personal-statements"),
+    ("/college-essay-writing-service", "/admission-essays"),
+    ("/data-analysis-help",          "/data-analysis"),
+    ("/statistical-analysis-service", "/data-analysis"),
+    ("/presentation-writing-service", "/presentations"),
+    ("/take-my-online-class",        "/online-class-help"),
 ]
 
 # Matches href="/{slug}" (and the JSON-escaped form href=\"/{slug}\") with an
@@ -136,12 +133,20 @@ def _fix(raw: str, blog_slugs: set, service_slugs: set) -> str:
     # Strip remaining *.php from same-site paths (after domain was stripped)
     raw = re.sub(r'"(/[a-z0-9/-]+)\.php(?=["\s])', lambda m: '"' + m.group(1), raw)
 
-    # 3 & 4. Remap root-level hrefs: href="/{slug}" → /services/ or /blog/
-    #    _ROOT_HREF_PAT already anchors on the closing quote, so no prefix risk.
+    # 3. Flatten any previously-written /services/slug → /slug (Option B: flat URLs).
+    _SVC_HREF_PAT = re.compile(r'href=(\\?)"/services/([\w-]+)/?(\\?)"')
+    def _flatten_svc(m):
+        q1, slug, q2 = m.group(1), m.group(2), m.group(3)
+        if slug in service_slugs:
+            return f'href={q1}"/{slug}{q2}"'
+        return m.group(0)
+    raw = _SVC_HREF_PAT.sub(_flatten_svc, raw)
+
+    # 4. Remap any remaining root-level single-segment hrefs to /blog/ or flat.
     def _remap(m):
         q1, slug, q2 = m.group(1), m.group(2), m.group(3)
         if slug in service_slugs:
-            return f'href={q1}"/services/{slug}{q2}"'
+            return f'href={q1}"/{slug}{q2}"'
         if slug in blog_slugs:
             return f'href={q1}"/blog/{slug}{q2}"'
         return m.group(0)

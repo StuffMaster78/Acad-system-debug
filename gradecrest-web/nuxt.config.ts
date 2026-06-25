@@ -51,7 +51,7 @@ export default defineNuxtConfig({
     '/blog':          { prerender: true },
     '/blog/**':       { isr: 1800 },
     // Service pages ISR — CMS edits reflect within 1 hour
-    '/services/**':   { isr: 3600 },
+    '/**':            { isr: 3600 },
   },
 
   nitro: {
@@ -87,12 +87,12 @@ export default defineNuxtConfig({
         '/apply',
         '/blog',
         '/services',
-        '/services/essay-writing',
-        '/services/research-papers',
-        '/services/dissertations',
-        '/services/nursing-essays',
-        '/services/editing-proofreading',
-        '/services/data-analysis',
+        '/essay-writing',
+        '/research-papers',
+        '/dissertations',
+        '/nursing-essays',
+        '/editing-proofreading',
+        '/data-analysis',
         '/legal/terms',
         '/legal/privacy',
         '/legal/refunds',
