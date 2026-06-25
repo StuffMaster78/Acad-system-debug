@@ -541,9 +541,11 @@ const _gcFixedRoutes = new Set([
 
 function rewriteBodyLinks(html: string): string {
   if (!html) return html
+  // Strip /blog/ and /services/ prefixes that may be in scraped/CMS content.
+  html = html.replace(/href="\/(?:blog|services)\/([\w-]+)\/?"/gi, 'href="/$1"')
   return html.replace(/href="\/([a-z][a-z0-9-]*)"/g, (_match, slug) => {
-    if (_gcServiceSlugs.has(slug))  return `href="${slug}"`
-    if (_gcBlogSlugs.has(slug))     return `href="/blog/${slug}"`
+    if (_gcServiceSlugs.has(slug))  return `href="/${slug}"`
+    if (_gcBlogSlugs.has(slug))     return `href="/${slug}"`
     if (_gcFixedRoutes.has(slug))   return _match
     return _match
   })
@@ -564,6 +566,28 @@ const ctaOrderUrl = computed(() => {
   if (override && override !== '/order') return override
   return `/order?service=${encodeURIComponent(slug)}`
 })
+
+// ── Blog post detection (same cache key as BlogPostPage component) ──────────
+const config      = useRuntimeConfig()
+const apiBase     = (import.meta.server && (config.apiBaseInternal as string)) || config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
+const ssrHeaders  = import.meta.server ? { Host: config.siteHostname as string || 'gradecrest.com' } : undefined
+
+const { data: _blogCheck } = await useAsyncData<{ id: number } | null>(
+  `blog-type-${slug}`,
+  async () => {
+    if (cmsService.value) return null
+    try {
+      const res = await $fetch<{ items: { id: number }[] }>(
+        `${wagtailBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', slug, fields: 'id' }, headers: ssrHeaders },
+      )
+      return res.items?.[0] ?? null
+    } catch { return null }
+  },
+)
+
+const isBlogPost = computed(() => !cmsService.value && !!_blogCheck.value)
 
 useSeoMeta({
   title:         () => svc.value.metaTitle,
@@ -618,8 +642,9 @@ useHead({
 </script>
 
 <template>
+  <BlogPostPage v-if="isBlogPost" />
   <!-- bottom padding on mobile prevents the fixed CTA bar from overlapping content -->
-  <div class="pt-16 pb-20 lg:pb-0">
+  <div v-else class="pt-16 pb-20 lg:pb-0">
 
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
     <section class="bg-forest-950 py-12 sm:py-16 relative overflow-hidden" aria-label="Service overview">

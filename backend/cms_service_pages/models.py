@@ -278,6 +278,13 @@ class ServicePage(Page):
         except Exception:
             return None
 
+    @property
+    def frontend_url(self) -> str:
+        """Flat canonical URL served by the Nuxt frontend (/:slug, no /services/ prefix)."""
+        site = self.get_site()
+        root = site.root_url.rstrip("/") if site else ""
+        return f"{root}/{self.slug}"
+
     class Meta:
         verbose_name = "Service Page"
         verbose_name_plural = "Service Pages"

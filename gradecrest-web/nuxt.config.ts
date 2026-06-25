@@ -47,10 +47,9 @@ export default defineNuxtConfig({
     '/legal/terms':   { prerender: true },
     '/legal/privacy': { prerender: true },
     '/legal/refunds': { prerender: true },
-    // Blog index pre-rendered; post pages ISR so Wagtail edits go live fast
+    // Blog index pre-rendered; blog posts served at /:slug via ISR (same rule as services)
     '/blog':          { prerender: true },
-    '/blog/**':       { isr: 1800 },
-    // Service pages ISR — CMS edits reflect within 1 hour
+    // Flat service + blog post pages — CMS edits reflect within 1 hour
     '/**':            { isr: 3600 },
   },
 

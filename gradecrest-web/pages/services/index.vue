@@ -233,7 +233,7 @@ const tabServices = computed(() => {
           <NuxtLink
             v-for="svc in pagedServices"
             :key="svc.slug"
-            :to="`/services/${svc.slug}`"
+            :to="`/${svc.slug}`"
             class="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-gc-300 hover:shadow-lift"
           >
             <div>
@@ -294,7 +294,7 @@ const tabServices = computed(() => {
           <NuxtLink
             v-for="svc in tabServices"
             :key="svc.slug"
-            :to="`/services/${svc.slug}`"
+            :to="`/${svc.slug}`"
             class="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-gc-300 hover:shadow-lift"
           >
             <div>

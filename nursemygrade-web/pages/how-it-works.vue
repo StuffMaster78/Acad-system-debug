@@ -76,15 +76,15 @@ const guarantees = [
 ]
 
 const services = [
-  { label: 'Nursing Essays',         href: '/services/nursing-essays' },
-  { label: 'Care Plans',             href: '/services/care-plans' },
-  { label: 'SOAP Notes',             href: '/services/soap-notes' },
-  { label: 'Capstone Projects',      href: '/services/capstone-projects' },
-  { label: 'Nursing Research Papers',href: '/services/nursing-research-papers' },
-  { label: 'Shadow Health Help',     href: '/services/shadow-health' },
-  { label: 'iHuman Cases',           href: '/services/ihuman-patients' },
-  { label: 'Online Class Help',      href: '/services/online-nursing-classes' },
-  { label: 'Nursing Dissertations',  href: '/services/nursing-dissertations' },
+  { label: 'Nursing Essays',         href: '/nursing-essays' },
+  { label: 'Care Plans',             href: '/care-plans' },
+  { label: 'SOAP Notes',             href: '/soap-notes' },
+  { label: 'Capstone Projects',      href: '/capstone-projects' },
+  { label: 'Nursing Research Papers',href: '/nursing-research-papers' },
+  { label: 'Shadow Health Help',     href: '/shadow-health' },
+  { label: 'iHuman Cases',           href: '/ihuman-patients' },
+  { label: 'Online Class Help',      href: '/online-nursing-classes' },
+  { label: 'Nursing Dissertations',  href: '/nursing-dissertations' },
 ]
 </script>
 

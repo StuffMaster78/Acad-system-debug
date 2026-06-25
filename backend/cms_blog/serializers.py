@@ -20,7 +20,7 @@ class BlogPostListSerializer(serializers.Serializer):
             "id": page.pk,
             "title": page.title,
             "slug": page.slug,
-            "url": page.url,
+            "url": getattr(page, "frontend_url", None) or page.url,
             "excerpt": getattr(page, "excerpt", ""),
             "first_published_at": page.first_published_at,
             "last_published_at": page.last_published_at,
@@ -150,7 +150,7 @@ class BlogPostSchemaOrgSerializer(serializers.Serializer):
             "@context": "https://schema.org",
             "@type": "BlogPosting",
             "headline": page.title,
-            "url": page.full_url,
+            "url": getattr(page, "frontend_url", None) or page.full_url,
             "datePublished": (
                 page.first_published_at.isoformat()
                 if page.first_published_at

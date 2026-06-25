@@ -30,8 +30,30 @@ const cmsPage = computed<CmsServicePage | null>(
 const { hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
 const service = getBySlug(slug)
 
-if (!service && !cmsPage.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Service not found' })
+// Try blog post if not a service (same cache key as BlogPostPage component)
+const { data: _blogCheck } = await useAsyncData<{ id: number } | null>(
+  `nmg-blog-type-${slug}`,
+  async () => {
+    if (service || cmsPage.value) return null
+    try {
+      const res = await $fetch<{ items: { id: number }[] }>(
+        `${apiBase}/wagtail/api/v2/pages/`,
+        {
+          params: { type: 'cms_blog.BlogPostPage', slug, fields: 'id' },
+          headers: import.meta.server
+            ? { Host: (config as Record<string, unknown>).siteHostname as string || 'nursemygrade.com' }
+            : undefined,
+        },
+      )
+      return res.items?.[0] ?? null
+    } catch { return null }
+  },
+)
+
+const isBlogPost = computed(() => !service && !cmsPage.value && !!_blogCheck.value)
+
+if (!service && !cmsPage.value && !_blogCheck.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Page not found' })
 }
 
 const displayTitle = computed(() => service?.title ?? cmsPage.value?.title ?? '')
@@ -116,8 +138,9 @@ if (cmsPage.value?.schema) {
 </script>
 
 <template>
+  <BlogPostPage v-if="isBlogPost" />
   <!-- Clinical record card layout: form LEFT, content RIGHT in hero; article + sticky summary below -->
-  <div class="pb-20 lg:pb-0">
+  <div v-else class="pb-20 lg:pb-0">
 
     <!-- ── Breadcrumb ──────────────────────────────────────────────────────── -->
     <div class="border-b border-brand-100 bg-white px-4 py-3 sm:px-6 lg:px-8">

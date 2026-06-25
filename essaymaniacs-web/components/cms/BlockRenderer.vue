@@ -61,13 +61,16 @@ function rewriteLinks(html: string): string {
   out = out.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
     (_, path, qs) => `href="${path}${qs ?? ''}"`)
 
-  // Step 1: Rewrite single-segment relative paths → /blog/ or /services/.
+  // Step 1a: Strip /blog/ and /services/ prefixes from internal links in body HTML.
+  out = out.replace(/href="\/(?:blog|services)\/([\w-]+)\/?"/gi, 'href="/$1"')
+
+  // Step 1: Rewrite single-segment relative paths to flat canonical URLs.
   // The \/?" makes a trailing slash optional so /slug/ works the same as /slug.
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
     if (_serviceSlugs.has(slug)) return `href="/${slug}"`
-    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
+    if (_blogSlugs.has(slug))    return `href="/${slug}"`
     if (_fixedRoutes.has(slug))  return `href="/${slug}"`
-    if (props.linkContext === 'blog')    return `href="/blog/${slug}"`
+    if (props.linkContext === 'blog')    return `href="/${slug}"`
     if (props.linkContext === 'service') return `href="/${slug}"`
     return `href="/${slug}"`
   })
@@ -92,7 +95,7 @@ function pageHref(meta: Record<string, unknown>): string {
   const slug = String(meta.slug ?? '')
   const type = String(meta.type ?? '').toLowerCase()
   if (type.includes('servicepage') || type.includes('service_page')) return `/${slug}`
-  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
+  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/${slug}`
   return `/${slug}`
 }
 

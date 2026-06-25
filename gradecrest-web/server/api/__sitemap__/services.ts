@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
       `${apiBase}/cms-api/service-pages/`,
     )
     for (const s of resp.results ?? []) {
-      urls.push({ loc: `/services/${s.slug}`, changefreq: 'weekly', priority: 0.8, lastmod: s.updated_at })
+      urls.push({ loc: `/${s.slug}`, changefreq: 'weekly', priority: 0.8, lastmod: s.updated_at })
     }
   } catch { /* service pages unavailable during build — skip */ }
 
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     )
     for (const p of resp.items ?? []) {
       if (p.meta?.slug) {
-        urls.push({ loc: `/blog/${p.meta.slug}`, changefreq: 'monthly', priority: 0.6, lastmod: p.meta.first_published_at })
+        urls.push({ loc: `/${p.meta.slug}`, changefreq: 'monthly', priority: 0.6, lastmod: p.meta.first_published_at })
       }
     }
   } catch { /* blog posts unavailable during build — skip */ }

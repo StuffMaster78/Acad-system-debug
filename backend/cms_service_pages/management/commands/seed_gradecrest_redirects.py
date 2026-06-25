@@ -3,7 +3,7 @@ Management command: seed_gradecrest_redirects
 ===============================================
 
 Creates 301 redirects in Wagtail from the old gradecrest.com URL structure
-to the new /services/<slug>/ structure.
+to flat canonical URLs (/:slug).
 
 Old URLs (top-level, no /services/ prefix, different slugs):
     /write-my-essay  →  /services/essay-writing
@@ -23,43 +23,43 @@ from django.core.management.base import BaseCommand, CommandParser
 # Add any additional old URLs from the live gradecrest.com here.
 REDIRECTS = [
     # Core service pages — common keyword-slug patterns from old site
-    ("/write-my-essay", "/services/essay-writing"),
-    ("/essay-writing-service", "/services/essay-writing"),
-    ("/buy-essay", "/services/essay-writing"),
-    ("/pay-for-essay", "/services/essay-writing"),
-    ("/research-paper-writing", "/services/research-papers"),
-    ("/research-paper-writing-service", "/services/research-papers"),
-    ("/write-my-research-paper", "/services/research-papers"),
-    ("/dissertation-writing", "/services/dissertations"),
-    ("/dissertation-writing-service", "/services/dissertations"),
-    ("/write-my-dissertation", "/services/dissertations"),
-    ("/nursing-essay-writing", "/services/nursing-essays"),
-    ("/nursing-assignment-help", "/services/nursing-essays"),
-    ("/nursing-essay-writing-service", "/services/nursing-essays"),
-    ("/editing-proofreading-service", "/services/editing-proofreading"),
-    ("/proofreading-service", "/services/editing-proofreading"),
-    ("/essay-editing-service", "/services/editing-proofreading"),
-    ("/admission-essay-writing", "/services/admission-essays"),
-    ("/personal-statement-writing", "/services/admission-essays"),
-    ("/college-essay-writing-service", "/services/admission-essays"),
-    ("/term-paper-writing", "/services/term-papers"),
-    ("/term-paper-writing-service", "/services/term-papers"),
-    ("/write-my-term-paper", "/services/term-papers"),
-    ("/case-study-writing", "/services/case-studies"),
-    ("/case-study-writing-service", "/services/case-studies"),
-    ("/coursework-help", "/services/coursework"),
-    ("/coursework-writing-service", "/services/coursework"),
-    ("/do-my-coursework", "/services/coursework"),
-    ("/literature-review-writing", "/services/literature-review"),
-    ("/literature-review-writing-service", "/services/literature-review"),
-    ("/thesis-writing-service", "/services/thesis-writing"),
-    ("/write-my-thesis", "/services/thesis-writing"),
-    ("/data-analysis-help", "/services/data-analysis"),
-    ("/statistical-analysis-service", "/services/data-analysis"),
-    ("/online-class-help", "/services/online-class-help"),
-    ("/take-my-online-class", "/services/online-class-help"),
-    ("/homework-help", "/services/homework-help"),
-    ("/do-my-homework", "/services/homework-help"),
+    ("/write-my-essay", "/essay-writing"),
+    ("/essay-writing-service", "/essay-writing"),
+    ("/buy-essay", "/essay-writing"),
+    ("/pay-for-essay", "/essay-writing"),
+    ("/research-paper-writing", "/research-papers"),
+    ("/research-paper-writing-service", "/research-papers"),
+    ("/write-my-research-paper", "/research-papers"),
+    ("/dissertation-writing", "/dissertations"),
+    ("/dissertation-writing-service", "/dissertations"),
+    ("/write-my-dissertation", "/dissertations"),
+    ("/nursing-essay-writing", "/nursing-essays"),
+    ("/nursing-assignment-help", "/nursing-essays"),
+    ("/nursing-essay-writing-service", "/nursing-essays"),
+    ("/editing-proofreading-service", "/editing-proofreading"),
+    ("/proofreading-service", "/editing-proofreading"),
+    ("/essay-editing-service", "/editing-proofreading"),
+    ("/admission-essay-writing", "/admission-essays"),
+    ("/personal-statement-writing", "/admission-essays"),
+    ("/college-essay-writing-service", "/admission-essays"),
+    ("/term-paper-writing", "/term-papers"),
+    ("/term-paper-writing-service", "/term-papers"),
+    ("/write-my-term-paper", "/term-papers"),
+    ("/case-study-writing", "/case-studies"),
+    ("/case-study-writing-service", "/case-studies"),
+    ("/coursework-help", "/coursework"),
+    ("/coursework-writing-service", "/coursework"),
+    ("/do-my-coursework", "/coursework"),
+    ("/literature-review-writing", "/literature-review"),
+    ("/literature-review-writing-service", "/literature-review"),
+    ("/thesis-writing-service", "/thesis-writing"),
+    ("/write-my-thesis", "/thesis-writing"),
+    ("/data-analysis-help", "/data-analysis"),
+    ("/statistical-analysis-service", "/data-analysis"),
+    ("/online-class-help", "/online-class-help"),
+    ("/take-my-online-class", "/online-class-help"),
+    ("/homework-help", "/homework-help"),
+    ("/do-my-homework", "/homework-help"),
     # Generic old top-level pages that may have existed
     ("/services", "/services"),  # no redirect needed — same URL
     ("/about-us", "/about"),
@@ -72,7 +72,7 @@ REDIRECTS = [
 
 
 class Command(BaseCommand):
-    help = "Seed Wagtail redirects from old gradecrest.com URL structure to new /services/ paths"
+    help = "Seed Wagtail redirects from old gradecrest.com URL structure to new flat canonical paths (/:slug)"
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument("--site", default="gradecrest.com")

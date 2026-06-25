@@ -1,10 +1,10 @@
 // 301 redirects for old PHP service pages.
 //
 // Old site pattern:  gradecrest.com/essay-writing.php
-// New site pattern:  gradecrest.com/services/essay-writing
+// New site pattern:  gradecrest.com/essay-writing  (flat URL)
 //
-// Rule: /{slug}.php at the root level → /services/{slug}
-// Anything that doesn't match a known slug falls back to /services.
+// Rule: /{slug}.php at the root level → /{slug}
+// Anything that doesn't match a known slug falls back to the flat path.
 
 const SLUG_OVERRIDES: Record<string, string> = {
   // Add entries here if the old filename differs from the new slug.
@@ -21,5 +21,5 @@ export default defineEventHandler((event) => {
   const withoutExt = url.replace(/\.php(\?.*)?$/, '').replace(/^\//, '')
   const slug = SLUG_OVERRIDES[withoutExt] ?? withoutExt
 
-  return sendRedirect(event, `/services/${slug}`, 301)
+  return sendRedirect(event, `/${slug}`, 301)
 })

@@ -3,29 +3,29 @@ const portal = usePortalStore()
 const year = new Date().getFullYear()
 
 const writingServices = [
-  { label: 'Nursing Essays',        href: '/services/nursing-essays'         },
-  { label: 'Care Plans',            href: '/services/care-plans'             },
-  { label: 'SOAP Notes',            href: '/services/soap-notes'             },
-  { label: 'Research Papers',       href: '/services/nursing-research-papers'},
-  { label: 'Capstone Projects',     href: '/services/capstone-projects'      },
-  { label: 'Dissertations',         href: '/services/nursing-dissertations'  },
+  { label: 'Nursing Essays',        href: '/nursing-essays'         },
+  { label: 'Care Plans',            href: '/care-plans'             },
+  { label: 'SOAP Notes',            href: '/soap-notes'             },
+  { label: 'Research Papers',       href: '/nursing-research-papers'},
+  { label: 'Capstone Projects',     href: '/capstone-projects'      },
+  { label: 'Dissertations',         href: '/nursing-dissertations'  },
 ]
 
 const clinicalServices = [
-  { label: 'Case Studies',          href: '/services/nursing-case-studies'   },
-  { label: 'Concept Maps',          href: '/services/concept-maps'           },
-  { label: 'Coursework Help',       href: '/services/nursing-coursework'     },
-  { label: 'Shadow Health',         href: '/services/shadow-health'          },
-  { label: 'iHuman Patients',       href: '/services/ihuman-patients'        },
-  { label: 'Online Class Help',     href: '/services/online-nursing-classes' },
+  { label: 'Case Studies',          href: '/nursing-case-studies'   },
+  { label: 'Concept Maps',          href: '/concept-maps'           },
+  { label: 'Coursework Help',       href: '/nursing-coursework'     },
+  { label: 'Shadow Health',         href: '/shadow-health'          },
+  { label: 'iHuman Patients',       href: '/ihuman-patients'        },
+  { label: 'Online Class Help',     href: '/online-nursing-classes' },
 ]
 
 const specialtyServices = [
-  { label: 'BSN Writing',           href: '/services/bsn-writing'           },
-  { label: 'MSN Writing Help',      href: '/services/msn-help'              },
-  { label: 'APA Nursing Papers',    href: '/services/apa-nursing-papers'    },
-  { label: 'Nursing Reports',       href: '/services/nursing-report'        },
-  { label: 'Nursing Presentations', href: '/services/nursing-presentation'  },
+  { label: 'BSN Writing',           href: '/bsn-writing'           },
+  { label: 'MSN Writing Help',      href: '/msn-help'              },
+  { label: 'APA Nursing Papers',    href: '/apa-nursing-papers'    },
+  { label: 'Nursing Reports',       href: '/nursing-report'        },
+  { label: 'Nursing Presentations', href: '/nursing-presentation'  },
 ]
 
 const company = [
@@ -48,11 +48,11 @@ const quickLinks = [
 ]
 
 const resources = [
-  { label: 'Care Plan Guide',       href: '/blog/nursing-care-plan-guide'                          },
-  { label: 'SOAP Note Guide',       href: '/blog/soap-notes-guide-for-nursing-students'            },
-  { label: 'APA 7th for Nursing',   href: '/blog/apa-7th-edition-guide-nursing-papers'             },
-  { label: 'Shadow Health Tips',    href: '/blog/tips-for-succeeding-in-shadow-health-assessments' },
-  { label: 'iHuman Tips',           href: '/blog/ihuman-tips-help-and-tricks'                      },
+  { label: 'Care Plan Guide',       href: '/nursing-care-plan-guide'                          },
+  { label: 'SOAP Note Guide',       href: '/soap-notes-guide-for-nursing-students'            },
+  { label: 'APA 7th for Nursing',   href: '/apa-7th-edition-guide-nursing-papers'             },
+  { label: 'Shadow Health Tips',    href: '/tips-for-succeeding-in-shadow-health-assessments' },
+  { label: 'iHuman Tips',           href: '/ihuman-tips-help-and-tricks'                      },
 ]
 
 const legal = [

@@ -36,8 +36,30 @@ const cmsPage = computed<CmsServicePage | null>(
 const { hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(slug)
 const service = getBySlug(slug)
 
-if (!service && !cmsPage.value) {
-  throw createError({ statusCode: 404, message: 'Service not found' })
+// Try blog post if not a service (same cache key as BlogPostPage component)
+const { data: _blogCheck } = await useAsyncData<{ id: number } | null>(
+  `rpm-blog-type-${slug}`,
+  async () => {
+    if (service || cmsPage.value) return null
+    try {
+      const res = await $fetch<{ items: { id: number }[] }>(
+        `${apiBase}/wagtail/api/v2/pages/`,
+        {
+          params: { type: 'cms_blog.BlogPostPage', slug, fields: 'id' },
+          headers: import.meta.server
+            ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
+            : undefined,
+        },
+      )
+      return res.items?.[0] ?? null
+    } catch { return null }
+  },
+)
+
+const isBlogPost = computed(() => !service && !cmsPage.value && !!_blogCheck.value)
+
+if (!service && !cmsPage.value && !_blogCheck.value) {
+  throw createError({ statusCode: 404, message: 'Page not found' })
 }
 
 const displayTitle = computed(() => service?.title ?? cmsPage.value?.title ?? '')
@@ -141,8 +163,9 @@ if (cmsPage.value?.schema) {
 </script>
 
 <template>
+  <BlogPostPage v-if="isBlogPost" />
   <!-- Methodology selector + drawer calculator — scholarly, parchment-toned -->
-  <div>
+  <div v-else>
 
     <!-- ── Hero: parchment/white, left-aligned, minimal ──────────────────── -->
     <section class="bg-parchment-50 border-b border-parchment-200 py-12 sm:py-16" aria-label="Service overview">

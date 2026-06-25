@@ -237,7 +237,7 @@ const whyItems = [
             <p class="mt-4 text-slate-600 leading-relaxed">
               We support the full capstone journey: PICOT question development, systematic literature search, evidence appraisal using the Iowa Model, ACE Star, or your programme's preferred framework, implementation planning, and the final manuscript. We also write the accompanying PowerPoint presentation if required.
             </p>
-            <NuxtLink to="/services/capstone-projects" class="btn-primary mt-8 inline-flex px-8 py-3.5">Get capstone help →</NuxtLink>
+            <NuxtLink to="/capstone-projects" class="btn-primary mt-8 inline-flex px-8 py-3.5">Get capstone help →</NuxtLink>
           </div>
           <div class="space-y-4">
             <div v-for="item in [

@@ -4,12 +4,9 @@ Fix absolute same-site links in all live CMS body content.
 Transforms applied (in order, on raw JSON):
   1. Strip domain prefix: https://nursemygrade.com/X  →  /X
   2. Normalise legacy path aliases (.php, order fragments, etc.)
-  3. Map old root-level service slugs: /slug  →  /services/slug
-     (only for slugs that exist as live ServicePage records)
-  4. Map old root-level blog slugs: /slug  →  /blog/slug
-     (only for slugs that exist as live BlogPostPage records)
-  5. Apply hardcoded legacy → new service path aliases (old URLs that differ
-     from the current ServicePage slug).
+  3. Flatten /services/slug  →  /slug  (flat canonical URL)
+  4. Flatten /blog/slug  →  /slug  (flat canonical URL)
+  5. Remap any remaining root-level /slug to the correct flat service or blog path.
 
 Run with --dry-run first to preview changes.
 Usage:
@@ -133,7 +130,7 @@ def _fix(raw: str, blog_slugs: set, service_slugs: set) -> str:
     # Strip remaining *.php from same-site paths (after domain was stripped)
     raw = re.sub(r'"(/[a-z0-9/-]+)\.php(?=["\s])', lambda m: '"' + m.group(1), raw)
 
-    # 3. Flatten any previously-written /services/slug → /slug (Option B: flat URLs).
+    # 3. Flatten any previously-written /services/slug → /slug (flat canonical URL).
     _SVC_HREF_PAT = re.compile(r'href=(\\?)"/services/([\w-]+)/?(\\?)"')
     def _flatten_svc(m):
         q1, slug, q2 = m.group(1), m.group(2), m.group(3)
@@ -142,13 +139,22 @@ def _fix(raw: str, blog_slugs: set, service_slugs: set) -> str:
         return m.group(0)
     raw = _SVC_HREF_PAT.sub(_flatten_svc, raw)
 
-    # 4. Remap any remaining root-level single-segment hrefs to /blog/ or flat.
+    # 4. Flatten any previously-written /blog/slug → /slug (flat canonical URL).
+    _BLOG_HREF_PAT = re.compile(r'href=(\\?)"/blog/([\w-]+)/?(\\?)"')
+    def _flatten_blog(m):
+        q1, slug, q2 = m.group(1), m.group(2), m.group(3)
+        if slug in blog_slugs:
+            return f'href={q1}"/{slug}{q2}"'
+        return m.group(0)
+    raw = _BLOG_HREF_PAT.sub(_flatten_blog, raw)
+
+    # 5. Remap any remaining root-level single-segment hrefs to flat canonical URL.
     def _remap(m):
         q1, slug, q2 = m.group(1), m.group(2), m.group(3)
         if slug in service_slugs:
             return f'href={q1}"/{slug}{q2}"'
         if slug in blog_slugs:
-            return f'href={q1}"/blog/{slug}{q2}"'
+            return f'href={q1}"/{slug}{q2}"'   # flat — no /blog/ prefix
         return m.group(0)
 
     raw = _ROOT_HREF_PAT.sub(_remap, raw)

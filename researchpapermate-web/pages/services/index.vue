@@ -148,7 +148,7 @@ useHead({
           <NuxtLink
             v-for="s in visibleServices"
             :key="s.slug"
-            :href="`/services/${s.slug}`"
+            :href="`/${s.slug}`"
             class="group relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-md"
             :class="popularSlugs.has(s.slug)
               ? 'border-amber-300 ring-1 ring-amber-200'

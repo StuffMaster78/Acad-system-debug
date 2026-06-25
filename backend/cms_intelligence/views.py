@@ -227,7 +227,7 @@ class AnswersSearchView(viewsets.ViewSet):
             for hit in hits:
                 results.append({
                     "title": hit.title,
-                    "url": hit.full_url or f"/blog/{hit.slug}",
+                    "url": hit.full_url or f"/{hit.slug}",
                     "excerpt": getattr(hit, "excerpt", "") or getattr(hit, "search_description", ""),
                     "type": "blog",
                 })
