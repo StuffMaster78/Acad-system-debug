@@ -146,6 +146,7 @@ CMS_APPS = [
     "cms_authors",
     "cms_attachments",
     "cms_blog",
+    "cms_guides",
     "cms_service_pages",
     "cms_newsletters",
     "cms_references",

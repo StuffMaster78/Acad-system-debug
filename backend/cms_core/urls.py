@@ -36,6 +36,7 @@ urlpatterns = [
     path("files/", include("files_management.urls")),
     path("authors/", include("cms_authors.urls")),
     path("blog/", include("cms_blog.urls")),
+    path("guides/", include("cms_guides.urls")),
     path("service-pages/", include("cms_service_pages.urls")),
     path("contact/", PublicContactView.as_view(), name="public-contact"),
     path("site-settings/", PublicSiteSettingsView.as_view(), name="site-settings"),
