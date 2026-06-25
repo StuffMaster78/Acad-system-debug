@@ -28,6 +28,12 @@ class Website(models.Model):
         unique=True,
         help_text="Website's domain (e.g., https://example.com)"
     )
+    portal_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Client portal URL for this site (e.g., https://app.gradecrest.com). "
+                  "Used as the Stripe success/cancel redirect base URL.",
+    )
     is_active = models.BooleanField(
         default=True,
         help_text="Whether the website is currently active"

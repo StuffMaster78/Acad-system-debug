@@ -110,7 +110,12 @@ class StripePaymentProvider(BasePaymentProvider):
         amount = Decimal(str(getattr(payment_intent, "amount", "0.00")))
         currency = str(getattr(payment_intent, "currency", "USD")).lower()
         reference = str(getattr(payment_intent, "reference", ""))
-        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+
+        # Use the tenant's client portal URL so the post-payment redirect lands
+        # on the correct branded portal (app.gradecrest.com, app.essaymaniacs.com…).
+        website = getattr(payment_intent, "website", None)
+        portal_url = getattr(website, "portal_url", "") if website else ""
+        frontend_url = portal_url.rstrip("/") or getattr(settings, "FRONTEND_URL", "http://localhost:5173")
 
         client = getattr(payment_intent, "client", None)
         client_email = getattr(client, "email", None) if client else None
