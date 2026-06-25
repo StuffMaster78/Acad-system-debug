@@ -7,6 +7,8 @@ const cfg   = computed(() => popup.config.value)
 function isExternal(url?: string) {
   return !!url && /^https?:\/\//.test(url)
 }
+
+onMounted(() => popup.init())
 </script>
 
 <template>

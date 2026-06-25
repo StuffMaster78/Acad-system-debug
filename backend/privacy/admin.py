@@ -55,6 +55,38 @@ class ExitIntentPopupConfigAdmin(admin.ModelAdmin):
     list_filter = ("is_enabled", "trigger", "requires_marketing_consent", "website")
     search_fields = ("website__name", "title", "body", "primary_cta_label")
     readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Site", {
+            "fields": ("website", "is_enabled"),
+        }),
+        ("Content", {
+            "description": "What the popup says. Leave image_url blank for a text-only popup.",
+            "fields": ("title", "body", "image_url"),
+        }),
+        ("Call to action", {
+            "fields": ("primary_cta_label", "primary_cta_url", "secondary_cta_label"),
+        }),
+        ("Trigger", {
+            "description": (
+                "exit_intent fires when the cursor leaves the top of the viewport. "
+                "delay fires after N seconds. scroll_depth fires after scrolling past a percentage."
+            ),
+            "fields": ("trigger", "delay_seconds", "scroll_depth_percent"),
+        }),
+        ("Frequency & paths", {
+            "fields": (
+                "cooldown_hours",
+                "max_shows_per_session",
+                "requires_marketing_consent",
+                "show_on_paths",
+                "suppress_on_paths",
+            ),
+        }),
+        ("Timestamps", {
+            "classes": ("collapse",),
+            "fields": ("created_at", "updated_at"),
+        }),
+    )
 
 
 @admin.register(WebsiteCookieConfig)

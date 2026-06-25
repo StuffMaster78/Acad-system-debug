@@ -14,6 +14,7 @@
     <ClientOnly>
       <CookieConsentBanner />
       <CookieSettingsButton />
+      <ExitIntentPopup />
     </ClientOnly>
   </div>
 </template>
