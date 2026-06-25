@@ -12,7 +12,7 @@
       v-if="isSuperAdmin"
       v-model="websiteId"
       class="mb-4"
-      @update:modelValue="() => { loadDocVersions(); loadActiveVersions(); loadCategories(); loadArticles(); }"
+      @update:modelValue="() => { loadDocVersions(); loadActiveVersions(); loadCategories(); loadArticles(); if (tab === 'popup') loadPopupConfig(); }"
     />
 
     <!-- Tabs -->
@@ -1347,6 +1347,7 @@ const popupError   = ref("");
 
 async function loadPopupConfig() {
   popupCfg.value = null;
+  popupError.value = "";
   try {
     const { data } = await api.get<PopupCfg>(
       apiPath("/privacy/admin/exit-popup/"),

@@ -34,7 +34,7 @@ function pathAllowed(config: ExitPopupConfig, path: string) {
 function coolingDown(config: ExitPopupConfig) {
   const dismissedAt = Number(localStorage.getItem(STORAGE_KEY) || 0)
   if (!dismissedAt) return false
-  return Date.now() - dismissedAt < Number(config.cooldown_hours || 24) * 60 * 60 * 1000
+  return Date.now() - dismissedAt < Number(config.cooldown_hours ?? 24) * 60 * 60 * 1000
 }
 
 export function useExitPopup() {
@@ -54,7 +54,7 @@ export function useExitPopup() {
     }
     if (!config.value?.is_enabled || !pathAllowed(config.value, window.location.pathname) || coolingDown(config.value)) return
     if (config.value.requires_marketing_consent && !consent.marketingAllowed.value) return
-    if (Number(sessionStorage.getItem(SESSION_KEY) || 0) >= Number(config.value.max_shows_per_session || 1)) return
+    if (Number(sessionStorage.getItem(SESSION_KEY) || 0) >= Number(config.value.max_shows_per_session ?? 1)) return
     armed.value = true
     if (config.value.trigger === 'delay') window.setTimeout(show, Number(config.value.delay_seconds || 15) * 1000)
     else if (config.value.trigger === 'scroll_depth') window.addEventListener('scroll', handleScroll, { passive: true })

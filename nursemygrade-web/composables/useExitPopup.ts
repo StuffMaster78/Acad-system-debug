@@ -36,7 +36,7 @@ function pathAllowed(config: ExitPopupConfig, path: string) {
 function coolingDown(config: ExitPopupConfig) {
   const dismissedAt = Number(localStorage.getItem(STORAGE_KEY) || 0)
   if (!dismissedAt) return false
-  const cooldownMs = Number(config.cooldown_hours || 24) * 60 * 60 * 1000
+  const cooldownMs = Number(config.cooldown_hours ?? 24) * 60 * 60 * 1000
   return Date.now() - dismissedAt < cooldownMs
 }
 
@@ -61,7 +61,7 @@ export function useExitPopup() {
     if (!config.value?.is_enabled || !pathAllowed(config.value, window.location.pathname) || coolingDown(config.value)) return
     if (config.value.requires_marketing_consent && !consent.marketingAllowed.value) return
     const shownCount = Number(sessionStorage.getItem(SESSION_KEY) || 0)
-    if (shownCount >= Number(config.value.max_shows_per_session || 1)) return
+    if (shownCount >= Number(config.value.max_shows_per_session ?? 1)) return
     armed.value = true
 
     if (config.value.trigger === 'delay') {

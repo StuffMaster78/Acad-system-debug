@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import CookieConsentBanner from '~/components/privacy/CookieConsentBanner.vue'
-import ExitIntentPopup from '~/components/marketing/ExitIntentPopup.vue'
 import PromoStrip from '~/components/marketing/PromoStrip.vue'
 
 const portal = usePortalStore()
@@ -39,6 +38,5 @@ watch([() => portal.ga4Id, consent.analyticsAllowed], ([id, allowed]) => {
     <PromoStrip />
     <NuxtPage />
     <CookieConsentBanner />
-    <ExitIntentPopup />
   </NuxtLayout>
 </template>
