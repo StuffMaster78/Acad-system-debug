@@ -14,10 +14,10 @@ const menuServicesB = computed(() => {
 
 const orderPaths = [
   { id: 'paper',   label: 'Nursing Papers',        desc: 'Essays, care plans, research papers, SOAP notes', href: '/order?type=paper',   color: 'text-brand-600'  },
-  { id: 'class',   label: 'Online Class Help',     desc: 'Full course or individual module management',      href: '/services/online-nursing-classes', color: 'text-green-600'  },
-  { id: 'special', label: 'Capstone / Dissertation', desc: 'End-to-end BSN, MSN, or DNP project support', href: '/services/capstone-projects', color: 'text-rose-600'   },
-  { id: 'combo',   label: 'Mentoring',             desc: 'Admission essays, career guidance, school prep',  href: '/contact',            color: 'text-amber-600'  },
-  { id: 'diagram', label: 'Concept Maps',          desc: 'Pathophysiology linkage maps for any scenario',   href: '/services/concept-maps', color: 'text-teal-600'   },
+  { id: 'class',   label: 'Online Class Help',     desc: 'Full course or individual module management',      href: '/services/nursing-class-help-online',               color: 'text-green-600'  },
+  { id: 'special', label: 'Capstone / Dissertation', desc: 'End-to-end BSN, MSN, or DNP project support', href: '/services/nursing-capstone-project-writing-service', color: 'text-rose-600'   },
+  { id: 'combo',   label: 'Mentoring',             desc: 'Admission essays, career guidance, school prep',  href: '/contact',                                          color: 'text-amber-600'  },
+  { id: 'diagram', label: 'Concept Maps',          desc: 'Pathophysiology linkage maps for any scenario',   href: '/services/concept-map-writing-services',            color: 'text-teal-600'   },
   { id: 'design',  label: 'Custom Quote',          desc: 'Unusual brief? Tell us — we\'ll price it',        href: '/quote',              color: 'text-purple-600' },
 ]
 

@@ -37,7 +37,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students at ADN, BSN, MSN, and DNP level who need a well-argued, clinically grounded essay on any nursing topic.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-research-papers', 'nursing-case-studies', 'nursing-coursework'],
+    relatedSlugs: ['best-online-nursing-research-paper-service', 'nursing-case-study-help', 'nursing-coursework-help-online'],
     meta: {
       title: 'Nursing Essay Writing Service — BSN, MSN & DNP Writers',
       description: 'Custom nursing essays written by qualified nurses. APA 7th, EBP-grounded, plagiarism-free. From $24/page.',
@@ -67,7 +67,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'BSN and ADN students who need a properly formatted, clinically sound care plan for clinical practicum, simulation labs, or academic submissions.',
     priceFrom: 26,
-    relatedSlugs: ['soap-notes', 'nursing-case-studies', 'nursing-essays'],
+    relatedSlugs: ['nursing-soap-note-writing-help', 'nursing-case-study-help', 'online-nursing-essays-help'],
     meta: {
       title: 'Nursing Care Plan Writing Service — NANDA, NIC & NOC',
       description: 'Expert nursing care plan writing using NANDA diagnoses, NIC interventions, and NOC outcomes. Clinically accurate. From $26/page.',
@@ -97,7 +97,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'NP students, FNP programmes, and advanced practice nursing students who need clinically accurate SOAP notes for coursework or simulation scenarios.',
     priceFrom: 28,
-    relatedSlugs: ['care-plans', 'nursing-case-studies', 'nursing-essays'],
+    relatedSlugs: ['nursing-care-plan-writing-services', 'nursing-case-study-help', 'online-nursing-essays-help'],
     meta: {
       title: 'SOAP Note Writing Service — Clinical Documentation Help',
       description: 'Accurate SOAP notes written by clinical nursing professionals. All four sections, ICD-10 aware. From $28/page.',
@@ -127,7 +127,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'BSN, MSN, and DNP students who need structured support for their nursing capstone from proposal development through final submission.',
     priceFrom: 30,
-    relatedSlugs: ['nursing-dissertations', 'nursing-research-papers', 'soap-notes'],
+    relatedSlugs: ['nursing-dissertation-writing-service', 'best-online-nursing-research-paper-service', 'nursing-soap-note-writing-help'],
     meta: {
       title: 'Nursing Capstone Project Writing Service — BSN, MSN & DNP',
       description: 'Expert nursing capstone support from PICOT to final paper. BSN, MSN, and DNP levels. From $30/page.',
@@ -157,7 +157,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students from ADN through DNP who need a well-structured, evidence-based research paper on any clinical or nursing theory topic.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-essays', 'capstone-projects', 'nursing-dissertations'],
+    relatedSlugs: ['online-nursing-essays-help', 'nursing-capstone-project-writing-service', 'nursing-dissertation-writing-service'],
     meta: {
       title: 'Nursing Research Paper Writing Service — APA 7th Edition',
       description: 'Evidence-based nursing research papers written by qualified nurses. APA 7th, peer-reviewed sources, plagiarism-free. From $24/page.',
@@ -187,7 +187,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students who need rigorous clinical case study analysis that demonstrates critical thinking, clinical judgment, and evidence-based practice.',
     priceFrom: 26,
-    relatedSlugs: ['care-plans', 'soap-notes', 'nursing-essays'],
+    relatedSlugs: ['nursing-care-plan-writing-services', 'nursing-soap-note-writing-help', 'online-nursing-essays-help'],
     meta: {
       title: 'Nursing Case Study Writing Service — Clinical Reasoning',
       description: 'Expert nursing case study analysis using ADPIE and clinical reasoning. Written by BSN/MSN nurses. From $26/page.',
@@ -217,7 +217,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'MSN and DNP students who need expert-level support for their nursing dissertation or doctoral project — from concept through final submission.',
     priceFrom: 32,
-    relatedSlugs: ['capstone-projects', 'nursing-research-papers', 'nursing-case-studies'],
+    relatedSlugs: ['nursing-capstone-project-writing-service', 'best-online-nursing-research-paper-service', 'nursing-case-study-help'],
     meta: {
       title: 'Nursing Dissertation Writing Service — DNP & PhD Experts',
       description: 'Expert nursing dissertation writing from proposal to defence. DNP, MSN, and PhD levels. From $32/page.',
@@ -247,7 +247,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'ADN and BSN students who need concept maps for clinical courses, simulation prep, or medication management assignments.',
     priceFrom: 24,
-    relatedSlugs: ['care-plans', 'nursing-case-studies', 'nursing-essays'],
+    relatedSlugs: ['nursing-care-plan-writing-services', 'nursing-case-study-help', 'online-nursing-essays-help'],
     meta: {
       title: 'Nursing Concept Map Writing Service — Clinical & Patient Care',
       description: 'Clinically accurate nursing concept maps linking pathophysiology, diagnoses, interventions, and outcomes. From $24/page.',
@@ -277,7 +277,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students managing heavy coursework loads — ADN through DNP — who need reliable, expert weekly help across one or more modules.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-essays', 'nursing-research-papers', 'nursing-case-studies'],
+    relatedSlugs: ['online-nursing-essays-help', 'best-online-nursing-research-paper-service', 'nursing-case-study-help'],
     meta: {
       title: 'Nursing Coursework & Assignment Help from $24/Page',
       description: 'Reliable nursing coursework help — discussions, reflections, pharmacology, and more. From $24/page.',
@@ -307,7 +307,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students who are overwhelmed by multiple online courses and need a qualified nursing professional to manage coursework while they complete clinical rotations.',
     priceFrom: 35,
-    relatedSlugs: ['nursing-coursework', 'nursing-essays', 'nursing-research-papers'],
+    relatedSlugs: ['nursing-coursework-help-online', 'online-nursing-essays-help', 'best-online-nursing-research-paper-service'],
     meta: {
       title: 'Online Nursing Class Help — Full Course Management',
       description: 'Qualified nurses handle your online nursing classes — discussions, quizzes, assignments. Discreet, grade-focused. From $35/page.',
@@ -337,7 +337,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students enrolled in programmes using Shadow Health — ADN, BSN, MSN, and NP students struggling with DCE time demands or clinical reasoning documentation.',
     priceFrom: 35,
-    relatedSlugs: ['ihuman-patients', 'soap-notes', 'care-plans'],
+    relatedSlugs: ['ihuman-help', 'nursing-soap-note-writing-help', 'nursing-care-plan-writing-services'],
     meta: {
       title: 'Shadow Health DCE Help — Tina Jones & All Patients',
       description: 'Expert Shadow Health Digital Clinical Experience completion by practicing nurses. Tina Jones, Brian Foster, all patients. From $35.',
@@ -367,7 +367,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing and NP students using the iHuman platform for virtual patient encounters who need support with clinical reasoning documentation and case completion.',
     priceFrom: 35,
-    relatedSlugs: ['shadow-health', 'soap-notes', 'nursing-case-studies'],
+    relatedSlugs: ['shadow-health-help-online', 'nursing-soap-note-writing-help', 'nursing-case-study-help'],
     meta: {
       title: 'iHuman Virtual Patient Case Help — Clinical Reasoning',
       description: 'Expert iHuman virtual patient case completion by practicing nurses. Clinical reasoning, differentials, treatment plans. From $35.',
@@ -397,7 +397,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students at any level — ADN through DNP — who need a reliable, clinically grounded nursing paper written by a qualified nurse.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-essays', 'care-plans', 'nursing-coursework'],
+    relatedSlugs: ['online-nursing-essays-help', 'nursing-care-plan-writing-services', 'nursing-coursework-help-online'],
     meta: {
       title: 'Buy Nursing Papers Online — Written by BSN, MSN & DNP Nurses',
       description: 'Buy custom nursing papers written by qualified nurses. Care plans, essays, SOAP notes, capstone projects. Grade guaranteed. From $24/page.',
@@ -427,7 +427,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students who need help writing clinical reports, incident documentation, or case reports for academic submission or portfolio development.',
     priceFrom: 24,
-    relatedSlugs: ['soap-notes', 'nursing-essays', 'nursing-case-studies'],
+    relatedSlugs: ['nursing-soap-note-writing-help', 'online-nursing-essays-help', 'nursing-case-study-help'],
     meta: {
       title: 'Nursing Report Writing Service — Clinical Documentation Help',
       description: 'Expert nursing report writing — incident reports, SBAR, progress notes, clinical case reports. From $24/page.',
@@ -457,7 +457,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students preparing for capstone defence presentations, clinical case rounds, seminar presentations, or journal club facilitation.',
     priceFrom: 26,
-    relatedSlugs: ['capstone-projects', 'nursing-essays', 'nursing-research-papers'],
+    relatedSlugs: ['nursing-capstone-project-writing-service', 'online-nursing-essays-help', 'best-online-nursing-research-paper-service'],
     meta: {
       title: 'Nursing Presentation Writing Service — PPT & Speaker Notes',
       description: 'Expert nursing PowerPoint presentations for capstone defence, seminars, and clinical rounds. Evidence-based, APA cited. From $26.',
@@ -487,7 +487,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'BSN nursing students at any year who need reliable academic writing support — from fundamentals in Year 1 to capstone projects in Year 4.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-essays', 'care-plans', 'capstone-projects'],
+    relatedSlugs: ['online-nursing-essays-help', 'nursing-care-plan-writing-services', 'nursing-capstone-project-writing-service'],
     meta: {
       title: 'BSN Nursing Writing Services — Essays, Care Plans & Capstone',
       description: 'Comprehensive writing help for BSN nursing students. Essays, care plans, SOAP notes, capstone projects. From $24/page.',
@@ -517,7 +517,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'MSN students in clinical speciality, nurse educator, nurse leader, or NP programmes who need expert-level writing support for graduate coursework and programme requirements.',
     priceFrom: 32,
-    relatedSlugs: ['nursing-dissertations', 'capstone-projects', 'nursing-research-papers'],
+    relatedSlugs: ['nursing-dissertation-writing-service', 'nursing-capstone-project-writing-service', 'best-online-nursing-research-paper-service'],
     meta: {
       title: 'MSN Nursing Writing Help — Graduate-Level Papers & Capstone',
       description: 'Expert writing support for MSN nursing students. Scholarly papers, NP coursework, policy analysis, capstone. From $32/page.',
@@ -547,7 +547,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students who need a properly APA-formatted paper — or who have written a draft that needs expert APA formatting review and correction.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-essays', 'nursing-research-papers', 'nursing-coursework'],
+    relatedSlugs: ['online-nursing-essays-help', 'best-online-nursing-research-paper-service', 'nursing-coursework-help-online'],
     meta: {
       title: 'APA Nursing Paper Writing Service — 7th Edition Formatting',
       description: 'Nursing papers written and formatted in APA 7th edition. All citation types, heading levels, reference lists. From $24/page.',
@@ -577,7 +577,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Students in nursing, medicine, public health, pharmacy, and allied health disciplines who need expert clinical writing for academic assignments.',
     priceFrom: 26,
-    relatedSlugs: ['nursing-research-papers', 'nursing-case-studies', 'nursing-essays'],
+    relatedSlugs: ['best-online-nursing-research-paper-service', 'nursing-case-study-help', 'online-nursing-essays-help'],
     meta: {
       title: 'Medical Paper Writing Service — Nursing, Medicine & Health Sciences',
       description: 'Expert medical and health sciences paper writing by clinicians. Nursing, medicine, public health, pharmacy. From $26/page.',
@@ -607,7 +607,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Nursing students who need reliable weekly homework help across any nursing subject — from fundamentals to advanced pathophysiology and pharmacology.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-coursework', 'nursing-essays', 'nursing-case-studies'],
+    relatedSlugs: ['nursing-coursework-help-online', 'online-nursing-essays-help', 'nursing-case-study-help'],
     meta: {
       title: 'Nursing Homework Help Online — Weekly Assignments & Problems',
       description: 'Get your nursing homework done by a qualified nurse. Discussions, pharmacology, pathophysiology, short assignments. From $24/page.',
@@ -637,7 +637,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'MSN, DNP, and PhD nursing students who need doctoral-calibre writing support — from coursework papers through dissertation chapters and scholarly projects.',
     priceFrom: 32,
-    relatedSlugs: ['msn-help', 'nursing-dissertations', 'capstone-projects'],
+    relatedSlugs: ['reliable-msn-writing-services', 'nursing-dissertation-writing-service', 'nursing-capstone-project-writing-service'],
     meta: {
       title: 'Postgraduate Nursing Writing Help — MSN, DNP & PhD Support',
       description: 'Expert postgraduate nursing writing help. MSN papers, DNP projects, PhD dissertations. Doctoral-level quality. From $32/page.',
@@ -667,7 +667,7 @@ const services: ServiceData[] = [
     ],
     whoFor: 'Students, healthcare educators, and professionals who need credentialed health and nursing writers for academic or educational content.',
     priceFrom: 24,
-    relatedSlugs: ['nursing-essays', 'medical-paper-writing', 'nursing-research-papers'],
+    relatedSlugs: ['online-nursing-essays-help', 'health-and-medicine-paper-writing-service', 'best-online-nursing-research-paper-service'],
     meta: {
       title: 'Health & Medical Writers — Credentialed Nursing Professionals',
       description: 'Hire credentialed health and medical writers for academic and educational content. BSN, MSN, DNP writers available. From $24/page.',
