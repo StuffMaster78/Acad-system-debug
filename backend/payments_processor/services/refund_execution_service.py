@@ -19,7 +19,11 @@ from payments_processor.exceptions import (
 from payments_processor.models import PaymentIntent, PaymentRefund
 from payments_processor.providers.mapper import ProviderRequestAssembler
 from payments_processor.providers.registry import get_provider
-from payments_processor.tasks.refund_tasks import apply_refund_task
+# apply_refund_task imported lazily inside _apply_provider_refund_response
+# to break the circular import:
+# refund_execution_service → refund_tasks → tasks/__init__
+# → payment_reconciliation_tasks → payment_reconciliation_service
+# → refund_execution_service
 
 
 class RefundExecutionService:
@@ -183,6 +187,7 @@ class RefundExecutionService:
                 refund_amount=refund.amount,
             )
 
+            from payments_processor.tasks.refund_tasks import apply_refund_task
             refund_task = cast(Any, apply_refund_task)
 
             def enqueue_refund_application() -> None:
