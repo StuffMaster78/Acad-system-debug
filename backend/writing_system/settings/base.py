@@ -878,6 +878,14 @@ FILE_SIGNED_URL_EXPIRY_SECONDS = env_int("FILE_SIGNED_URL_EXPIRY_SECONDS", 900)
 
 SILENCED_SYSTEM_CHECKS = env_list("SILENCED_SYSTEM_CHECKS", "")
 
+# treebeard 5.x warns that Wagtail's managers don't subclass MP_NodeManager.
+# This is a known treebeard/Wagtail compatibility notice — not a current error.
+# It will only become an error in a future treebeard 6 release.
+SILENCED_SYSTEM_CHECKS = [
+    *SILENCED_SYSTEM_CHECKS,
+    "treebeard.E001",
+]
+
 if not WAGTAIL_AVAILABLE:
     SILENCED_SYSTEM_CHECKS = [
         *SILENCED_SYSTEM_CHECKS,
