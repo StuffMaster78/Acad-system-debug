@@ -13,6 +13,7 @@ from payments_processor.constants import (
 from payments_processor.enums import PaymentIntentStatus
 from payments_processor.exceptions import PaymentError
 from payments_processor.models import PaymentIntent
+from payments_processor.providers.mapper import ProviderRequestAssembler
 from payments_processor.providers.registry import get_provider
 from payments_processor.utils.references import generate_payment_reference
 
@@ -120,7 +121,8 @@ class PaymentIntentService:
         )
 
         provider_adapter = get_provider(provider)
-        provider_response = provider_adapter.create_payment(payment_intent)
+        provider_request = ProviderRequestAssembler.to_payment_request(payment_intent)
+        provider_response = provider_adapter.create_payment(provider_request)
 
         provider_intent_id = provider_response.provider_reference
 
@@ -130,10 +132,12 @@ class PaymentIntentService:
             )
 
         payment_intent.provider_intent_id = provider_intent_id
+        payment_intent.provider_checkout_url = provider_response.checkout_url or ""
         payment_intent.status = PaymentIntentStatus.PENDING
         payment_intent.save(
             update_fields=[
                 "provider_intent_id",
+                "provider_checkout_url",
                 "status",
                 "updated_at",
             ]

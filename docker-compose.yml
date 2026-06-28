@@ -41,19 +41,18 @@ services:
   # Caps real Postgres connections to PGBOUNCER_DEFAULT_POOL_SIZE regardless
   # of how many Daphne threads / Celery workers are running.
   pgbouncer:
-    image: bitnami/pgbouncer:1.23.1
+    image: edoburu/pgbouncer:1.23.1
     restart: unless-stopped
     environment:
-      POSTGRESQL_HOST: db
-      POSTGRESQL_PORT: 5432
-      POSTGRESQL_DATABASE: ${POSTGRES_DB_NAME:-writing_system_db}
-      POSTGRESQL_USERNAME: ${POSTGRES_USER_NAME:-postgres}
-      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-      PGBOUNCER_DATABASE: ${POSTGRES_DB_NAME:-writing_system_db}
+      DATABASES_HOST: db
+      DATABASES_PORT: 5432
+      DATABASES_USER: ${POSTGRES_USER_NAME:-postgres}
+      DATABASES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      DATABASES_DBNAME: ${POSTGRES_DB_NAME:-writing_system_db}
       PGBOUNCER_POOL_MODE: transaction
       PGBOUNCER_MAX_CLIENT_CONN: 200
       PGBOUNCER_DEFAULT_POOL_SIZE: 10
-      PGBOUNCER_PORT: 5432
+      LISTEN_PORT: 5432
     depends_on:
       db:
         condition: service_healthy

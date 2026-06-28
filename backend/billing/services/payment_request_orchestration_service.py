@@ -311,7 +311,7 @@ class PaymentRequestOrchestrationService:
         *,
         payment_request: PaymentRequest,
         provider: str,
-        reference_prefix: str = "bpr",
+        reference_prefix: str = "INFQ",
         triggered_by=None,
     ) -> PaymentRequestIntentPreparationResult:
         """

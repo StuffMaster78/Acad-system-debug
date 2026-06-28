@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Any, cast
 
 from django.db import transaction
 from django.utils import timezone
 
 from audit_logging.services.audit_service import AuditService
+from payments_processor.enums import PaymentIntentStatus
 from payments_processor.services.payment_provider_service import (
     PaymentProviderService,
 )
@@ -104,11 +104,19 @@ class PaymentOrchestrationService:
     ) -> Any:
         checkout = PaymentProviderService.create_payment(payment_intent)
 
-        PaymentOrchestrationService._set(
-            payment_intent,
-            "provider_reference",
-            checkout.provider_reference,
-        )
+        # PaymentIntent uses provider_intent_id; other models may use provider_reference.
+        if hasattr(payment_intent, "provider_intent_id"):
+            PaymentOrchestrationService._set(
+                payment_intent,
+                "provider_intent_id",
+                checkout.provider_reference,
+            )
+        elif hasattr(payment_intent, "provider_reference"):
+            PaymentOrchestrationService._set(
+                payment_intent,
+                "provider_reference",
+                checkout.provider_reference,
+            )
 
         if hasattr(payment_intent, "provider_response"):
             PaymentOrchestrationService._set(
@@ -135,17 +143,24 @@ class PaymentOrchestrationService:
             if PaymentOrchestrationService._get_status(payment_intent) in {
                 "",
                 "draft",
-                "created",
+                PaymentIntentStatus.CREATED,
             }:
                 PaymentOrchestrationService._set(
                     payment_intent,
                     "status",
-                    "pending",
+                    PaymentIntentStatus.PENDING,
                 )
 
-        fields = ["provider_reference", "updated_at"]
+        fields = ["updated_at"]
 
-        for f in ["provider_response", "checkout_url", "client_secret", "status"]:
+        for f in [
+            "provider_intent_id",
+            "provider_reference",
+            "provider_response",
+            "checkout_url",
+            "client_secret",
+            "status",
+        ]:
             if hasattr(payment_intent, f):
                 fields.append(f)
 
@@ -175,7 +190,7 @@ class PaymentOrchestrationService:
         provider_response: dict[str, Any] | None = None,
         triggered_by: Any | None = None,
     ) -> Any:
-        if PaymentOrchestrationService._get_status(payment_intent) == "success":
+        if PaymentOrchestrationService._get_status(payment_intent) == PaymentIntentStatus.SUCCEEDED:
             return payment_intent
 
         hold = PaymentOrchestrationService._get_wallet_hold(payment_intent)
@@ -188,7 +203,7 @@ class PaymentOrchestrationService:
         PaymentOrchestrationService._set(
             payment_intent,
             "status",
-            "success",
+            PaymentIntentStatus.SUCCEEDED,
         )
 
         if provider_transaction_id and hasattr(
@@ -264,7 +279,7 @@ class PaymentOrchestrationService:
         provider_response: dict[str, Any] | None = None,
         triggered_by: Any | None = None,
     ) -> Any:
-        if PaymentOrchestrationService._get_status(payment_intent) == "failed":
+        if PaymentOrchestrationService._get_status(payment_intent) == PaymentIntentStatus.FAILED:
             return payment_intent
 
         hold = PaymentOrchestrationService._get_wallet_hold(payment_intent)
@@ -278,7 +293,7 @@ class PaymentOrchestrationService:
         PaymentOrchestrationService._set(
             payment_intent,
             "status",
-            "failed",
+            PaymentIntentStatus.FAILED,
         )
 
         if failure_reason and hasattr(payment_intent, "failure_reason"):

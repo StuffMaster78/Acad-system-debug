@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from payments_processor.providers.registry import get_provider
+from payments_processor.models import PaymentIntent
 from payments_processor.providers.base import (
     ProviderCheckoutResult,
     ProviderPaymentVerificationResult,
@@ -11,73 +11,45 @@ from payments_processor.providers.base import (
     ProviderWebhookEvent,
     ProviderWebhookVerificationResult,
 )
+from payments_processor.providers.mapper import ProviderRequestAssembler
+from payments_processor.providers.registry import get_provider
 
 
 class PaymentProviderService:
     """
     Facade over payment providers.
 
-    This keeps provider lookup and provider interaction out of views,
-    models, and unrelated services.
+    Accepts concrete PaymentIntent instances, builds provider request DTOs
+    via ProviderRequestAssembler, and delegates to the selected provider.
     """
 
     @staticmethod
-    def get_provider_for_intent(payment_intent: Any):
-        """
-        Resolve provider adapter for a payment intent.
-
-        Supports both `provider` and legacy `provider_name` attributes.
-        """
-        provider_name = str(
-            getattr(payment_intent, "provider", "")
-            or getattr(payment_intent, "provider_name", "")
-            or ""
-        ).strip()
-
+    def get_provider_for_intent(payment_intent: PaymentIntent):
+        provider_name = str(payment_intent.provider or "").strip()
         if not provider_name:
             raise ValueError("Payment intent is missing provider.")
-
         return get_provider(provider_name)
 
     @staticmethod
-    def create_payment(
-        payment_intent: Any,
-    ) -> ProviderCheckoutResult:
-        """
-        Initialize provider-side payment.
-        """
-        provider = PaymentProviderService.get_provider_for_intent(
-            payment_intent
-        )
-        return provider.create_payment(payment_intent)
+    def create_payment(payment_intent: PaymentIntent) -> ProviderCheckoutResult:
+        provider = PaymentProviderService.get_provider_for_intent(payment_intent)
+        request = ProviderRequestAssembler.to_payment_request(payment_intent)
+        return provider.create_payment(request)
 
     @staticmethod
-    def verify_payment(
-        payment_intent: Any,
-    ) -> ProviderPaymentVerificationResult:
-        """
-        Verify payment directly with the provider.
-        """
-        provider = PaymentProviderService.get_provider_for_intent(
-            payment_intent
-        )
-        return provider.verify_payment(payment_intent)
+    def verify_payment(payment_intent: PaymentIntent) -> ProviderPaymentVerificationResult:
+        provider = PaymentProviderService.get_provider_for_intent(payment_intent)
+        request = ProviderRequestAssembler.to_verification_request(payment_intent)
+        return provider.verify_payment(request)
 
     @staticmethod
     def refund_payment(
-        payment_intent: Any,
-        amount: Decimal | None = None,
+        payment_intent: PaymentIntent,
+        amount: Decimal,
     ) -> ProviderRefundResult:
-        """
-        Execute provider-side refund.
-        """
-        provider = PaymentProviderService.get_provider_for_intent(
-            payment_intent
-        )
-        return provider.refund_payment(
-            payment_intent,
-            amount=amount,
-        )
+        provider = PaymentProviderService.get_provider_for_intent(payment_intent)
+        request = ProviderRequestAssembler.to_refund_request(payment_intent, amount)
+        return provider.refund_payment(request)
 
     @staticmethod
     def verify_webhook(
@@ -86,9 +58,6 @@ class PaymentProviderService:
         payload: dict[str, Any],
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
-        """
-        Verify webhook signature and authenticity.
-        """
         provider = get_provider(provider_name)
         return provider.verify_webhook(payload, headers)
 
@@ -98,8 +67,5 @@ class PaymentProviderService:
         provider_name: str,
         payload: dict[str, Any],
     ) -> ProviderWebhookEvent:
-        """
-        Parse raw webhook payload into normalized provider event.
-        """
         provider = get_provider(provider_name)
         return provider.parse_webhook(payload)

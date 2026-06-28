@@ -153,6 +153,11 @@ class PaymentIntent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def checkout_url(self) -> str:
+        """Alias for provider_checkout_url — used by serializers."""
+        return self.provider_checkout_url or ""
+
     class Meta:
         indexes = [
             models.Index(fields=["website", "reference"]),

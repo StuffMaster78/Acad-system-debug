@@ -6,12 +6,85 @@ from decimal import Decimal
 from typing import Any
 
 
+# ---------------------------------------------------------------------------
+# Inbound request DTOs — passed TO providers
+# ---------------------------------------------------------------------------
+
+@dataclass(slots=True, frozen=True)
+class ProviderMetadata:
+    """
+    The complete, immutable set of fields that may be sent to any provider
+    as payment metadata.
+
+    Frozen so no caller can add business-specific keys after construction.
+    Providers call .to_dict() when they need a plain dict for their API.
+    """
+    merchant_reference: str
+    environment: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "merchant_reference": self.merchant_reference,
+            "environment": self.environment,
+        }
+
+
+@dataclass(slots=True, frozen=True)
+class ProviderPaymentRequest:
+    """
+    Everything a provider needs to initialise a checkout session.
+
+    Only InfoQ-controlled, semantically neutral fields are present.
+    Domain objects (order, invoice, website, payable) are never included.
+    The assembler is the only place that reads the domain model and populates
+    this DTO.
+    """
+    merchant_reference: str
+    amount: Decimal
+    currency: str
+    product_name: str
+    success_url: str
+    cancel_url: str
+    customer_email: str
+    metadata: ProviderMetadata = field(default_factory=lambda: ProviderMetadata(merchant_reference="", environment=""))
+
+
+@dataclass(slots=True, frozen=True)
+class ProviderRefundRequest:
+    """
+    Everything a provider needs to execute a refund.
+
+    provider_checkout_id holds the provider checkout/session reference
+    (e.g. Stripe cs_xxx). provider_payment_id holds the underlying payment
+    object ID (e.g. Stripe pi_xxx), populated after the first webhook.
+    Providers use whichever identifier they need.
+    """
+    merchant_reference: str
+    amount: Decimal
+    currency: str
+    provider_checkout_id: str = ""
+    provider_payment_id: str = ""
+
+
+@dataclass(slots=True, frozen=True)
+class ProviderVerificationRequest:
+    """
+    Everything a provider needs to poll payment status.
+    """
+    merchant_reference: str
+    provider_checkout_id: str = ""
+    provider_payment_id: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Outbound result DTOs — returned FROM providers
+# ---------------------------------------------------------------------------
+
 @dataclass(slots=True)
 class ProviderCheckoutResult:
     """
     Result returned when initializing a payment with a provider.
     """
-
     success: bool
     provider_name: str
     provider_reference: str
@@ -30,17 +103,16 @@ class ProviderWebhookVerificationResult:
     """
     Result of webhook signature / authenticity verification.
     """
-
     is_verified: bool
     error_message: str = ""
     raw_response: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass(slots=True)
 class ProviderWebhookEvent:
     """
     Normalized provider webhook event payload.
     """
-
     event_id: str
     event_type: str
     status: str
@@ -75,7 +147,6 @@ class ProviderPaymentVerificationResult:
     Result returned when verifying a payment directly with the provider.
     Useful for reconciliation jobs.
     """
-
     success: bool
     status: str
     amount: Decimal
@@ -89,12 +160,17 @@ class ProviderPaymentVerificationResult:
     error_message: str = ""
 
 
+# ---------------------------------------------------------------------------
+# Base provider contract
+# ---------------------------------------------------------------------------
+
 class BasePaymentProvider(ABC):
     """
     Base contract for all payment providers.
 
-    Every provider should normalize its outputs into the internal
-    provider result objects defined above.
+    Providers receive immutable request DTOs and return result DTOs.
+    They never receive domain model instances — the ProviderRequestAssembler
+    is the only translation layer between the domain and this interface.
     """
 
     provider_name: str
@@ -102,17 +178,9 @@ class BasePaymentProvider(ABC):
     @abstractmethod
     def create_payment(
         self,
-        payment_intent: Any,
+        request: ProviderPaymentRequest,
     ) -> ProviderCheckoutResult:
-        """
-        Initialize a payment with the provider.
-
-        Args:
-            payment_intent: Internal payment intent domain object.
-
-        Returns:
-            ProviderCheckoutResult
-        """
+        """Initialize a checkout session with the provider."""
         raise NotImplementedError
 
     @abstractmethod
@@ -121,9 +189,7 @@ class BasePaymentProvider(ABC):
         payload: dict[str, Any],
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
-        """
-        Verify provider webhook authenticity or signature.
-        """
+        """Verify provider webhook authenticity or signature."""
         raise NotImplementedError
 
     @abstractmethod
@@ -131,35 +197,21 @@ class BasePaymentProvider(ABC):
         self,
         payload: dict[str, Any],
     ) -> ProviderWebhookEvent:
-        """
-        Normalize a provider webhook payload into an internal event object.
-        """
+        """Normalize a provider webhook payload into an internal event."""
         raise NotImplementedError
 
     @abstractmethod
     def refund_payment(
         self,
-        payment_intent: Any,
-        *,
-        amount: Decimal | None = None,
+        request: ProviderRefundRequest,
     ) -> ProviderRefundResult:
-        """
-        Execute a refund through the provider.
-
-        Args:
-            payment_intent: Internal payment intent domain object.
-            amount: Optional partial refund amount. If omitted, provider
-                should refund the full eligible amount.
-        """
+        """Execute a refund through the provider."""
         raise NotImplementedError
 
     @abstractmethod
     def verify_payment(
         self,
-        payment_intent: Any,
+        request: ProviderVerificationRequest,
     ) -> ProviderPaymentVerificationResult:
-        """
-        Fetch payment status directly from provider.
-        Useful for reconciliation and manual verification.
-        """
+        """Fetch payment status directly from the provider."""
         raise NotImplementedError

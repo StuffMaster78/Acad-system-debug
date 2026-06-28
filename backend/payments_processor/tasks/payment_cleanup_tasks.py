@@ -85,3 +85,47 @@ def expire_elapsed_payment_intents_task(
     )
 
     return result
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def cancel_orphaned_prewarm_sessions_task(
+    self,
+    older_than_hours: int = 2,
+    limit: int = 200,
+) -> dict:
+    """
+    Cancel PENDING PaymentIntents that were pre-warmed (no payable linked)
+    but never converted into an order. Runs hourly via Celery beat.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    from payments_processor.models import PaymentIntent
+    from payments_processor.enums import PaymentIntentStatus
+    from payments_processor.services.payment_intent_service import PaymentIntentService
+
+    cutoff = timezone.now() - timedelta(hours=older_than_hours)
+    orphans = list(
+        PaymentIntent.objects
+        .filter(
+            status=PaymentIntentStatus.PENDING,
+            payable_object_id__isnull=True,
+            created_at__lt=cutoff,
+        )
+        .order_by("created_at")[:limit]
+    )
+
+    cancelled = errors = 0
+    for intent in orphans:
+        try:
+            PaymentIntentService.cancel_intent(payment_intent=intent)
+            cancelled += 1
+        except Exception as exc:
+            logger.warning("Could not cancel orphaned prewarm %s: %s", intent.reference, exc)
+            errors += 1
+
+    logger.info("Orphaned prewarm cleanup: cancelled=%s errors=%s", cancelled, errors)
+    return {"cancelled": cancelled, "errors": errors}

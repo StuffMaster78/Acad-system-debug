@@ -10,7 +10,10 @@ from payments_processor.providers.base import (
     BasePaymentProvider,
     ProviderCheckoutResult,
     ProviderPaymentVerificationResult,
+    ProviderRefundRequest,
     ProviderRefundResult,
+    ProviderPaymentRequest,
+    ProviderVerificationRequest,
     ProviderWebhookEvent,
     ProviderWebhookVerificationResult,
 )
@@ -23,12 +26,10 @@ from payments_processor.providers.registry import register_provider
 
 log = logging.getLogger(__name__)
 
-# Stripe event types that represent a successful payment.
 _SUCCESS_EVENTS = {
     "checkout.session.completed",
     "payment_intent.succeeded",
 }
-# Stripe event types that represent a failed payment.
 _FAILED_EVENTS = {
     "payment_intent.payment_failed",
     "charge.failed",
@@ -37,29 +38,22 @@ _FAILED_EVENTS = {
 
 
 def _stripe():
-    """
-    Lazily import and configure stripe.
-
-    Reads STRIPE_SECRET_KEY from Django settings at call time so the
-    setting can be overridden in tests without patching the module.
-    """
-    import stripe as _s
-
+    import stripe as _s  # noqa: PLC0415
     _s.api_key = getattr(settings, "STRIPE_SECRET_KEY", "")
     return _s
 
 
 def _to_cents(amount: Decimal) -> int:
-    """Convert a Decimal amount to Stripe's integer cent format."""
     return int((amount * 100).to_integral_value())
 
 
 def _from_cents(amount_cents: int | None, currency: str = "USD") -> Decimal:
-    """Convert Stripe cent integer back to Decimal."""
     if amount_cents is None:
         return Decimal("0.00")
-    # JPY and other zero-decimal currencies use the amount directly.
-    zero_decimal = {"JPY", "KRW", "VND", "CLP", "GNF", "ISK", "MGA", "PYG", "RWF", "UGX", "XAF", "XOF"}
+    zero_decimal = {
+        "JPY", "KRW", "VND", "CLP", "GNF", "ISK", "MGA",
+        "PYG", "RWF", "UGX", "XAF", "XOF",
+    }
     if currency.upper() in zero_decimal:
         return Decimal(str(amount_cents))
     return Decimal(str(amount_cents)) / Decimal("100")
@@ -69,27 +63,13 @@ class StripePaymentProvider(BasePaymentProvider):
     """
     Stripe payment provider — Checkout Sessions API.
 
-    Flow:
-        create_payment → stripe.checkout.Session.create()
-                          Returns a hosted payment URL.
-                          Session ID stored as provider_reference.
-
-        verify_webhook → stripe.Webhook.construct_event()
-                          Uses raw body bytes + Stripe-Signature header.
-                          Raw bytes passed via headers["_raw_body"].
-
-        parse_webhook → Normalises the Stripe event into ProviderWebhookEvent.
-
-        refund_payment → stripe.Refund.create()
-
-        verify_payment → stripe.checkout.Session.retrieve() or
-                          stripe.PaymentIntent.retrieve()
+    Receives immutable ProviderPaymentRequest / ProviderRefundRequest /
+    ProviderVerificationRequest DTOs. Never accesses domain model objects.
 
     Settings required:
-        STRIPE_SECRET_KEY sk_live_... or sk_test_...
-        STRIPE_WEBHOOK_SECRET whsec_... (for webhook verification)
-        STRIPE_PUBLISHABLE_KEY pk_live_... or pk_test_... (returned to client)
-        FRONTEND_URL Base URL for success/cancel redirect pages
+        STRIPE_SECRET_KEY          sk_live_... or sk_test_...
+        STRIPE_WEBHOOK_SECRET      whsec_... (webhook verification)
+        INFOQ_PAYMENT_BASE_URL     https://pay.infoq.com
     """
 
     provider_name = "stripe"
@@ -100,25 +80,9 @@ class StripePaymentProvider(BasePaymentProvider):
 
     def create_payment(
         self,
-        payment_intent: Any,
+        request: ProviderPaymentRequest,
     ) -> ProviderCheckoutResult:
-        """
-        Create a Stripe Checkout Session and return the hosted payment URL.
-        """
         stripe = _stripe()
-
-        amount = Decimal(str(getattr(payment_intent, "amount", "0.00")))
-        currency = str(getattr(payment_intent, "currency", "USD")).lower()
-        reference = str(getattr(payment_intent, "reference", ""))
-
-        # Use the tenant's client portal URL so the post-payment redirect lands
-        # on the correct branded portal (app.gradecrest.com, app.essaymaniacs.com…).
-        website = getattr(payment_intent, "website", None)
-        portal_url = getattr(website, "portal_url", "") if website else ""
-        frontend_url = portal_url.rstrip("/") or getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-
-        client = getattr(payment_intent, "client", None)
-        client_email = getattr(client, "email", None) if client else None
 
         try:
             session = stripe.checkout.Session.create(
@@ -127,33 +91,31 @@ class StripePaymentProvider(BasePaymentProvider):
                 line_items=[
                     {
                         "price_data": {
-                            "currency": currency,
-                            "unit_amount": _to_cents(amount),
+                            "currency": request.currency.lower(),
+                            "unit_amount": _to_cents(request.amount),
                             "product_data": {
-                                "name": f"Order payment — {reference}",
+                                "name": request.product_name,
                             },
                         },
                         "quantity": 1,
                     }
                 ],
-                client_reference_id=reference,
-                customer_email=client_email,
-                metadata={"reference": reference},
-                success_url=(
-                    f"{frontend_url}/client/billing"
-                    f"?payment=success&ref={reference}"
-                ),
-                cancel_url=(
-                    f"{frontend_url}/client/billing"
-                    f"?payment=cancelled&ref={reference}"
-                ),
+                client_reference_id=request.merchant_reference,
+                customer_email=request.customer_email or None,
+                metadata=request.metadata.to_dict(),
+                success_url=request.success_url,
+                cancel_url=request.cancel_url,
             )
         except stripe.error.StripeError as exc:
-            log.exception("Stripe checkout.Session.create failed ref=%s: %s", reference, exc)
+            log.exception(
+                "Stripe checkout.Session.create failed ref=%s: %s",
+                request.merchant_reference,
+                exc,
+            )
             return ProviderCheckoutResult(
                 success=False,
                 provider_name=self.provider_name,
-                provider_reference=reference,
+                provider_reference=request.merchant_reference,
                 error_message=str(exc),
             )
 
@@ -176,19 +138,12 @@ class StripePaymentProvider(BasePaymentProvider):
         payload: dict[str, Any],
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
-        """
-        Verify the Stripe-Signature header using the webhook secret.
-
-        Requires headers["_raw_body"] (bytes) injected by the webhook view.
-        Falls back to allowing if the webhook secret is not configured (dev).
-        """
         stripe = _stripe()
         webhook_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
         if not webhook_secret:
             log.error(
-                "STRIPE_WEBHOOK_SECRET not configured — rejecting webhook request. "
-                "Set STRIPE_WEBHOOK_SECRET in the environment."
+                "STRIPE_WEBHOOK_SECRET not configured — rejecting webhook."
             )
             return ProviderWebhookVerificationResult(
                 is_verified=False,
@@ -234,11 +189,6 @@ class StripePaymentProvider(BasePaymentProvider):
         self,
         payload: dict[str, Any],
     ) -> ProviderWebhookEvent:
-        """
-        Normalise a Stripe event payload into ProviderWebhookEvent.
-
-        Handles both checkout.session.* and payment_intent.* event shapes.
-        """
         if not payload:
             raise PaymentProviderWebhookError("Webhook payload is empty.")
 
@@ -246,29 +196,26 @@ class StripePaymentProvider(BasePaymentProvider):
         event_id: str = str(payload.get("id", ""))
         data_object: dict = payload.get("data", {}).get("object", {})
 
-        # ── Reference ──────────────────────────────────────────────────
         reference = (
             data_object.get("client_reference_id")
+            or (data_object.get("metadata") or {}).get("merchant_reference")
             or (data_object.get("metadata") or {}).get("reference")
             or ""
         )
 
-        # ── Provider transaction ID ────────────────────────────────────
-        # For checkout sessions the charge is nested; for PaymentIntents it's direct.
         if event_type.startswith("checkout.session"):
-            provider_transaction_id = data_object.get("payment_intent") or data_object.get("id", "")
+            provider_transaction_id = (
+                data_object.get("payment_intent") or data_object.get("id", "")
+            )
         else:
             provider_transaction_id = data_object.get("id", "")
 
-        # ── Amount ─────────────────────────────────────────────────────
         raw_currency = str(data_object.get("currency", "USD")).upper()
         amount_cents = (
-            data_object.get("amount_total")
-            or data_object.get("amount")
+            data_object.get("amount_total") or data_object.get("amount")
         )
         amount = _from_cents(amount_cents, raw_currency) if amount_cents is not None else None
 
-        # ── Status ─────────────────────────────────────────────────────
         if event_type in _SUCCESS_EVENTS:
             status = "success"
         elif event_type in _FAILED_EVENTS:
@@ -294,54 +241,55 @@ class StripePaymentProvider(BasePaymentProvider):
 
     def refund_payment(
         self,
-        payment_intent: Any,
-        *,
-        amount: Decimal | None = None,
+        request: ProviderRefundRequest,
     ) -> ProviderRefundResult:
-        """
-        Create a Stripe refund for a payment intent or charge.
-        """
         stripe = _stripe()
 
-        refund_amount = amount or Decimal(str(getattr(payment_intent, "amount", "0.00")))
-        currency = str(getattr(payment_intent, "currency", "USD")).upper()
-        reference = str(getattr(payment_intent, "reference", ""))
-
-        if refund_amount <= Decimal("0.00"):
+        if request.amount <= Decimal("0.00"):
             raise PaymentProviderRefundError("Refund amount must be positive.")
 
-        # provider_reference is the Stripe session/PaymentIntent ID.
-        provider_reference = str(getattr(payment_intent, "provider_reference", ""))
+        # Prefer the checkout session ID; fall back to the payment intent ID.
+        lookup_id = request.provider_checkout_id or request.provider_payment_id
 
-        # Retrieve the charge ID from the PaymentIntent so we can refund it.
+        if not lookup_id:
+            raise PaymentProviderRefundError(
+                f"No provider reference available for refund "
+                f"'{request.merchant_reference}'."
+            )
+
         try:
-            if provider_reference.startswith("cs_"):
-                # Checkout session — retrieve to get payment_intent
-                session = stripe.checkout.Session.retrieve(provider_reference)
+            if lookup_id.startswith("cs_"):
+                session = stripe.checkout.Session.retrieve(lookup_id)
                 pi_id = session.payment_intent
+            elif lookup_id.startswith("pi_"):
+                pi_id = lookup_id
             else:
-                pi_id = provider_reference
+                pi_id = lookup_id
 
             pi = stripe.PaymentIntent.retrieve(pi_id)
             charge_id = pi.latest_charge
 
             refund = stripe.Refund.create(
                 charge=charge_id,
-                amount=_to_cents(refund_amount),
+                amount=_to_cents(request.amount),
             )
         except stripe.error.StripeError as exc:
-            log.exception("Stripe refund failed ref=%s: %s", reference, exc)
+            log.exception(
+                "Stripe refund failed ref=%s: %s",
+                request.merchant_reference,
+                exc,
+            )
             raise PaymentProviderRefundError(str(exc)) from exc
 
         return ProviderRefundResult(
             success=True,
             status=refund.status or "succeeded",
-            amount=refund_amount,
-            currency=currency,
+            amount=request.amount,
+            currency=request.currency.upper(),
             provider_name=self.provider_name,
             provider_refund_id=refund.id,
             provider_transaction_id=str(charge_id or ""),
-            reference=reference,
+            reference=request.merchant_reference,
             raw_response={"refund_id": refund.id, "status": refund.status},
         )
 
@@ -351,57 +299,55 @@ class StripePaymentProvider(BasePaymentProvider):
 
     def verify_payment(
         self,
-        payment_intent: Any,
+        request: ProviderVerificationRequest,
     ) -> ProviderPaymentVerificationResult:
-        """
-        Retrieve the current payment status directly from Stripe.
-        """
         stripe = _stripe()
 
-        provider_reference = str(getattr(payment_intent, "provider_reference", ""))
-        reference = str(getattr(payment_intent, "reference", ""))
-        currency = str(getattr(payment_intent, "currency", "USD")).upper()
+        lookup_id = request.provider_checkout_id or request.provider_payment_id
 
-        if not provider_reference:
+        if not lookup_id:
             raise PaymentProviderVerificationError(
-                "Payment intent has no provider reference."
+                f"No provider reference for '{request.merchant_reference}'."
             )
 
         try:
-            if provider_reference.startswith("cs_"):
-                obj = stripe.checkout.Session.retrieve(provider_reference)
-                payment_status = obj.payment_status # "paid" | "unpaid" | "no_payment_required"
+            if lookup_id.startswith("cs_"):
+                obj = stripe.checkout.Session.retrieve(lookup_id)
+                payment_status = obj.payment_status
                 amount_total = obj.amount_total
+                raw_currency = str(obj.currency or "USD").upper()
                 pi_id = obj.payment_intent or ""
                 status = "success" if payment_status == "paid" else "pending"
             else:
-                obj = stripe.PaymentIntent.retrieve(provider_reference)
+                obj = stripe.PaymentIntent.retrieve(lookup_id)
                 pi_id = obj.id
                 amount_total = obj.amount
-                stripe_status = obj.status # "succeeded" | "canceled" | "processing" etc.
-                status = "success" if stripe_status == "succeeded" else (
-                    "failed" if stripe_status in ("canceled", "requires_payment_method") else "pending"
+                raw_currency = str(obj.currency or "USD").upper()
+                stripe_status = obj.status
+                status = (
+                    "success" if stripe_status == "succeeded"
+                    else "failed" if stripe_status in ("canceled", "requires_payment_method")
+                    else "pending"
                 )
         except stripe.error.StripeError as exc:
-            log.exception("Stripe verify_payment failed ref=%s: %s", reference, exc)
+            log.exception(
+                "Stripe verify_payment failed ref=%s: %s",
+                request.merchant_reference,
+                exc,
+            )
             raise PaymentProviderVerificationError(str(exc)) from exc
-
-        amount = _from_cents(amount_total, currency)
 
         return ProviderPaymentVerificationResult(
             success=True,
             status=status,
-            amount=amount,
-            currency=currency,
+            amount=_from_cents(amount_total, raw_currency),
+            currency=raw_currency,
             provider_name=self.provider_name,
-            provider_reference=provider_reference,
+            provider_reference=lookup_id,
             provider_transaction_id=str(pi_id),
             provider_event_id="",
-            reference=reference,
-            raw_response={
-                "provider_reference": provider_reference,
-                "status": status,
-            },
+            reference=request.merchant_reference,
+            raw_response={"provider_reference": lookup_id, "status": status},
         )
 
 

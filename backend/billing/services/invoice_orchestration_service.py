@@ -320,7 +320,7 @@ class InvoiceOrchestrationService:
         *,
         invoice: Invoice,
         provider: str,
-        reference_prefix: str = "inv",
+        reference_prefix: str = "INFQ",
         triggered_by=None,
         payable_type: str,
         entered_code: str | None = None,

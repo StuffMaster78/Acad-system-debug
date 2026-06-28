@@ -68,7 +68,7 @@ class SpecialOrderPaymentIntentBridge:
                 else None,
                 **(metadata or {}),
             },
-            reference_prefix="so",
+            reference_prefix="INFQ",
             website=getattr(special_order.client, "website", None) or getattr(special_order, "website", None),
         )
 

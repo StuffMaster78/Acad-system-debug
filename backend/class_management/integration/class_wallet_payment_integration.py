@@ -103,7 +103,7 @@ class ClassWalletPaymentIntegration:
                 if installment is not None
                 else "",
             },
-            reference_prefix="class",
+            reference_prefix="INFQ",
             website=getattr(payer, "website", None) or getattr(class_order, "website", None),
         )
 

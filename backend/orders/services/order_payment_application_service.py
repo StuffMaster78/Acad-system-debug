@@ -108,7 +108,7 @@ class OrderPaymentApplicationService:
                     client=order.client,
                     provider=provider,
                     status=_PIS.PENDING,
-                    payable_id__isnull=True,
+                    payable_object_id__isnull=True,
                 )
                 if existing.amount == amount_to_charge:
                     ct = ContentType.objects.get_for_model(order)
@@ -155,7 +155,7 @@ class OrderPaymentApplicationService:
                 **discount_metadata,
                 **(metadata or {}),
             },
-            reference_prefix=f"order_{order.pk}",
+            reference_prefix="INFQ",
             website=order.website,
         )
 

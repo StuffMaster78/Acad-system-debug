@@ -142,8 +142,14 @@ class CreateOrderView(GenericAPIView):
                 )
             )
             checkout_started = True
+            # start_checkout returns the full dict from create_intent; extract the model.
+            _pi_instance = (
+                payment_intent.get("payment_intent", payment_intent)
+                if isinstance(payment_intent, dict)
+                else payment_intent
+            )
             payment_intent_payload = self._serialize_payment_intent(
-                payment_intent=payment_intent
+                payment_intent=_pi_instance
             )
 
         return Response(

@@ -21,9 +21,14 @@ export const paymentsApi = {
    *  Pass the returned reference as preauth_reference on order creation
    *  to skip the second Stripe API call. */
   prewarmOrderCheckout: (amount: number, currency = "USD") =>
-    api.post<{ payment_intent: { reference: string; checkout_url: string; amount: string }; provider_data: Record<string, unknown> }>(
+    api.post<{ payment_intent: { reference: string; provider_checkout_url: string; amount: string }; provider_data: Record<string, unknown> }>(
       apiPath("/payments/checkout/"),
       { provider: "stripe", purpose: "ORDER", amount, currency },
+    ),
+  cancelPrewarm: (reference: string) =>
+    api.post<{ cancelled: boolean }>(
+      apiPath("/payments/checkout/cancel-prewarm/"),
+      { reference },
     ),
 };
 

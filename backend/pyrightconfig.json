@@ -1,0 +1,18 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportAttributeAccessIssue": "warning",
+  "reportUndefinedVariable": "error",
+  "reportReturnType": "warning",
+  "reportArgumentType": "warning",
+  "exclude": [
+    ".venv",
+    "**/migrations/**"
+  ],
+  "extraPaths": [
+    "."
+  ]
+}

@@ -8,7 +8,10 @@ from payments_processor.providers.base import (
     BasePaymentProvider,
     ProviderCheckoutResult,
     ProviderPaymentVerificationResult,
+    ProviderPaymentRequest,
+    ProviderRefundRequest,
     ProviderRefundResult,
+    ProviderVerificationRequest,
     ProviderWebhookEvent,
     ProviderWebhookVerificationResult,
 )
@@ -20,22 +23,14 @@ class MockPaymentProvider(BasePaymentProvider):
 
     def create_payment(
         self,
-        payment_intent: Any,
+        request: ProviderPaymentRequest,
     ) -> ProviderCheckoutResult:
-        reference = getattr(
-            payment_intent,
-            "provider_reference",
-            None) or str(
-            uuid4())
-
         return ProviderCheckoutResult(
             success=True,
             provider_name=self.provider_name,
-            provider_reference=reference,
+            provider_reference=f"mock_{uuid4().hex[:16]}",
             checkout_url="https://example.com/mock-checkout",
-            raw_response={
-                "message": "Mock payment initialized successfully.",
-            },
+            raw_response={"message": "Mock payment initialized successfully."},
         )
 
     def verify_webhook(
@@ -43,9 +38,7 @@ class MockPaymentProvider(BasePaymentProvider):
         payload: dict[str, Any],
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
-        return ProviderWebhookVerificationResult(
-            is_verified=True,
-        )
+        return ProviderWebhookVerificationResult(is_verified=True)
 
     def parse_webhook(
         self,
@@ -53,9 +46,9 @@ class MockPaymentProvider(BasePaymentProvider):
     ) -> ProviderWebhookEvent:
         amount_value = payload.get("amount", "0.00")
         currency = str(payload.get("currency", "USD"))
-        provider_reference = str(payload.get("reference", ""))
+        reference = str(payload.get("reference", ""))
         provider_transaction_id = str(
-            payload.get("provider_transaction_id", provider_reference)
+            payload.get("provider_transaction_id", reference)
         )
 
         return ProviderWebhookEvent(
@@ -64,57 +57,41 @@ class MockPaymentProvider(BasePaymentProvider):
             status=str(payload.get("status", "success")),
             amount=Decimal(str(amount_value)),
             currency=currency,
-            reference=str(payload.get("reference")),
+            reference=reference,
             provider_transaction_id=provider_transaction_id,
-            provider_reference=provider_reference,
+            provider_event_id=reference,
             raw_payload=payload,
         )
 
     def refund_payment(
         self,
-        payment_intent: Any,
-        amount: Decimal | None = None,
+        request: ProviderRefundRequest,
     ) -> ProviderRefundResult:
-        refund_amount = amount or Decimal(
-            str(getattr(payment_intent, "amount", "0.00"))
-        )
-        currency = str(getattr(payment_intent, "currency", "USD"))
-        provider_reference = str(
-            getattr(payment_intent, "provider_reference", "")
-        )
-
         return ProviderRefundResult(
             success=True,
             provider_name=self.provider_name,
             status="success",
-            amount=refund_amount,
-            currency=currency,
+            amount=request.amount,
+            currency=request.currency,
             provider_refund_id=str(uuid4()),
-            provider_transaction_id=provider_reference,
-            reference=str(getattr(payment_intent, "reference", "")),
-            raw_response={
-                "message": "Mock refund completed successfully.",
-            },
+            provider_transaction_id=request.provider_checkout_id,
+            reference=request.merchant_reference,
+            raw_response={"message": "Mock refund completed successfully."},
         )
 
     def verify_payment(
         self,
-        payment_intent: Any,
+        request: ProviderVerificationRequest,
     ) -> ProviderPaymentVerificationResult:
         return ProviderPaymentVerificationResult(
+            success=True,
             provider_name=self.provider_name,
-            provider_reference=str(
-                getattr(payment_intent, "provider_reference", "")
-            ),
-            provider_transaction_id=str(
-                getattr(payment_intent, "provider_transaction_id", "")
-            ),
-            status=str(getattr(payment_intent, "status", "success")),
-            amount=Decimal(str(getattr(payment_intent, "amount", "0.00"))),
-            currency=str(getattr(payment_intent, "currency", "USD")),
-            raw_response={
-                "message": "Mock verification completed successfully.",
-            },
+            provider_reference=request.provider_checkout_id or request.provider_payment_id,
+            provider_transaction_id=request.provider_payment_id,
+            status="success",
+            amount=Decimal("0.00"),
+            currency="USD",
+            raw_response={"message": "Mock verification completed successfully."},
         )
 
 

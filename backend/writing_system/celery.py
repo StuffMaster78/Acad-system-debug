@@ -419,6 +419,10 @@ app.conf.beat_schedule = { # type: ignore[attr-defined]
             day_of_month=1,
         ),
     },
+    "cancel-orphaned-prewarm-sessions": {
+        "task": "payments_processor.tasks.payment_cleanup_tasks.cancel_orphaned_prewarm_sessions_task",
+        "schedule": crontab(minute=0),  # hourly
+    },
 
 }
 

@@ -17,6 +17,7 @@ from payments_processor.exceptions import (
     RefundExecutionError,
 )
 from payments_processor.models import PaymentIntent, PaymentRefund
+from payments_processor.providers.mapper import ProviderRequestAssembler
 from payments_processor.providers.registry import get_provider
 from payments_processor.tasks.refund_tasks import apply_refund_task
 
@@ -81,10 +82,10 @@ class RefundExecutionService:
         provider = get_provider(str(payment_intent.provider))
 
         try:
-            provider_response = provider.refund_payment(
-                payment_intent,
-                amount=amount,
+            refund_request = ProviderRequestAssembler.to_refund_request(
+                payment_intent, amount
             )
+            provider_response = provider.refund_payment(refund_request)
         except Exception as exc:
             cls._mark_refund_failed(
                 refund=refund,

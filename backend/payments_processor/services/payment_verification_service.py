@@ -13,6 +13,7 @@ from payments_processor.enums import (
 )
 from payments_processor.exceptions import PaymentVerificationError
 from payments_processor.models import PaymentIntent
+from payments_processor.providers.mapper import ProviderRequestAssembler
 from payments_processor.providers.registry import get_provider
 from payments_processor.selectors.payment_transaction_selectors import (
     get_transaction_by_provider_transaction_id,
@@ -87,8 +88,11 @@ class PaymentVerificationService:
         provider_adapter = get_provider(provider_key)
 
         try:
-            provider_response = provider_adapter.verify_payment(
+            verification_request = ProviderRequestAssembler.to_verification_request(
                 payment_intent
+            )
+            provider_response = provider_adapter.verify_payment(
+                verification_request
             )
         except Exception as exc:
             raise PaymentVerificationError(

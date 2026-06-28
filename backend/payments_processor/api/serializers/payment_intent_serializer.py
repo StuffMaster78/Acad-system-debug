@@ -15,6 +15,7 @@ class PaymentIntentSerializer(serializers.ModelSerializer):
             "currency",
             "amount",
             "provider_intent_id",
+            "provider_checkout_url",
             "expires_at",
             "paid_at",
             "created_at",

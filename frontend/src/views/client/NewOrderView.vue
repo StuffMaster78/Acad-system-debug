@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, Star, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
@@ -37,11 +37,15 @@ async function triggerPrewarm() {
   const price = rawPrice != null ? Number(rawPrice) : null;
   if (!price || isNaN(price) || prewarmPending.value) return;
   prewarmPending.value = true;
+  // Cancel any stale unlinked session first (fire-and-forget, non-blocking)
+  const staleRef = prewarm.value?.reference;
+  prewarm.value = null;
+  if (staleRef) paymentsApi.cancelPrewarm(staleRef).catch(() => undefined);
   try {
     const { data } = await paymentsApi.prewarmOrderCheckout(price);
     const pi = data.payment_intent;
-    if (pi?.reference && pi?.checkout_url) {
-      prewarm.value = { reference: pi.reference, checkout_url: pi.checkout_url, forAmount: price };
+    if (pi?.reference && pi?.provider_checkout_url) {
+      prewarm.value = { reference: pi.reference, checkout_url: pi.provider_checkout_url, forAmount: price };
     }
   } catch {
     // Silent — falls back to standard flow on submit
@@ -53,6 +57,18 @@ async function triggerPrewarm() {
 watch(paymentMethod, (method) => {
   if (method === "stripe") triggerPrewarm();
   else prewarm.value = null;
+});
+
+// Invalidate and re-warm when the quoted price changes while card is selected.
+watch(() => orders.latestQuote?.calculated_price, (newPrice, oldPrice) => {
+  if (paymentMethod.value !== "stripe") return;
+  if (newPrice == null) { prewarm.value = null; return; }
+  const n = Number(newPrice);
+  const o = oldPrice != null ? Number(oldPrice) : null;
+  if (o === null || n !== o) {
+    prewarm.value = null;   // invalidate stale session
+    triggerPrewarm();
+  }
 });
 
 // Preferred writer
@@ -747,6 +763,11 @@ watch(() => form.academic_level_id, (id) => {
 });
 
 onMounted(() => { loadConfig(); loadAddons(); });
+onUnmounted(() => {
+  // Cancel any lingering pre-warmed session when the user navigates away.
+  const ref = prewarm.value?.reference;
+  if (ref) paymentsApi.cancelPrewarm(ref).catch(() => undefined);
+});
 watch(() => form.service_code, loadAddons);
 </script>
 
