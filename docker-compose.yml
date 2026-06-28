@@ -53,6 +53,7 @@ services:
       MAX_CLIENT_CONN: 200
       DEFAULT_POOL_SIZE: 10
       LISTEN_PORT: 5432
+      AUTH_TYPE: scram-sha-256
     depends_on:
       db:
         condition: service_healthy
