@@ -3,7 +3,7 @@ Management command: seed_researchpapermate_redirects
 ====================================================
 
 Creates 301 redirects from old flat ResearchPaperMate URL paths to the
-new flat canonical URLs (/:slug).
+new /services/ structure.
 
 Usage:
     python manage.py seed_researchpapermate_redirects
@@ -14,58 +14,58 @@ from django.core.management.base import BaseCommand, CommandParser
 
 REDIRECTS = [
     # ── Research papers ─────────────────────────────────────────────────────
-    ("/research-papers",                "/research-papers"),
-    ("/research-paper",                 "/research-papers"),
-    ("/research-paper-writing",         "/research-papers"),
-    ("/research-paper-writing-service", "/research-papers"),
-    ("/write-my-research-paper",        "/research-papers"),
-    ("/buy-research-paper",             "/research-papers"),
+    ("/research-papers",                "/services/research-papers"),
+    ("/research-paper",                 "/services/research-papers"),
+    ("/research-paper-writing",         "/services/research-papers"),
+    ("/research-paper-writing-service", "/services/research-papers"),
+    ("/write-my-research-paper",        "/services/research-papers"),
+    ("/buy-research-paper",             "/services/research-papers"),
 
     # ── Essays ──────────────────────────────────────────────────────────────
-    ("/essays",                         "/essays"),
-    ("/essay-writing",                  "/essays"),
-    ("/essay-writing-service",          "/essays"),
-    ("/write-my-essay",                 "/essays"),
+    ("/essays",                         "/services/essays"),
+    ("/essay-writing",                  "/services/essays"),
+    ("/essay-writing-service",          "/services/essays"),
+    ("/write-my-essay",                 "/services/essays"),
 
     # ── Dissertations ───────────────────────────────────────────────────────
-    ("/dissertations",                  "/dissertations"),
-    ("/dissertation-writing",           "/dissertations"),
-    ("/dissertation-writing-service",   "/dissertations"),
-    ("/thesis-writing",                 "/dissertations"),
-    ("/thesis-writing-service",         "/dissertations"),
+    ("/dissertations",                  "/services/dissertations"),
+    ("/dissertation-writing",           "/services/dissertations"),
+    ("/dissertation-writing-service",   "/services/dissertations"),
+    ("/thesis-writing",                 "/services/dissertations"),
+    ("/thesis-writing-service",         "/services/dissertations"),
 
     # ── Case studies ────────────────────────────────────────────────────────
-    ("/case-studies",                   "/case-studies"),
-    ("/case-study",                     "/case-studies"),
-    ("/case-study-writing",             "/case-studies"),
-    ("/case-study-writing-service",     "/case-studies"),
+    ("/case-studies",                   "/services/case-studies"),
+    ("/case-study",                     "/services/case-studies"),
+    ("/case-study-writing",             "/services/case-studies"),
+    ("/case-study-writing-service",     "/services/case-studies"),
 
     # ── Coursework ──────────────────────────────────────────────────────────
-    ("/coursework",                     "/coursework"),
-    ("/coursework-help",                "/coursework"),
-    ("/coursework-writing-service",     "/coursework"),
-    ("/assignment-help",                "/coursework"),
+    ("/coursework",                     "/services/coursework"),
+    ("/coursework-help",                "/services/coursework"),
+    ("/coursework-writing-service",     "/services/coursework"),
+    ("/assignment-help",                "/services/coursework"),
 
     # ── Data analysis ───────────────────────────────────────────────────────
-    ("/data-analysis",                  "/data-analysis"),
-    ("/data-analysis-help",             "/data-analysis"),
-    ("/statistical-analysis",           "/data-analysis"),
-    ("/statistics-help",                "/data-analysis"),
+    ("/data-analysis",                  "/services/data-analysis"),
+    ("/data-analysis-help",             "/services/data-analysis"),
+    ("/statistical-analysis",           "/services/data-analysis"),
+    ("/statistics-help",                "/services/data-analysis"),
 
     # ── Literature reviews ──────────────────────────────────────────────────
-    ("/literature-reviews",             "/literature-reviews"),
-    ("/literature-review",              "/literature-reviews"),
-    ("/literature-review-writing",      "/literature-reviews"),
+    ("/literature-reviews",             "/services/literature-reviews"),
+    ("/literature-review",              "/services/literature-reviews"),
+    ("/literature-review-writing",      "/services/literature-reviews"),
 
     # ── Lab reports ─────────────────────────────────────────────────────────
-    ("/lab-reports",                    "/lab-reports"),
-    ("/lab-report",                     "/lab-reports"),
-    ("/lab-report-writing",             "/lab-reports"),
+    ("/lab-reports",                    "/services/lab-reports"),
+    ("/lab-report",                     "/services/lab-reports"),
+    ("/lab-report-writing",             "/services/lab-reports"),
 
     # ── Presentations ───────────────────────────────────────────────────────
-    ("/presentations",                  "/presentations"),
-    ("/presentation-writing",           "/presentations"),
-    ("/presentation-help",              "/presentations"),
+    ("/presentations",                  "/services/presentations"),
+    ("/presentation-writing",           "/services/presentations"),
+    ("/presentation-help",              "/services/presentations"),
 
     # ── Generic old top-level pages ─────────────────────────────────────────
     ("/about-us",    "/about"),
@@ -76,7 +76,7 @@ REDIRECTS = [
 
 
 class Command(BaseCommand):
-    help = "Seed Wagtail 301 redirects from old ResearchPaperMate flat URLs to flat canonical paths (/:slug)"
+    help = "Seed Wagtail 301 redirects from old ResearchPaperMate flat URLs to /services/ paths"
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument("--site", default="researchpapermate.com")

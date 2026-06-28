@@ -190,7 +190,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
           <div class="divide-y divide-slate-100">
 
             <!-- Featured: Editor's Pick, larger treatment -->
-            <NuxtLink v-if="featured" :to="`/${featured.slug}`"
+            <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
               class="group flex flex-col gap-5 py-8 sm:flex-row sm:items-start sm:gap-8">
               <div class="flex-1 min-w-0 space-y-3">
                 <div class="flex flex-wrap items-center gap-2">
@@ -229,7 +229,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
             <!-- Compact reading list rows -->
             <NuxtLink
               v-for="post in rest" :key="post.slug"
-              :to="`/${post.slug}`"
+              :to="`/blog/${post.slug}`"
               class="group flex items-start gap-4 py-6 transition-colors hover:bg-slate-50/70 -mx-4 px-4 sm:mx-0 sm:px-0"
             >
               <div class="flex-1 min-w-0 space-y-1.5">

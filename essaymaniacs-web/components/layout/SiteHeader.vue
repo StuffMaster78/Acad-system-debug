@@ -10,10 +10,10 @@ const menuServices = computed(() => {
 
 const orderPaths = [
   { id: 'paper',   label: 'Essays & Papers',       desc: 'Essays, research papers, term papers',     href: '/order?type=paper',   color: 'text-brand-600'  },
-  { id: 'special', label: 'Dissertations',         desc: 'Proposal, chapters, methodology, defence', href: '/dissertations', color: 'text-rose-600' },
-  { id: 'combo',   label: 'Admission Essays',      desc: 'Personal statements, scholarship essays',  href: '/admission-essays', color: 'text-amber-600' },
-  { id: 'diagram', label: 'Proofreading',          desc: 'Grammar, structure, citations checked',    href: '/proofreading', color: 'text-teal-600' },
-  { id: 'design',  label: 'Presentations',         desc: 'Slides, speaker notes, speech scripts',   href: '/presentations', color: 'text-violet-600' },
+  { id: 'special', label: 'Dissertations',         desc: 'Proposal, chapters, methodology, defence', href: '/services/dissertations', color: 'text-rose-600' },
+  { id: 'combo',   label: 'Admission Essays',      desc: 'Personal statements, scholarship essays',  href: '/services/admission-essays', color: 'text-amber-600' },
+  { id: 'diagram', label: 'Proofreading',          desc: 'Grammar, structure, citations checked',    href: '/services/proofreading', color: 'text-teal-600' },
+  { id: 'design',  label: 'Presentations',         desc: 'Slides, speaker notes, speech scripts',   href: '/services/presentations', color: 'text-violet-600' },
   { id: 'class',   label: 'Full Class Support',    desc: 'Entire course, whole semester',            href: '/class-support',      color: 'text-green-600'  },
 ]
 
@@ -153,7 +153,7 @@ const ORDER_SVG: Record<string, string> = {
                   <NuxtLink
                     v-for="s in menuServices"
                     :key="s.slug"
-                    :href="`/${s.slug}`"
+                    :href="`/services/${s.slug}`"
                     class="rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
                     @click="servicesOpen = false"
                   >

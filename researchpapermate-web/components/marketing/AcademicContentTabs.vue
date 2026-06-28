@@ -141,7 +141,7 @@ const paperTypes = [
             <p class="mt-4 leading-relaxed text-slate-600">
               Chapter-by-chapter delivery lets you review and incorporate supervisor feedback before the next chapter is written — so the final document is coherent throughout.
             </p>
-            <NuxtLink to="/dissertations" class="btn-primary mt-8 inline-flex px-8 py-3.5">Get dissertation help →</NuxtLink>
+            <NuxtLink to="/services/dissertations" class="btn-primary mt-8 inline-flex px-8 py-3.5">Get dissertation help →</NuxtLink>
           </div>
           <div class="space-y-4">
             <div

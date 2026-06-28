@@ -142,15 +142,12 @@ function rewriteLinks(html: string): string {
   out = out.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
     (_, path, qs) => `href="${path}${qs ?? ''}"`)
 
-  // Strip /blog/ and /services/ prefixes from internal links in body HTML.
-  out = out.replace(/href="\/(?:blog|services)\/([\w-]+)\/?"/gi, 'href="/$1"')
-
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
-    if (_serviceSlugs.has(slug)) return `href="/${slug}"`
-    if (_blogSlugs.has(slug))    return `href="/${slug}"`
+    if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
     if (_fixedRoutes.has(slug))  return `href="/${slug}"`
-    if (props.linkContext === 'blog')    return `href="/${slug}"`
-    if (props.linkContext === 'service') return `href="/${slug}"`
+    if (props.linkContext === 'blog')    return `href="/blog/${slug}"`
+    if (props.linkContext === 'service') return `href="/services/${slug}"`
     return `href="/${slug}"`
   })
 
@@ -171,7 +168,7 @@ function asBool(v: unknown): boolean { return v === true }
 /** Build a site-relative path from a Wagtail page meta object.
  *  Wagtail returns meta.url as a full absolute URL (https://…/services/foo/).
  *  We extract the pathname. When url is absent we use meta.type + slug to
- *  reconstruct the flat canonical path (/:slug). */
+ *  reconstruct the correct prefix (/services/, /blog/, etc.). */
 function pageHref(meta: Record<string, unknown>): string {
   const url = asStr(meta.url)
   if (url) {
@@ -184,8 +181,8 @@ function pageHref(meta: Record<string, unknown>): string {
   // Fallback: derive prefix from page type
   const slug = asStr(meta.slug)
   const type = asStr(meta.type).toLowerCase()
-  if (type.includes('servicepage') || type.includes('service_page')) return `/${slug}`
-  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/${slug}`
+  if (type.includes('servicepage') || type.includes('service_page')) return `/services/${slug}`
+  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
   return `/${slug}`
 }
 

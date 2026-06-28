@@ -1,6 +1,550 @@
 <script setup lang="ts">
-// 301 redirect: /blog/:slug → /:slug (flat URL — SEO canonical is at the root level)
-const slug = useRoute().params.slug as string
-await navigateTo(`/${slug}`, { redirectCode: 301 })
+import BlockRenderer from '~/components/cms/BlockRenderer.vue'
+
+const route   = useRoute()
+const slug    = route.params.slug as string
+const config  = useRuntimeConfig()
+const apiBase     = config.public.apiBase || ''
+const wagtailBase = `${apiBase}/wagtail`
+
+// ── CMS types ─────────────────────────────────────────────────────────────
+interface Block { type: string; value: unknown }
+interface CmsArticle {
+  id: number
+  meta: { slug: string; first_published_at: string; seo_title: string; search_description: string }
+  title: string
+  excerpt: string
+  body: Block[]
+  reading_time_minutes: number
+  word_count: number
+  category_name: string
+  tag_names: string[]
+  thumbnail: { url: string } | null
+  author_name: string
+  author_credentials: string
+  author_bio: string
+  canonical_published_at: string | null
+  last_substantive_update: string | null
+  lead_magnet: { slug: string; title: string; description: string } | null
+}
+
+// ── Try CMS first ──────────────────────────────────────────────────────────
+const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
+  `rpm-blog-${slug}`,
+  async () => {
+    if (!wagtailBase) return null
+    try {
+      const res = await $fetch<{ items: CmsArticle[] }>(
+        `${wagtailBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
+      )
+      return res.items?.[0] ?? null
+    } catch { return null }
+  },
+)
+
+// ── CMS related posts ──────────────────────────────────────────────────────
+const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[]>(
+  `rpm-blog-related-${slug}`,
+  async () => {
+    if (!wagtailBase || !cmsArticle.value) return []
+    try {
+      const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
+        `${wagtailBase}/api/v2/pages/`,
+        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 } },
+      )
+      return (res.items ?? []).filter(p => p.meta?.slug !== slug).slice(0, 3)
+    } catch { return [] }
+  },
+)
+
+// ── Static fallback ────────────────────────────────────────────────────────
+const { getBySlug, getAll, getByAuthor } = useBlog()
+const staticPost = cmsArticle.value ? null : getBySlug(slug)
+
+if (!cmsArticle.value && !staticPost) {
+  throw createError({ statusCode: 404, message: 'Post not found' })
+}
+
+// ── Static-only data ───────────────────────────────────────────────────────
+const related  = staticPost ? getAll().filter(p => p.slug !== slug && p.category === staticPost.category).slice(0, 3) : []
+const byAuthor = staticPost?.author ? getByAuthor(staticPost.author.slug, slug).slice(0, 4) : []
+const { toc, processedBody } = staticPost ? useToc(staticPost.body) : { toc: [], processedBody: '' }
+
+// ── CMS TOC ────────────────────────────────────────────────────────────────
+const cmsToc = computed(() => extractToc(cmsArticle.value?.body ?? []))
+
+// Unified TOC across CMS and static paths
+const activeTocItems = computed(() => {
+  if (cmsArticle.value) {
+    if (cmsToc.value.length >= 3) return cmsToc.value
+    const items: { id: string; text: string; level: string }[] = []
+    for (const block of cmsArticle.value.body) {
+      if (block.type !== 'paragraph' || typeof block.value !== 'string') continue
+      for (const m of block.value.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h[23]>/gi)) {
+        const text = m[2].replace(/<[^>]+>/g, '').trim()
+        if (text) items.push({ id: slugifyHeading(text), text, level: `h${m[1]}` })
+      }
+    }
+    return items
+  }
+  return toc.map(t => ({ id: t.anchor, text: t.text, level: t.level }))
+})
+
+let updateReadProgress: (() => void) | null = null
+let updateBackToTop: (() => void) | null = null
+
+// Reading progress
+const readProgress = ref(0)
+onMounted(() => {
+  updateReadProgress = () => {
+    const el = document.querySelector('article')
+    if (!el) return
+    const { top, height } = el.getBoundingClientRect()
+    const scrollableHeight = Math.max(1, height - window.innerHeight)
+    readProgress.value = Math.max(
+      0,
+      Math.min(100, Math.round((Math.max(0, -top) / scrollableHeight) * 100)),
+    )
+  }
+  window.addEventListener('scroll', updateReadProgress, { passive: true })
+  updateReadProgress()
+})
+
+// Back to top
+const showBackToTop = ref(false)
+onMounted(() => {
+  updateBackToTop = () => { showBackToTop.value = window.scrollY > 600 }
+  window.addEventListener('scroll', updateBackToTop, { passive: true })
+  updateBackToTop()
+})
+
+onUnmounted(() => {
+  if (updateReadProgress) window.removeEventListener('scroll', updateReadProgress)
+  if (updateBackToTop) window.removeEventListener('scroll', updateBackToTop)
+})
+
+const { pageId, stats, myReact, bookmarked, ready, react, toggleBookmark, reactionCount, fmtCount } =
+  useEngagement(slug)
+
+const reactions: { type: 'helpful' | 'love' | 'insightful'; emoji: string; label: string }[] = [
+  { type: 'helpful',    emoji: '👍', label: 'Helpful'    },
+  { type: 'love',       emoji: '❤️', label: 'Love this'  },
+  { type: 'insightful', emoji: '💡', label: 'Insightful' },
+]
+
+// Mid-article inline CTA (static posts only)
+const inlineCta = `
+<div class="not-prose my-10 border-y border-slate-200 py-8">
+  <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">ResearchPaperMate</p>
+      <p class="text-[1.05rem] font-bold leading-snug text-slate-900">Deadline coming up? A subject-specialist writer can handle this for you — properly cited, from scratch, from $15/page.</p>
+      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+        <span>✓ 100+ subjects · Master&apos;s &amp; PhD writers</span>
+        <span>✓ From $15/page · As fast as 2 hours</span>
+        <span>✓ Grade or money back</span>
+      </div>
+    </div>
+    <a href="/order" class="mt-1 shrink-0 inline-flex items-center gap-2 rounded-lg bg-claret-900 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-claret-800 whitespace-nowrap">
+      Place my order
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+    </a>
+  </div>
+</div>`
+
+const bodyWithInlineCta = computed(() => {
+  let count = 0
+  let insertAt = -1
+  const re = /<\/p>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(processedBody)) !== null) {
+    count++
+    if (count === 4) { insertAt = m.index + m[0].length; break }
+  }
+  if (insertAt === -1) return processedBody
+  return processedBody.slice(0, insertAt) + inlineCta + processedBody.slice(insertAt)
+})
+
+const fmtDate = (d: string | null | undefined) =>
+  d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : ''
+
+const authorInitials = computed(() => {
+  if (cmsArticle.value) return (cmsArticle.value.author_name || 'R').charAt(0).toUpperCase()
+  if (!staticPost?.author) return '?'
+  const w = staticPost.author.name.trim().split(/\s+/)
+  return w.length >= 2 ? (w[0][0] + w[w.length - 1][0]).toUpperCase() : staticPost.author.name[0].toUpperCase()
+})
+
+const ROLE_BADGE: Record<string, string> = {
+  'Senior Writer':         'bg-parchment-100 text-claret-700',
+  'Subject Matter Expert': 'bg-amber-100 text-amber-700',
+  'Writer':                'bg-slate-100 text-slate-600',
+  'Editor':                'bg-violet-100 text-violet-700',
+}
+
+const CAT_COVER: Record<string, { bg: string; icon: string }> = {
+  'Research Papers':    { bg: 'from-brand-800 to-brand-600',    icon: 'file-text' },
+  'Citations & Style':  { bg: 'from-blue-900 to-blue-700',      icon: 'book-open' },
+  'Literature Reviews': { bg: 'from-indigo-800 to-indigo-600',  icon: 'search' },
+  'Dissertations':      { bg: 'from-slate-800 to-slate-600',    icon: 'graduation-cap' },
+  'Essays':             { bg: 'from-violet-900 to-violet-700',  icon: 'pen-line' },
+  'Study Tips':         { bg: 'from-amber-800 to-amber-600',    icon: 'lightbulb' },
+}
+
+const postCategory = computed(() => cmsArticle.value?.category_name || staticPost?.category || '')
+const postCover    = computed(() => CAT_COVER[postCategory.value] ?? { bg: 'from-brand-800 to-brand-600', icon: 'pen-line' })
+const postTitle    = computed(() => cmsArticle.value?.title   || staticPost?.title   || '')
+const postExcerpt  = computed(() => cmsArticle.value?.excerpt || staticPost?.excerpt || '')
+const postDate     = computed(() => cmsArticle.value?.canonical_published_at || cmsArticle.value?.meta?.first_published_at || staticPost?.date || '')
+const postModified = computed(() => cmsArticle.value?.last_substantive_update || null)
+const postImage    = computed(() => cmsArticle.value?.thumbnail?.url || null)
+
+const faqBlocks = computed(() =>
+  (cmsArticle.value?.body ?? []).filter(b => b.type === 'faq') as Array<{ type: string; value: { question: string; answer: string } }>
+)
+
+const siteUrl = config.public.siteUrl || 'https://researchpapermate.com'
+const canonicalUrl = `${siteUrl}/blog/${slug}`
+
+useSeoMeta({
+  title:                computed(() => cmsArticle.value?.meta?.seo_title || postTitle.value),
+  description:          computed(() => cmsArticle.value?.meta?.search_description || postExcerpt.value),
+  ogTitle:              postTitle,
+  ogDescription:        postExcerpt,
+  ogImage:              postImage,
+  ogType:               'article',
+  articlePublishedTime: postDate,
+  articleModifiedTime:  postModified,
+  articleAuthor:        computed(() => {
+    const author = cmsArticle.value?.author_name || staticPost?.author?.name
+    return author ? [author] : null
+  }),
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
+})
+
+const ldScripts = computed(() => {
+  const scripts: { type: string; innerHTML: string }[] = []
+  scripts.push({
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline:      postTitle.value,
+      description:   postExcerpt.value,
+      datePublished: postDate.value,
+      ...(postModified.value ? { dateModified: postModified.value } : {}),
+      ...(postImage.value ? { image: postImage.value } : {}),
+      url: canonicalUrl,
+      author: cmsArticle.value
+        ? { '@type': 'Person', name: cmsArticle.value.author_name || 'ResearchPaperMate', description: cmsArticle.value.author_bio }
+        : staticPost?.author
+          ? { '@type': 'Person', name: staticPost.author.name, description: staticPost.author.bio, honorificSuffix: staticPost.author.credentials,
+              ...(staticPost.author.orcid ? { sameAs: [`https://orcid.org/${staticPost.author.orcid}`] } : {}) }
+          : { '@type': 'Organization', name: 'ResearchPaperMate' },
+      publisher: {
+        '@type': 'Organization', name: 'ResearchPaperMate',
+        url: 'https://researchpapermate.com',
+        logo: { '@type': 'ImageObject', url: 'https://researchpapermate.com/favicon.svg' },
+      },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['.post-excerpt', '.key-takeaways', 'h1'],
+      },
+    }),
+  })
+  scripts.push({
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://researchpapermate.com/' },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://researchpapermate.com/blog' },
+        { '@type': 'ListItem', position: 3, name: postTitle.value, item: canonicalUrl },
+      ],
+    }),
+  })
+  if (faqBlocks.value.length >= 2) {
+    scripts.push({
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqBlocks.value.map(b => ({
+          '@type': 'Question',
+          name: b.value.question,
+          acceptedAnswer: { '@type': 'Answer', text: b.value.answer },
+        })),
+      }),
+    })
+  }
+
+  // HowTo schema — step-by-step articles
+  const titleLower = postTitle.value.toLowerCase()
+  const isHowTo = titleLower.includes('how to') || titleLower.includes('step-by-step') || titleLower.includes('guide to')
+  const numberedBlocks = (cmsArticle.value?.body ?? []).filter(b => b.type === 'numbered_list') as Array<{ type: string; value: { items: Array<{ title: string; description?: string }> } }>
+  if (isHowTo && numberedBlocks.length > 0 && numberedBlocks[0].value.items.length >= 3) {
+    scripts.push({ type: 'application/ld+json', innerHTML: JSON.stringify({ '@context': 'https://schema.org', '@type': 'HowTo', name: postTitle.value, description: postExcerpt.value, step: numberedBlocks[0].value.items.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.description ?? s.title })) }) })
+  }
+
+  // QAPage schema — question-format posts
+  const isQaFormat = /^(is |are |can |should |does |do |will |was |were |has |have |why |what |which )/i.test(postTitle.value)
+  if (isQaFormat && faqBlocks.value.length >= 1) {
+    scripts.push({ type: 'application/ld+json', innerHTML: JSON.stringify({ '@context': 'https://schema.org', '@type': 'QAPage', mainEntity: { '@type': 'Question', name: postTitle.value, text: postExcerpt.value, answerCount: faqBlocks.value.length, acceptedAnswer: { '@type': 'Answer', text: faqBlocks.value[0].value.answer } } }) })
+  }
+
+  return scripts
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: canonicalUrl }],
+  script: ldScripts,
+})
 </script>
-<template><div /></template>
+
+<template>
+  <div class="section">
+    <!-- Reading progress bar -->
+    <div class="fixed top-0 left-0 z-50 h-0.5 bg-claret-600 transition-all duration-100" :style="{ width: `${readProgress}%` }" />
+
+    <!-- Cover band -->
+    <div
+      class="relative -mx-4 mb-10 flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br sm:-mx-6 sm:h-72 lg:-mx-8"
+      :class="postCover.bg"
+    >
+      <div class="absolute inset-0 opacity-10"
+        style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 28px 28px;" />
+      <div v-if="cmsArticle?.thumbnail?.url" class="absolute inset-0">
+        <img :src="cmsArticle.thumbnail.url" :alt="postTitle" class="h-full w-full object-cover opacity-30" />
+      </div>
+      <div class="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+        <Icon :name="postCover.icon" class="h-12 w-12 text-white" />
+      </div>
+    </div>
+
+    <div class="grid gap-10 lg:grid-cols-[1fr_300px]">
+
+      <!-- ── Left: article content ──────────────────────────────────── -->
+      <article class="min-w-0">
+
+        <!-- Article breadcrumb trail -->
+        <nav class="mb-6 flex items-center gap-2 text-xs" aria-label="Breadcrumb">
+          <NuxtLink href="/" class="flex items-center text-slate-400 transition-colors hover:text-brand-600">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          </NuxtLink>
+          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <NuxtLink href="/blog" class="text-slate-400 transition-colors hover:text-brand-600">Blog</NuxtLink>
+          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <span class="rounded-full bg-brand-50 px-2.5 py-0.5 font-semibold text-claret-700">{{ postCategory }}</span>
+          <svg class="h-3 w-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <span class="max-w-[200px] truncate text-slate-500">{{ postTitle }}</span>
+        </nav>
+
+        <!-- Meta bar -->
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+          <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-claret-700">{{ postCategory }}</span>
+          <span class="text-xs text-slate-400">{{ cmsArticle ? `${cmsArticle.reading_time_minutes || 1} min read` : staticPost?.readTime }}</span>
+          <time class="text-xs text-slate-400">{{ fmtDate(postDate) }}</time>
+          <ClientOnly>
+            <template v-if="stats">
+              <span class="flex items-center gap-1 text-xs text-slate-400">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                {{ fmtCount(stats.views) }} views
+              </span>
+            </template>
+          </ClientOnly>
+        </div>
+
+        <!-- Title + excerpt -->
+        <h1 class="font-serif text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">{{ postTitle }}</h1>
+        <p class="mt-4 text-lg leading-relaxed text-slate-600">{{ postExcerpt }}</p>
+
+        <!-- Author byline + bookmark -->
+        <div v-if="cmsArticle?.author_name || staticPost?.author" class="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-parchment-100 text-sm font-bold text-claret-700">{{ authorInitials }}</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-900">{{ cmsArticle?.author_name || staticPost?.author?.name }}</p>
+            <p class="text-xs text-slate-500">{{ cmsArticle?.author_credentials || staticPost?.author?.credentials }}</p>
+          </div>
+          <ClientOnly>
+            <button v-if="ready && pageId" class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors" :class="bookmarked ? 'border-brand-200 bg-brand-50 text-claret-700' : 'border-slate-200 bg-white text-slate-500 hover:border-brand-200 hover:text-claret-700'" @click="toggleBookmark">
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" :d="'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z'" :fill="bookmarked ? 'currentColor' : 'none'"/></svg>
+              {{ bookmarked ? 'Saved' : 'Save' }}
+            </button>
+          </ClientOnly>
+        </div>
+
+        <!-- Article TOC -->
+        <ArticleToc
+          v-if="activeTocItems.length >= 3"
+          :items="activeTocItems"
+          variant="progress"
+        />
+
+        <!-- CMS body -->
+        <div
+          v-if="cmsArticle"
+          class="prose prose-slate prose-lg mt-10 max-w-none
+                 prose-headings:font-serif prose-headings:font-bold
+                 prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
+                 prose-strong:text-slate-900"
+        >
+          <BlockRenderer :blocks="cmsArticle.body" :inline-cta="inlineCta" link-context="blog" />
+        </div>
+
+        <!-- Static body -->
+        <div
+          v-else
+          class="prose prose-slate prose-lg mt-10 max-w-none
+                 prose-headings:font-serif prose-headings:font-bold
+                 prose-a:text-brand-600 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-600
+                 prose-strong:text-slate-900"
+          v-html="bodyWithInlineCta"
+        />
+
+        <!-- Lead magnet — shown only when staff attaches a resource in Wagtail -->
+        <div v-if="cmsArticle?.lead_magnet" class="mt-10 not-prose">
+          <LeadMagnet
+            :attachment-slug="cmsArticle.lead_magnet.slug"
+            :title="cmsArticle.lead_magnet.title"
+            :description="cmsArticle.lead_magnet.description"
+          />
+        </div>
+
+        <!-- Reactions -->
+        <ClientOnly>
+          <div v-if="ready && pageId" class="mt-10 rounded-2xl border border-slate-100 bg-slate-50 px-6 py-5">
+            <p class="mb-4 text-center text-sm font-semibold text-slate-700">Was this article helpful?</p>
+            <div class="flex justify-center gap-3">
+              <button v-for="r in reactions" :key="r.type" class="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all" :class="myReact === r.type ? 'border-brand-300 bg-brand-50 text-claret-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-claret-700'" @click="react(r.type)">
+                <span class="text-base leading-none">{{ r.emoji }}</span>
+                <span>{{ r.label }}</span>
+                <span v-if="reactionCount(r.type) > 0" class="rounded-full px-1.5 py-0.5 text-[11px] font-bold" :class="myReact === r.type ? 'bg-parchment-100 text-claret-700' : 'bg-slate-100 text-slate-500'">{{ fmtCount(reactionCount(r.type)) }}</span>
+              </button>
+            </div>
+            <p class="mt-3 text-center text-xs text-slate-400">{{ stats ? fmtCount(stats.views) + ' students have read this article' : '' }}</p>
+          </div>
+        </ClientOnly>
+
+        <!-- Share -->
+        <div class="mt-6">
+          <ClientOnly><ShareButtons :title="postTitle" /></ClientOnly>
+        </div>
+
+        <!-- End-of-article CTA -->
+        <div class="mt-10 rounded-2xl bg-claret-950 p-8">
+          <div class="sm:flex sm:items-center sm:justify-between sm:gap-8">
+            <div>
+              <p class="mb-1 text-xs font-bold uppercase tracking-widest text-brand-400">Expert writers across 100+ subjects</p>
+              <h2 class="font-serif text-2xl font-bold text-white">Still staring at a blank page?</h2>
+              <p class="mt-2 leading-relaxed text-brand-200">
+                A subject-specialist writer can handle your paper from scratch — properly cited, plagiarism-free, from $15/page.
+              </p>
+              <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-400">
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Grade or money back</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Zero AI — human-written</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> As fast as 2 hours</li>
+                <li class="flex items-center gap-1"><span class="text-green-400">✓</span> Free Turnitin report</li>
+              </ul>
+            </div>
+            <NuxtLink to="/order" class="mt-6 block shrink-0 rounded-xl bg-white px-8 py-3 text-center text-sm font-bold text-claret-700 transition-colors hover:bg-brand-50 sm:mt-0">
+              Place my order →
+            </NuxtLink>
+          </div>
+        </div>
+
+        <!-- Author card -->
+        <div v-if="cmsArticle?.author_name || staticPost?.author" class="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div class="flex items-start gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6">
+            <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-parchment-100 text-2xl font-bold text-claret-700 ring-2 ring-white shadow-sm">{{ authorInitials }}</div>
+            <div class="min-w-0">
+              <p class="text-lg font-bold text-slate-900">{{ cmsArticle?.author_name || staticPost?.author?.name }}</p>
+              <p class="mt-0.5 text-sm font-medium text-slate-500">{{ cmsArticle?.author_credentials || staticPost?.author?.credentials }}</p>
+            </div>
+          </div>
+          <div class="px-6 py-5">
+            <p class="text-sm leading-7 text-slate-600">{{ cmsArticle?.author_bio || staticPost?.author?.bio }}</p>
+            <template v-if="staticPost?.author">
+              <div class="mt-4 flex flex-wrap gap-2">
+                <a v-if="staticPost.author.linkedin" :href="staticPost.author.linkedin" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-claret-700">LinkedIn</a>
+                <a v-if="staticPost.author.twitter" :href="`https://twitter.com/${staticPost.author.twitter}`" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-claret-700">@{{ staticPost.author.twitter }}</a>
+              </div>
+            </template>
+          </div>
+          <div v-if="byAuthor.length" class="border-t border-slate-100 px-6 py-5">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">More by {{ staticPost?.author?.name.split(' ')[0] }}</p>
+            <ul class="space-y-3">
+              <li v-for="p in byAuthor" :key="p.slug">
+                <NuxtLink :href="`/blog/${p.slug}`" class="group flex items-start gap-3">
+                  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 group-hover:bg-amber-600 transition-colors" />
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium leading-snug text-slate-800 group-hover:text-claret-700 transition-colors line-clamp-2">{{ p.title }}</p>
+                    <p class="mt-0.5 text-xs text-slate-400">{{ p.category }} · {{ p.readTime }}</p>
+                  </div>
+                </NuxtLink>
+              </li>
+            </ul>
+            <NuxtLink :href="`/authors/${staticPost?.author?.slug}`" class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-claret-700 hover:underline">
+              All articles by {{ staticPost?.author?.name.split(' ').slice(0, 2).join(' ') }} →
+            </NuxtLink>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <EditorialProcess :published-at="postDate" />
+        </div>
+
+        <!-- Related posts -->
+        <div v-if="(cmsArticle && cmsRelated?.length) || (!cmsArticle && related.length)" class="mt-16">
+          <h2 class="mb-6 font-serif text-xl font-bold text-slate-900">More on {{ postCategory }}</h2>
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <template v-if="cmsArticle">
+              <NuxtLink
+                v-for="r in cmsRelated" :key="r.meta?.slug"
+                :href="`/blog/${r.meta?.slug}`"
+                class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
+              >
+                <div class="mb-2 flex items-center gap-2">
+                  <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-claret-700">{{ r.category_name }}</span>
+                  <span class="text-xs text-slate-400">{{ r.reading_time_minutes }} min</span>
+                </div>
+                <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-claret-700 line-clamp-2">{{ r.title }}</h3>
+                <span class="mt-4 text-xs font-semibold text-brand-600 group-hover:underline">Read →</span>
+              </NuxtLink>
+            </template>
+            <template v-else>
+              <NuxtLink
+                v-for="r in related" :key="r.slug"
+                :href="`/blog/${r.slug}`"
+                class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
+              >
+                <div class="mb-2 flex items-center gap-2">
+                  <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-claret-700">{{ r.category }}</span>
+                  <span class="text-xs text-slate-400">{{ r.readTime }}</span>
+                </div>
+                <h3 class="flex-1 font-semibold leading-snug text-slate-900 transition-colors group-hover:text-claret-700">{{ r.title }}</h3>
+                <p class="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{{ r.excerpt }}</p>
+                <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                  <time class="text-xs text-slate-400">{{ new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) }}</time>
+                  <span class="text-xs font-semibold text-brand-600 group-hover:underline">Read →</span>
+                </div>
+              </NuxtLink>
+            </template>
+          </div>
+        </div>
+
+      </article>
+
+      <!-- ── Right: sticky sidebar ──────────────────────────────────── -->
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        <div class="max-h-[calc(100vh-6rem)] overflow-y-auto pb-4 scrollbar-thin">
+          <BlogSidebar />
+        </div>
+      </div>
+
+    </div>
+  </div>
+</template>

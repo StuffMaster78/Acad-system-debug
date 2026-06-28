@@ -120,7 +120,7 @@ useHead({
             <NuxtLink
               v-for="s in displayed"
               :key="s.slug"
-              :href="`/${s.slug}`"
+              :href="`/services/${s.slug}`"
               class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white p-7 transition-all hover:border-brand-200 hover:shadow-md"
             >
               <!-- Accent corner -->

@@ -23,12 +23,10 @@ function rewriteLinks(html: string): string {
     `href="https?://${_escRe(_siteHost)}(?::\\d+)?(/[^"]*)"`, 'gi',
   )
   let out = html.replace(sameOriginRe, 'href="$1"')
-  // Strip /blog/ and /services/ prefixes from internal links in body HTML.
-  out = out.replace(/href="\/(?:blog|services)\/([\w-]+)\/?"/gi, 'href="/$1"')
   // Rewrite single-segment relative paths; optional trailing slash
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
-    if (_serviceSlugs.has(slug)) return `href="/${slug}"`
-    if (_blogSlugs.has(slug))    return `href="/${slug}"`
+    if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
+    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
     if (_fixedRoutes.has(slug))  return `href="/${slug}"`
     return _match
   })

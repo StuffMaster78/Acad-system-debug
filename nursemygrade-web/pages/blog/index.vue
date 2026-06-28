@@ -235,7 +235,7 @@ function catBadge(cat: string) { return CAT_BADGE[cat] ?? 'bg-slate-100 text-sla
         <div v-else class="space-y-3">
 
           <!-- Featured: large card -->
-          <NuxtLink v-if="featured" :to="`/${featured.slug}`"
+          <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
             class="group flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-sm transition-all hover:shadow-md sm:flex-row sm:items-stretch">
             <div class="h-52 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-auto sm:w-64">
               <NuxtImg v-if="featured.thumbnail" :src="featured.thumbnail" :alt="featured.title"
@@ -273,7 +273,7 @@ function catBadge(cat: string) { return CAT_BADGE[cat] ?? 'bg-slate-100 text-sla
           <!-- Compact article rows -->
           <NuxtLink
             v-for="post in rest" :key="post.slug"
-            :to="`/${post.slug}`"
+            :to="`/blog/${post.slug}`"
             class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition-all hover:shadow-md"
           >
             <div class="h-24 w-36 shrink-0 overflow-hidden rounded-xl bg-slate-100">

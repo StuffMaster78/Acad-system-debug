@@ -47,7 +47,7 @@ def _page_payload(page) -> dict | None:
         "id": specific.pk,
         "title": specific.title,
         "slug": specific.slug,
-        "url": getattr(specific, "frontend_url", None) or specific.url,
+        "url": specific.url,
         "description": getattr(specific, "search_description", ""),
     }
 
@@ -190,7 +190,7 @@ class ServicePageSchemaOrgSerializer(serializers.Serializer):
             "@context": "https://schema.org",
             "@type": "Service",
             "name": page.title,
-            "url": getattr(page, "frontend_url", None) or page.full_url,
+            "url": page.full_url,
             "description": (
                 page.search_description
                 or page.title

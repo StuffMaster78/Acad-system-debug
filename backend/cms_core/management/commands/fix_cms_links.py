@@ -4,9 +4,12 @@ Fix absolute same-site links in all live CMS body content.
 Transforms applied (in order, on raw JSON):
   1. Strip domain prefix: https://nursemygrade.com/X  →  /X
   2. Normalise legacy path aliases (.php, order fragments, etc.)
-  3. Flatten /services/slug  →  /slug  (flat canonical URL)
-  4. Flatten /blog/slug  →  /slug  (flat canonical URL)
-  5. Remap any remaining root-level /slug to the correct flat service or blog path.
+  3. Map old root-level service slugs: /slug  →  /services/slug
+     (only for slugs that exist as live ServicePage records)
+  4. Map old root-level blog slugs: /slug  →  /blog/slug
+     (only for slugs that exist as live BlogPostPage records)
+  5. Apply hardcoded legacy → new service path aliases (old URLs that differ
+     from the current ServicePage slug).
 
 Run with --dry-run first to preview changes.
 Usage:
@@ -49,38 +52,41 @@ _LEGACY_PATHS = [
     # Other static page aliases
     ("/services.php",     "/services"),
     ("/blog.php",         "/blog"),
-    # Old service URL aliases — map to the canonical service slug (flat, no /services/ prefix).
-    ("/essay-writing-service",       "/essays"),
-    ("/write-my-essay",              "/essays"),
-    ("/buy-essay",                   "/essays"),
-    ("/research-paper-writing",      "/research-papers"),
-    ("/research-paper-writing-service", "/research-papers"),
-    ("/write-my-research-paper",     "/research-papers"),
-    ("/dissertation-writing",        "/dissertations"),
-    ("/dissertation-writing-service","/dissertations"),
-    ("/thesis-writing-service",      "/dissertations"),
-    ("/nursing-essay-writing",       "/online-nursing-essays-help"),
-    ("/nursing-essay-writing-service", "/online-nursing-essays-help"),
-    ("/nursing-care-plan-writing",   "/nursing-care-plan-writing-services"),
-    ("/soap-note-writing",           "/nursing-soap-note-writing-help"),
-    ("/term-paper-writing",          "/term-papers"),
-    ("/term-paper-writing-service",  "/term-papers"),
-    ("/case-study-writing",          "/case-studies"),
-    ("/case-study-writing-service",  "/case-studies"),
-    ("/coursework-writing-service",  "/coursework"),
-    ("/do-my-coursework",            "/coursework"),
-    ("/literature-review-writing",   "/literature-reviews"),
-    ("/literature-review-writing-service", "/literature-reviews"),
-    ("/editing-proofreading-service", "/editing-proofreading"),
-    ("/essay-editing-service",       "/editing-proofreading"),
-    ("/proofreading-service",        "/editing-proofreading"),
-    ("/admission-essay-writing",     "/admission-essays"),
-    ("/personal-statement-writing",  "/personal-statements"),
-    ("/college-essay-writing-service", "/admission-essays"),
-    ("/data-analysis-help",          "/data-analysis"),
-    ("/statistical-analysis-service", "/data-analysis"),
-    ("/presentation-writing-service", "/presentations"),
-    ("/take-my-online-class",        "/online-class-help"),
+    # Common old service URL patterns that are EXACT paths differing from current slugs.
+    # Only list paths that are the COMPLETE old URL, not prefixes.
+    ("/essay-writing",               "/services/essays"),
+    ("/essay-writing-service",       "/services/essays"),
+    ("/write-my-essay",              "/services/essays"),
+    ("/buy-essay",                   "/services/essays"),
+    ("/research-paper-writing",      "/services/research-papers"),
+    ("/research-paper-writing-service", "/services/research-papers"),
+    ("/write-my-research-paper",     "/services/research-papers"),
+    ("/dissertation-writing",        "/services/dissertations"),
+    ("/dissertation-writing-service","/services/dissertations"),
+    ("/thesis-writing-service",      "/services/dissertations"),
+    ("/nursing-essay-writing",       "/services/online-nursing-essays-help"),
+    ("/nursing-essay-writing-service", "/services/online-nursing-essays-help"),
+    ("/nursing-assignment-help",     "/services/online-nursing-essays-help"),
+    ("/nursing-care-plan-writing",   "/services/nursing-care-plan-writing-services"),
+    ("/soap-note-writing",           "/services/nursing-soap-note-writing-help"),
+    ("/term-paper-writing",          "/services/term-papers"),
+    ("/term-paper-writing-service",  "/services/term-papers"),
+    ("/case-study-writing",          "/services/case-studies"),
+    ("/case-study-writing-service",  "/services/case-studies"),
+    ("/coursework-writing-service",  "/services/coursework"),
+    ("/do-my-coursework",            "/services/coursework"),
+    ("/literature-review-writing",   "/services/literature-reviews"),
+    ("/literature-review-writing-service", "/services/literature-reviews"),
+    ("/editing-proofreading-service", "/services/proofreading"),
+    ("/essay-editing-service",       "/services/proofreading"),
+    ("/proofreading-service",        "/services/proofreading"),
+    ("/admission-essay-writing",     "/services/admission-essays"),
+    ("/personal-statement-writing",  "/services/personal-statements"),
+    ("/college-essay-writing-service", "/services/admission-essays"),
+    ("/data-analysis-help",          "/services/data-analysis"),
+    ("/statistical-analysis-service", "/services/data-analysis"),
+    ("/presentation-writing-service", "/services/presentations"),
+    ("/take-my-online-class",        "/services/coursework"),
 ]
 
 # Matches href="/{slug}" (and the JSON-escaped form href=\"/{slug}\") with an
@@ -130,31 +136,14 @@ def _fix(raw: str, blog_slugs: set, service_slugs: set) -> str:
     # Strip remaining *.php from same-site paths (after domain was stripped)
     raw = re.sub(r'"(/[a-z0-9/-]+)\.php(?=["\s])', lambda m: '"' + m.group(1), raw)
 
-    # 3. Flatten any previously-written /services/slug → /slug (flat canonical URL).
-    _SVC_HREF_PAT = re.compile(r'href=(\\?)"/services/([\w-]+)/?(\\?)"')
-    def _flatten_svc(m):
-        q1, slug, q2 = m.group(1), m.group(2), m.group(3)
-        if slug in service_slugs:
-            return f'href={q1}"/{slug}{q2}"'
-        return m.group(0)
-    raw = _SVC_HREF_PAT.sub(_flatten_svc, raw)
-
-    # 4. Flatten any previously-written /blog/slug → /slug (flat canonical URL).
-    _BLOG_HREF_PAT = re.compile(r'href=(\\?)"/blog/([\w-]+)/?(\\?)"')
-    def _flatten_blog(m):
-        q1, slug, q2 = m.group(1), m.group(2), m.group(3)
-        if slug in blog_slugs:
-            return f'href={q1}"/{slug}{q2}"'
-        return m.group(0)
-    raw = _BLOG_HREF_PAT.sub(_flatten_blog, raw)
-
-    # 5. Remap any remaining root-level single-segment hrefs to flat canonical URL.
+    # 3 & 4. Remap root-level hrefs: href="/{slug}" → /services/ or /blog/
+    #    _ROOT_HREF_PAT already anchors on the closing quote, so no prefix risk.
     def _remap(m):
         q1, slug, q2 = m.group(1), m.group(2), m.group(3)
         if slug in service_slugs:
-            return f'href={q1}"/{slug}{q2}"'
+            return f'href={q1}"/services/{slug}{q2}"'
         if slug in blog_slugs:
-            return f'href={q1}"/{slug}{q2}"'   # flat — no /blog/ prefix
+            return f'href={q1}"/blog/{slug}{q2}"'
         return m.group(0)
 
     raw = _ROOT_HREF_PAT.sub(_remap, raw)

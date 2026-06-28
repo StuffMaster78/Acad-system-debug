@@ -217,7 +217,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
         <div v-else class="space-y-4">
 
           <!-- Featured: large card with image on right (reversed from NMG) -->
-          <NuxtLink v-if="featured" :to="`/${featured.slug}`"
+          <NuxtLink v-if="featured" :to="`/blog/${featured.slug}`"
             class="group flex flex-col-reverse gap-5 rounded-2xl border border-claret-100 bg-white p-6 shadow-sm hover:shadow-md transition-all sm:flex-row">
             <!-- Content (left) -->
             <div class="flex flex-1 flex-col justify-center space-y-3">
@@ -251,7 +251,7 @@ function catColor(cat: string) { return CAT_COLOR[cat] ?? 'bg-slate-100 text-sla
           <!-- Numbered article entries -->
           <NuxtLink
             v-for="(post, idx) in rest" :key="post.slug"
-            :to="`/${post.slug}`"
+            :to="`/blog/${post.slug}`"
             class="group flex items-stretch gap-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:shadow-md hover:border-claret-100"
           >
             <!-- Entry number -->

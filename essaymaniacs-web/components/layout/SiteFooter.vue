@@ -5,33 +5,33 @@ const year = new Date().getFullYear()
 const cmsServices = useCmsServiceList()
 
 const staticServicesA = [
-  { label: 'Essay Writing',        href: '/essays'            },
-  { label: 'Research Papers',      href: '/research-papers'   },
-  { label: 'Dissertations',        href: '/dissertations'     },
-  { label: 'Argumentative Essays', href: '/argumentative'     },
-  { label: 'Analytical Essays',    href: '/analytical'        },
-  { label: 'Reflective Essays',    href: '/reflective'        },
-  { label: 'Case Studies',         href: '/case-studies'      },
+  { label: 'Essay Writing',        href: '/services/essays'            },
+  { label: 'Research Papers',      href: '/services/research-papers'   },
+  { label: 'Dissertations',        href: '/services/dissertations'     },
+  { label: 'Argumentative Essays', href: '/services/argumentative'     },
+  { label: 'Analytical Essays',    href: '/services/analytical'        },
+  { label: 'Reflective Essays',    href: '/services/reflective'        },
+  { label: 'Case Studies',         href: '/services/case-studies'      },
 ]
 
 const staticServicesB = [
-  { label: 'Term Papers',          href: '/term-papers'       },
-  { label: 'Admission Essays',     href: '/admission-essays'  },
-  { label: 'Proofreading',         href: '/proofreading'      },
-  { label: 'Coursework Help',      href: '/coursework'        },
-  { label: 'Literature Reviews',   href: '/literature-review' },
-  { label: 'Thesis Writing',       href: '/thesis-writing'    },
-  { label: 'Personal Statements',  href: '/personal-statement'},
+  { label: 'Term Papers',          href: '/services/term-papers'       },
+  { label: 'Admission Essays',     href: '/services/admission-essays'  },
+  { label: 'Proofreading',         href: '/services/proofreading'      },
+  { label: 'Coursework Help',      href: '/services/coursework'        },
+  { label: 'Literature Reviews',   href: '/services/literature-review' },
+  { label: 'Thesis Writing',       href: '/services/thesis-writing'    },
+  { label: 'Personal Statements',  href: '/services/personal-statement'},
 ]
 
 const servicesA = computed(() => {
   if (!cmsServices.value.length) return staticServicesA
-  return cmsServices.value.slice(0, 7).map(s => ({ label: s.navLabel, href: `/${s.slug}` }))
+  return cmsServices.value.slice(0, 7).map(s => ({ label: s.navLabel, href: `/services/${s.slug}` }))
 })
 
 const servicesB = computed(() => {
   if (!cmsServices.value.length) return staticServicesB
-  return cmsServices.value.slice(7, 14).map(s => ({ label: s.navLabel, href: `/${s.slug}` }))
+  return cmsServices.value.slice(7, 14).map(s => ({ label: s.navLabel, href: `/services/${s.slug}` }))
 })
 
 const company = [

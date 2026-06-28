@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       },
     )
     for (const item of res.items ?? []) {
-      if (item.meta?.slug) urls.push({ loc: `/${item.meta.slug}` })
+      if (item.meta?.slug) urls.push({ loc: `/blog/${item.meta.slug}` })
     }
   } catch { /* Wagtail unavailable during build — skip */ }
 

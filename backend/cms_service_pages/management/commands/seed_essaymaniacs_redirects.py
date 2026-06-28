@@ -3,7 +3,7 @@ Management command: seed_essaymaniacs_redirects
 ===============================================
 
 Creates 301 redirects in Wagtail from old flat EssayManiacs URL paths
-to flat canonical URLs (/:slug).
+to the new /services/<slug>/ structure.
 
 Old site used root-level paths (/essay-writing, /research-paper, etc.).
 New site uses /services/<slug>/.
@@ -19,117 +19,117 @@ from django.core.management.base import BaseCommand, CommandParser
 
 REDIRECTS = [
     # ── Essay service variants ──────────────────────────────────────────────
-    ("/essays",                        "/essays"),
-    ("/essay-writing",                 "/essays"),
-    ("/essay-writing-service",         "/essays"),
-    ("/write-my-essay",                "/essays"),
-    ("/buy-essay",                     "/essays"),
-    ("/pay-for-essay",                 "/essays"),
-    ("/cheap-essays",                  "/essays"),
+    ("/essays",                        "/services/essays"),
+    ("/essay-writing",                 "/services/essays"),
+    ("/essay-writing-service",         "/services/essays"),
+    ("/write-my-essay",                "/services/essays"),
+    ("/buy-essay",                     "/services/essays"),
+    ("/pay-for-essay",                 "/services/essays"),
+    ("/cheap-essays",                  "/services/essays"),
 
     # ── Argumentative essays ────────────────────────────────────────────────
-    ("/argumentative-essays",          "/argumentative-essays"),
-    ("/argumentative-essay",           "/argumentative-essays"),
-    ("/argumentative-essay-help",      "/argumentative-essays"),
-    ("/write-my-argumentative-essay",  "/argumentative-essays"),
+    ("/argumentative-essays",          "/services/argumentative-essays"),
+    ("/argumentative-essay",           "/services/argumentative-essays"),
+    ("/argumentative-essay-help",      "/services/argumentative-essays"),
+    ("/write-my-argumentative-essay",  "/services/argumentative-essays"),
 
     # ── Research papers ─────────────────────────────────────────────────────
-    ("/research-papers",               "/research-papers"),
-    ("/research-paper",                "/research-papers"),
-    ("/research-paper-writing",        "/research-papers"),
-    ("/research-paper-writing-service","/research-papers"),
-    ("/write-my-research-paper",       "/research-papers"),
-    ("/buy-research-paper",            "/research-papers"),
+    ("/research-papers",               "/services/research-papers"),
+    ("/research-paper",                "/services/research-papers"),
+    ("/research-paper-writing",        "/services/research-papers"),
+    ("/research-paper-writing-service","/services/research-papers"),
+    ("/write-my-research-paper",       "/services/research-papers"),
+    ("/buy-research-paper",            "/services/research-papers"),
 
     # ── Dissertations ───────────────────────────────────────────────────────
-    ("/dissertations",                 "/dissertations"),
-    ("/dissertation-writing",          "/dissertations"),
-    ("/dissertation-writing-service",  "/dissertations"),
-    ("/write-my-dissertation",         "/dissertations"),
-    ("/thesis-writing",                "/dissertations"),
-    ("/thesis-writing-service",        "/dissertations"),
+    ("/dissertations",                 "/services/dissertations"),
+    ("/dissertation-writing",          "/services/dissertations"),
+    ("/dissertation-writing-service",  "/services/dissertations"),
+    ("/write-my-dissertation",         "/services/dissertations"),
+    ("/thesis-writing",                "/services/dissertations"),
+    ("/thesis-writing-service",        "/services/dissertations"),
 
     # ── Term papers ─────────────────────────────────────────────────────────
-    ("/term-papers",                   "/term-papers"),
-    ("/term-paper",                    "/term-papers"),
-    ("/term-paper-writing",            "/term-papers"),
-    ("/term-paper-writing-service",    "/term-papers"),
+    ("/term-papers",                   "/services/term-papers"),
+    ("/term-paper",                    "/services/term-papers"),
+    ("/term-paper-writing",            "/services/term-papers"),
+    ("/term-paper-writing-service",    "/services/term-papers"),
 
     # ── Case studies ────────────────────────────────────────────────────────
-    ("/case-studies",                  "/case-studies"),
-    ("/case-study",                    "/case-studies"),
-    ("/case-study-writing",            "/case-studies"),
-    ("/case-study-writing-service",    "/case-studies"),
+    ("/case-studies",                  "/services/case-studies"),
+    ("/case-study",                    "/services/case-studies"),
+    ("/case-study-writing",            "/services/case-studies"),
+    ("/case-study-writing-service",    "/services/case-studies"),
 
     # ── Coursework / homework ───────────────────────────────────────────────
-    ("/coursework",                    "/coursework"),
-    ("/coursework-help",               "/coursework"),
-    ("/coursework-writing-service",    "/coursework"),
-    ("/do-my-coursework",              "/coursework"),
-    ("/assignment-help",               "/coursework"),
-    ("/homework-help",                 "/coursework"),
+    ("/coursework",                    "/services/coursework"),
+    ("/coursework-help",               "/services/coursework"),
+    ("/coursework-writing-service",    "/services/coursework"),
+    ("/do-my-coursework",              "/services/coursework"),
+    ("/assignment-help",               "/services/coursework"),
+    ("/homework-help",                 "/services/coursework"),
 
     # ── Admission / personal statements ────────────────────────────────────
-    ("/admission-essays",              "/admission-essays"),
-    ("/admission-essay",               "/admission-essays"),
-    ("/admission-essay-writing",       "/admission-essays"),
-    ("/college-essay-writing",         "/admission-essays"),
-    ("/college-essay-writing-service", "/admission-essays"),
-    ("/personal-statements",           "/personal-statements"),
-    ("/personal-statement",            "/personal-statements"),
-    ("/personal-statement-writing",    "/personal-statements"),
+    ("/admission-essays",              "/services/admission-essays"),
+    ("/admission-essay",               "/services/admission-essays"),
+    ("/admission-essay-writing",       "/services/admission-essays"),
+    ("/college-essay-writing",         "/services/admission-essays"),
+    ("/college-essay-writing-service", "/services/admission-essays"),
+    ("/personal-statements",           "/services/personal-statements"),
+    ("/personal-statement",            "/services/personal-statements"),
+    ("/personal-statement-writing",    "/services/personal-statements"),
 
     # ── Scholarship essays ──────────────────────────────────────────────────
-    ("/scholarship-essays",            "/scholarship-essays"),
-    ("/scholarship-essay",             "/scholarship-essays"),
-    ("/scholarship-essay-writing",     "/scholarship-essays"),
+    ("/scholarship-essays",            "/services/scholarship-essays"),
+    ("/scholarship-essay",             "/services/scholarship-essays"),
+    ("/scholarship-essay-writing",     "/services/scholarship-essays"),
 
     # ── Literature reviews ──────────────────────────────────────────────────
-    ("/literature-reviews",            "/literature-reviews"),
-    ("/literature-review",             "/literature-reviews"),
-    ("/literature-review-writing",     "/literature-reviews"),
-    ("/literature-review-writing-service", "/literature-reviews"),
+    ("/literature-reviews",            "/services/literature-reviews"),
+    ("/literature-review",             "/services/literature-reviews"),
+    ("/literature-review-writing",     "/services/literature-reviews"),
+    ("/literature-review-writing-service", "/services/literature-reviews"),
 
     # ── Annotated bibliographies ────────────────────────────────────────────
-    ("/annotated-bibliographies",      "/annotated-bibliographies"),
-    ("/annotated-bibliography",        "/annotated-bibliographies"),
+    ("/annotated-bibliographies",      "/services/annotated-bibliographies"),
+    ("/annotated-bibliography",        "/services/annotated-bibliographies"),
 
     # ── Book reports ────────────────────────────────────────────────────────
-    ("/book-reports",                  "/book-reports"),
-    ("/book-report",                   "/book-reports"),
-    ("/book-report-writing",           "/book-reports"),
+    ("/book-reports",                  "/services/book-reports"),
+    ("/book-report",                   "/services/book-reports"),
+    ("/book-report-writing",           "/services/book-reports"),
 
     # ── Lab reports ─────────────────────────────────────────────────────────
-    ("/lab-reports",                   "/lab-reports"),
-    ("/lab-report",                    "/lab-reports"),
-    ("/lab-report-writing",            "/lab-reports"),
+    ("/lab-reports",                   "/services/lab-reports"),
+    ("/lab-report",                    "/services/lab-reports"),
+    ("/lab-report-writing",            "/services/lab-reports"),
 
     # ── Data analysis ───────────────────────────────────────────────────────
-    ("/data-analysis",                 "/data-analysis"),
-    ("/data-analysis-help",            "/data-analysis"),
-    ("/statistical-analysis",          "/data-analysis"),
-    ("/statistics-help",               "/data-analysis"),
+    ("/data-analysis",                 "/services/data-analysis"),
+    ("/data-analysis-help",            "/services/data-analysis"),
+    ("/statistical-analysis",          "/services/data-analysis"),
+    ("/statistics-help",               "/services/data-analysis"),
 
     # ── Reflective essays ───────────────────────────────────────────────────
-    ("/reflective-essays",             "/reflective-essays"),
-    ("/reflective-essay",              "/reflective-essays"),
-    ("/reflective-essay-writing",      "/reflective-essays"),
+    ("/reflective-essays",             "/services/reflective-essays"),
+    ("/reflective-essay",              "/services/reflective-essays"),
+    ("/reflective-essay-writing",      "/services/reflective-essays"),
 
     # ── Presentations ───────────────────────────────────────────────────────
-    ("/presentations",                 "/presentations"),
-    ("/presentation-writing",          "/presentations"),
-    ("/presentation-help",             "/presentations"),
+    ("/presentations",                 "/services/presentations"),
+    ("/presentation-writing",          "/services/presentations"),
+    ("/presentation-help",             "/services/presentations"),
 
     # ── Proofreading / editing ──────────────────────────────────────────────
-    ("/proofreading",                  "/proofreading"),
-    ("/proofreading-service",          "/proofreading"),
-    ("/editing-service",               "/proofreading"),
-    ("/essay-editing-service",         "/proofreading"),
-    ("/editing-proofreading-service",  "/proofreading"),
+    ("/proofreading",                  "/services/proofreading"),
+    ("/proofreading-service",          "/services/proofreading"),
+    ("/editing-service",               "/services/proofreading"),
+    ("/essay-editing-service",         "/services/proofreading"),
+    ("/editing-proofreading-service",  "/services/proofreading"),
 
     # ── Creative writing ────────────────────────────────────────────────────
-    ("/creative-writing",              "/creative-writing"),
-    ("/creative-writing-service",      "/creative-writing"),
+    ("/creative-writing",              "/services/creative-writing"),
+    ("/creative-writing-service",      "/services/creative-writing"),
 
     # ── Generic old top-level pages ─────────────────────────────────────────
     ("/about-us",    "/about"),
@@ -141,7 +141,7 @@ REDIRECTS = [
 
 
 class Command(BaseCommand):
-    help = "Seed Wagtail 301 redirects from old EssayManiacs flat URLs to new flat canonical paths (/:slug)"
+    help = "Seed Wagtail 301 redirects from old EssayManiacs flat URLs to new /services/ paths"
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument("--site", default="essaymaniacs.com")

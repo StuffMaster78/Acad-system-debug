@@ -5,33 +5,33 @@ const year = new Date().getFullYear()
 const cmsServices = useCmsServiceList()
 
 const staticServicesA = [
-  { label: 'Research Papers',     href: '/research-papers'   },
-  { label: 'Essays',              href: '/essays'            },
-  { label: 'Literature Reviews',  href: '/literature-reviews' },
-  { label: 'Dissertations',       href: '/dissertations'     },
-  { label: 'Systematic Reviews',  href: '/systematic-review' },
-  { label: 'Data Analysis',       href: '/data-analysis'     },
-  { label: 'Case Studies',        href: '/case-studies'      },
+  { label: 'Research Papers',     href: '/services/research-papers'   },
+  { label: 'Essays',              href: '/services/essays'            },
+  { label: 'Literature Reviews',  href: '/services/literature-reviews' },
+  { label: 'Dissertations',       href: '/services/dissertations'     },
+  { label: 'Systematic Reviews',  href: '/services/systematic-review' },
+  { label: 'Data Analysis',       href: '/services/data-analysis'     },
+  { label: 'Case Studies',        href: '/services/case-studies'      },
 ]
 
 const staticServicesB = [
-  { label: 'Lab Reports',         href: '/lab-reports'       },
-  { label: 'Capstone Projects',   href: '/capstone-projects' },
-  { label: 'SPSS Analysis',       href: '/spss-analysis'     },
-  { label: 'Thesis Writing',      href: '/thesis-writing'    },
-  { label: 'Nursing Research',    href: '/research-papers'   },
-  { label: 'Admission Essays',    href: '/essays'            },
-  { label: 'Editing & Proofread', href: '/editing'           },
+  { label: 'Lab Reports',         href: '/services/lab-reports'       },
+  { label: 'Capstone Projects',   href: '/services/capstone-projects' },
+  { label: 'SPSS Analysis',       href: '/services/spss-analysis'     },
+  { label: 'Thesis Writing',      href: '/services/thesis-writing'    },
+  { label: 'Nursing Research',    href: '/services/research-papers'   },
+  { label: 'Admission Essays',    href: '/services/essays'            },
+  { label: 'Editing & Proofread', href: '/services/editing'           },
 ]
 
 const servicesA = computed(() => {
   if (!cmsServices.value.length) return staticServicesA
-  return cmsServices.value.slice(0, 7).map(s => ({ label: s.navLabel, href: `/${s.slug}` }))
+  return cmsServices.value.slice(0, 7).map(s => ({ label: s.navLabel, href: `/services/${s.slug}` }))
 })
 
 const servicesB = computed(() => {
   if (!cmsServices.value.length) return staticServicesB
-  return cmsServices.value.slice(7, 14).map(s => ({ label: s.navLabel, href: `/${s.slug}` }))
+  return cmsServices.value.slice(7, 14).map(s => ({ label: s.navLabel, href: `/services/${s.slug}` }))
 })
 
 const company = [

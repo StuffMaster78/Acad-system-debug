@@ -68,15 +68,15 @@ const stats = [
 ]
 
 const services = [
-  { icon: markRaw(FileText),      title: 'Essays',              href: '/essay-writing',       desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
-  { icon: markRaw(BookOpen),      title: 'Research Papers',     href: '/research-papers',     desc: 'Original, citation-rich papers across STEM, business, humanities, and social sciences.' },
-  { icon: markRaw(GraduationCap), title: 'Dissertations',       href: '/dissertations',       desc: 'Full thesis support from proposal through defence — chapters, methodology, data.' },
-  { icon: markRaw(FileText),      title: 'Term Papers',         href: '/term-papers',         desc: 'Well-structured semester papers delivered before your deadline.' },
-  { icon: markRaw(FileText),      title: 'Nursing Essays',      href: '/nursing-essays',      desc: 'SOAP notes, care plans, EBP papers — handled by registered nursing experts.' },
-  { icon: markRaw(FileText),      title: 'Admission Essays',    href: '/admission-essays',    desc: 'Personal statements and college essays that get noticed.' },
-  { icon: markRaw(FileText),      title: 'Case Studies',        href: '/case-studies',        desc: 'Deep-dive analysis with structured arguments and supporting evidence.' },
-  { icon: markRaw(Zap),           title: 'Editing & Proofread', href: '/editing-proofreading',desc: 'Grammar, clarity, flow, and formatting corrected by professional editors.' },
-  { icon: markRaw(FileText),      title: 'Coursework Help',     href: '/coursework',          desc: 'Ongoing assignment support — consistent writer, consistent voice.' },
+  { icon: markRaw(FileText),      title: 'Essays',              href: '/services/essay-writing',       desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
+  { icon: markRaw(BookOpen),      title: 'Research Papers',     href: '/services/research-papers',     desc: 'Original, citation-rich papers across STEM, business, humanities, and social sciences.' },
+  { icon: markRaw(GraduationCap), title: 'Dissertations',       href: '/services/dissertations',       desc: 'Full thesis support from proposal through defence — chapters, methodology, data.' },
+  { icon: markRaw(FileText),      title: 'Term Papers',         href: '/services/term-papers',         desc: 'Well-structured semester papers delivered before your deadline.' },
+  { icon: markRaw(FileText),      title: 'Nursing Essays',      href: '/services/nursing-essays',      desc: 'SOAP notes, care plans, EBP papers — handled by registered nursing experts.' },
+  { icon: markRaw(FileText),      title: 'Admission Essays',    href: '/services/admission-essays',    desc: 'Personal statements and college essays that get noticed.' },
+  { icon: markRaw(FileText),      title: 'Case Studies',        href: '/services/case-studies',        desc: 'Deep-dive analysis with structured arguments and supporting evidence.' },
+  { icon: markRaw(Zap),           title: 'Editing & Proofread', href: '/services/editing-proofreading',desc: 'Grammar, clarity, flow, and formatting corrected by professional editors.' },
+  { icon: markRaw(FileText),      title: 'Coursework Help',     href: '/services/coursework',          desc: 'Ongoing assignment support — consistent writer, consistent voice.' },
 ]
 
 const steps = [

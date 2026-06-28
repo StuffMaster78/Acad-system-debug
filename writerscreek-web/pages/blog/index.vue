@@ -262,7 +262,7 @@ const currentMonth = new Date().toLocaleDateString('en-GB', { month: 'long', yea
             <!-- ── Featured article ──────────────────────────────────────── -->
             <NuxtLink
               v-if="featured"
-              :to="`/${featured.meta.slug}`"
+              :to="`/blog/${featured.meta.slug}`"
               class="group mb-8 block overflow-hidden rounded-2xl bg-slate-900 shadow-lg"
             >
               <div class="relative">
@@ -328,7 +328,7 @@ const currentMonth = new Date().toLocaleDateString('en-GB', { month: 'long', yea
               <NuxtLink
                 v-for="(post, idx) in rest"
                 :key="post.meta.slug"
-                :to="`/${post.meta.slug}`"
+                :to="`/blog/${post.meta.slug}`"
                 class="group flex flex-col bg-white p-6 transition-colors duration-150 hover:bg-[#F8F9FA]"
               >
                 <!-- Top row: number + category -->

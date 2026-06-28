@@ -411,13 +411,6 @@ class BlogPostPage(Page):
         return self.title
 
     @property
-    def frontend_url(self) -> str:
-        """Flat canonical URL served by the Nuxt frontend (/:slug, no /blog/ prefix)."""
-        site = self.get_site()
-        root = site.root_url.rstrip("/") if site else ""
-        return f"{root}/{self.slug}"
-
-    @property
     def canonical_published_at(self):
         """The date to display and use in Schema.org as datePublished.
 

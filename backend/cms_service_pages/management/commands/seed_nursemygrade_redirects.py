@@ -2,7 +2,7 @@
 Management command: seed_nursemygrade_redirects
 ===============================================
 
-Creates 301 redirects from old flat NurseMyGrade URL paths to new flat canonical URLs (/:slug).
+Creates 301 redirects from old flat NurseMyGrade URL paths to new /services/ structure.
 
 Usage:
     python manage.py seed_nursemygrade_redirects
@@ -13,76 +13,79 @@ from django.core.management.base import BaseCommand, CommandParser
 
 REDIRECTS = [
     # ── Nursing essays ──────────────────────────────────────────────────────
-    ("/nursing-essays",                    "/online-nursing-essays-help"),
-    ("/nursing-essay",                     "/online-nursing-essays-help"),
-    ("/online-nursing-essays",             "/online-nursing-essays-help"),
-    ("/nursing-essay-writing",             "/online-nursing-essays-help"),
-    ("/nursing-essay-writing-service",     "/online-nursing-essays-help"),
-    ("/nursing-assignment-help",           "/online-nursing-essays-help"),
-    ("/write-my-nursing-essay",            "/online-nursing-essays-help"),
-    ("/buy-nursing-essay",                 "/online-nursing-essays-help"),
+    ("/nursing-essays",                    "/services/online-nursing-essays-help"),
+    ("/nursing-essay",                     "/services/online-nursing-essays-help"),
+    ("/online-nursing-essays",             "/services/online-nursing-essays-help"),
+    ("/nursing-essay-writing",             "/services/online-nursing-essays-help"),
+    ("/nursing-essay-writing-service",     "/services/online-nursing-essays-help"),
+    ("/nursing-assignment-help",           "/services/online-nursing-essays-help"),
+    ("/write-my-nursing-essay",            "/services/online-nursing-essays-help"),
+    ("/buy-nursing-essay",                 "/services/online-nursing-essays-help"),
 
     # ── Care plans ──────────────────────────────────────────────────────────
-    ("/nursing-care-plan",                 "/nursing-care-plan-writing-services"),
-    ("/care-plan-writing",                 "/nursing-care-plan-writing-services"),
-    ("/care-plan-help",                    "/nursing-care-plan-writing-services"),
-    ("/nanda-care-plan",                   "/nursing-care-plan-writing-services"),
+    ("/nursing-care-plan",                 "/services/nursing-care-plan-writing-services"),
+    ("/care-plan-writing",                 "/services/nursing-care-plan-writing-services"),
+    ("/care-plan-help",                    "/services/nursing-care-plan-writing-services"),
+    ("/nanda-care-plan",                   "/services/nursing-care-plan-writing-services"),
 
     # ── SOAP notes ──────────────────────────────────────────────────────────
-    ("/soap-notes",                        "/nursing-soap-note-writing-help"),
-    ("/soap-note",                         "/nursing-soap-note-writing-help"),
-    ("/soap-note-writing",                 "/nursing-soap-note-writing-help"),
-    ("/soap-note-help",                    "/nursing-soap-note-writing-help"),
+    ("/soap-notes",                        "/services/nursing-soap-note-writing-help"),
+    ("/soap-note",                         "/services/nursing-soap-note-writing-help"),
+    ("/soap-note-writing",                 "/services/nursing-soap-note-writing-help"),
+    ("/soap-note-help",                    "/services/nursing-soap-note-writing-help"),
 
     # ── Capstone projects ───────────────────────────────────────────────────
-    ("/nursing-capstone",                  "/nursing-capstone-project-writing-service"),
-    ("/capstone-project",                  "/nursing-capstone-project-writing-service"),
-    ("/nursing-capstone-project",          "/nursing-capstone-project-writing-service"),
+    ("/nursing-capstone",                  "/services/nursing-capstone-project-writing-service"),
+    ("/capstone-project",                  "/services/nursing-capstone-project-writing-service"),
+    ("/nursing-capstone-project",          "/services/nursing-capstone-project-writing-service"),
 
     # ── Research papers ─────────────────────────────────────────────────────
-    ("/nursing-research-paper",            "/best-online-nursing-research-paper-service"),
-    ("/nursing-research-papers",           "/best-online-nursing-research-paper-service"),
-    ("/research-paper",                    "/best-online-nursing-research-paper-service"),
-    ("/research-paper-writing",            "/best-online-nursing-research-paper-service"),
+    ("/nursing-research-paper",            "/services/best-online-nursing-research-paper-service"),
+    ("/nursing-research-papers",           "/services/best-online-nursing-research-paper-service"),
+    ("/research-paper",                    "/services/best-online-nursing-research-paper-service"),
+    ("/research-paper-writing",            "/services/best-online-nursing-research-paper-service"),
 
     # ── Case studies ────────────────────────────────────────────────────────
-    ("/nursing-case-study",                "/nursing-case-study-help"),
-    ("/case-study-help",                   "/nursing-case-study-help"),
-    ("/case-study-writing",                "/nursing-case-study-help"),
+    ("/nursing-case-study",                "/services/nursing-case-study-help"),
+    ("/case-study-help",                   "/services/nursing-case-study-help"),
+    ("/case-study-writing",                "/services/nursing-case-study-help"),
 
     # ── Dissertations ───────────────────────────────────────────────────────
-    ("/nursing-dissertation",              "/nursing-dissertation-writing-service"),
-    ("/dissertation-writing",              "/nursing-dissertation-writing-service"),
-    ("/dnp-capstone",                      "/nursing-dissertation-writing-service"),
+    ("/nursing-dissertation",              "/services/nursing-dissertation-writing-service"),
+    ("/dissertation-writing",              "/services/nursing-dissertation-writing-service"),
+    ("/dnp-capstone",                      "/services/nursing-dissertation-writing-service"),
 
     # ── Concept maps ────────────────────────────────────────────────────────
-    ("/concept-map",                       "/concept-map-writing-services"),
-    ("/nursing-concept-map",               "/concept-map-writing-services"),
-    ("/mind-map",                          "/concept-map-writing-services"),
+    ("/concept-map",                       "/services/concept-map-writing-services"),
+    ("/nursing-concept-map",               "/services/concept-map-writing-services"),
+    ("/mind-map",                          "/services/concept-map-writing-services"),
 
     # ── Coursework / class help ─────────────────────────────────────────────
-    ("/nursing-coursework",                "/nursing-coursework-help-online"),
-    ("/coursework-help",                   "/nursing-coursework-help-online"),
-    ("/nursing-class-help",                "/nursing-class-help-online"),
-    ("/take-my-nursing-class",             "/nursing-class-help-online"),
-    ("/online-class-help",                 "/nursing-class-help-online"),
+    ("/nursing-coursework",                "/services/nursing-coursework-help-online"),
+    ("/coursework-help",                   "/services/nursing-coursework-help-online"),
+    ("/nursing-class-help",                "/services/nursing-class-help-online"),
+    ("/take-my-nursing-class",             "/services/nursing-class-help-online"),
+    ("/online-class-help",                 "/services/nursing-class-help-online"),
 
     # ── Shadow health ───────────────────────────────────────────────────────
-    ("/shadow-health",                     "/shadow-health-help-online"),
-    ("/shadow-health-help",                "/shadow-health-help-online"),
+    ("/shadow-health",                     "/services/shadow-health-help-online"),
+    ("/shadow-health-help",                "/services/shadow-health-help-online"),
 
     # ── iHuman ─────────────────────────────────────────────────────────────
-    ("/ihuman",                            "/ihuman-help"),
-    ("/ihuman-help",                       "/ihuman-help"),
+    ("/ihuman",                            "/services/ihuman-help"),
+    ("/ihuman-help",                       "/services/ihuman-help"),
 
     # ── BSN / MSN writing ───────────────────────────────────────────────────
-    ("/bsn-writing",                       "/reliable-and-cheap-bsn-writing-service"),
-    ("/msn-writing",                       "/reliable-msn-writing-services"),
-    ("/graduate-nursing-writing",          "/postgraduate-nursing-papers-assignments-help"),
+    ("/bsn-writing",                       "/services/reliable-and-cheap-bsn-writing-service"),
+    ("/msn-writing",                       "/services/reliable-msn-writing-services"),
+    ("/graduate-nursing-writing",          "/services/postgraduate-nursing-papers-assignments-help"),
 
     # ── APA format ──────────────────────────────────────────────────────────
-    ("/apa-format",                        "/apa-format-nursing-paper-writing-service"),
-    ("/apa-format-nursing",                "/apa-format-nursing-paper-writing-service"),
+    ("/apa-format",                        "/services/apa-format-nursing-paper-writing-service"),
+    ("/apa-format-nursing",                "/services/apa-format-nursing-paper-writing-service"),
+
+    # ── Blog post flat-URL redirects (pre-/blog/ prefix era) ──────────────────
+    ("/ihuman-tips-help-and-tricks", "/blog/ihuman-tips-help-and-tricks"),
 
     # ── Generic old pages ───────────────────────────────────────────────────
     ("/about-us",    "/about"),
@@ -93,7 +96,7 @@ REDIRECTS = [
 
 
 class Command(BaseCommand):
-    help = "Seed Wagtail 301 redirects from old NurseMyGrade flat URLs to new flat canonical paths (/:slug)"
+    help = "Seed Wagtail 301 redirects from old NurseMyGrade flat URLs to new /services/ paths"
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument("--site", default="nursemygrade.com")

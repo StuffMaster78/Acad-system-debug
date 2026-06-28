@@ -118,7 +118,7 @@ function scheduleClose() { closeTimer = setTimeout(() => { servicesOpen.value = 
                     <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-ink-muted">Writing</p>
                     <ul class="space-y-0.5">
                       <li v-for="s in menuServicesA" :key="s.slug">
-                        <NuxtLink :href="`/${s.slug}`"
+                        <NuxtLink :href="`/services/${s.slug}`"
                           class="block rounded-lg px-2 py-1.5 text-xs text-ink-secondary transition-colors hover:bg-white hover:text-claret-900"
                           @click="servicesOpen = false">
                           {{ s.navLabel }}
@@ -130,7 +130,7 @@ function scheduleClose() { closeTimer = setTimeout(() => { servicesOpen.value = 
                     <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-ink-muted">Research & More</p>
                     <ul class="space-y-0.5">
                       <li v-for="s in menuServicesB" :key="s.slug">
-                        <NuxtLink :href="`/${s.slug}`"
+                        <NuxtLink :href="`/services/${s.slug}`"
                           class="block rounded-lg px-2 py-1.5 text-xs text-ink-secondary transition-colors hover:bg-white hover:text-claret-900"
                           @click="servicesOpen = false">
                           {{ s.navLabel }}

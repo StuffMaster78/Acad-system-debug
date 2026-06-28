@@ -4,7 +4,7 @@ const { getBySlug } = useServices()
 
 const simulations = [
   {
-    href: '/shadow-health-help-online',
+    href: '/services/shadow-health-help-online',
     icon: 'monitor-play',
     name: 'Shadow Health DCEs',
     tagline: 'Tina Jones, Brian Foster, Danny Rivera & all patients',
@@ -119,7 +119,7 @@ useHead({
             <NuxtLink
               v-for="s in services"
               :key="s.slug"
-              :href="`/${s.slug}`"
+              :href="`/services/${s.slug}`"
               class="group snap-start w-72 shrink-0 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md hover:border-brand-200 flex flex-col"
             >
               <div class="mb-4 flex items-center gap-3">
@@ -143,7 +143,7 @@ useHead({
             <NuxtLink
               v-for="s in services"
               :key="s.slug"
-              :href="`/${s.slug}`"
+              :href="`/services/${s.slug}`"
               class="group rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md hover:border-brand-200 flex flex-col"
             >
               <div class="mb-4 flex items-center gap-3">

@@ -39,13 +39,6 @@ class WagtailPageSitemap(Sitemap):
         return getattr(page, "last_published_at", None)
 
     def location(self, page):
-        # Blog posts and service pages are served at flat /:slug URLs by Nuxt.
-        specific = getattr(page, "specific", page)
-        if hasattr(specific, "frontend_url"):
-            # frontend_url returns the full URL; strip scheme+host for Django's sitemap loc.
-            from urllib.parse import urlparse
-            parsed = urlparse(specific.frontend_url)
-            return parsed.path or f"/{specific.slug}"
         return page.url
 
 
