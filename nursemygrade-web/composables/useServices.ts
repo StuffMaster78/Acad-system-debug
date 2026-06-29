@@ -733,6 +733,96 @@ const services: ServiceData[] = [
       description: 'Expert nursing annotated bibliographies with critical summaries and APA 7th citations. Written by qualified nurses. From $24/page.',
     },
   },
+  {
+    slug: 'online-nursing-papers-writing-service',
+    navLabel: 'Nursing Papers',
+    icon: 'file-text',
+    title: 'Nursing Paper Writing Service',
+    hero: {
+      headline: 'Dependable Nursing Paper Help — Any Type, Any Deadline',
+      sub: 'Essays, research papers, case studies, care plans, and more — written by BSN, MSN, and DNP nurses available 24/7 for urgent and standard deadlines.',
+    },
+    includes: [
+      'Original nursing paper written to your exact brief and rubric',
+      'Plagiarism-free with Turnitin report included',
+      'APA 7th edition formatting as standard',
+      'Editing and paraphrasing available on request',
+      'Urgent delivery from 2 hours for qualifying assignments',
+    ],
+    delivers: [
+      'Complete nursing paper to your required length and format',
+      'Turnitin similarity report under 5%',
+      'Title page, outline, and full reference list',
+      'Unlimited free revisions within the revision window',
+    ],
+    whoFor: 'Nursing students at all academic levels — ADN, RN, BSN, MSN, DNP, PhD — who need reliable, plagiarism-free papers written by qualified nurses on any nursing topic or assignment type.',
+    priceFrom: 15,
+    relatedSlugs: ['online-nursing-essays-help', 'best-online-nursing-research-paper-service', 'nursing-coursework-help-online'],
+    meta: {
+      title: 'Nursing Paper Writing Service — Any Type, 24/7 Help',
+      description: 'Professional nursing paper writing service. Essays, research papers, case studies, care plans and more — written by BSN/MSN/DNP nurses. From $15/page.',
+    },
+  },
+  {
+    slug: 'online-nursing-thesis-writing-helpers',
+    navLabel: 'Thesis Help',
+    icon: 'graduation-cap',
+    title: 'Online Nursing Thesis Writing Service',
+    hero: {
+      headline: 'MSN & PhD Nursing Thesis Writing — Proposal to Final Chapter',
+      sub: 'Structured thesis manuscripts written by masters- and doctoral-prepared nurses who understand graduate-level expectations, committee requirements, and PICOT-grounded research.',
+    },
+    includes: [
+      'Thesis proposal development and problem statement',
+      'Literature review with gap analysis and synthesis',
+      'Methodology chapter (quantitative, qualitative, or mixed methods)',
+      'Data analysis and discussion grounded in nursing theory',
+      'APA 7th edition formatting throughout',
+    ],
+    delivers: [
+      'Full thesis manuscript or individual chapters to your schedule',
+      'Formatted reference list with DOIs',
+      'Free revisions within agreed scope',
+      'Turnitin plagiarism report',
+    ],
+    whoFor: 'MSN and PhD nursing students who need structured, rigorous thesis writing support — from the initial proposal through to final submission and defence preparation.',
+    priceFrom: 26,
+    relatedSlugs: ['nursing-dissertation-writing-service', 'nursing-capstone-project-writing-service', 'postgraduate-nursing-papers-assignments-help'],
+    meta: {
+      title: 'Online Nursing Thesis Writing Service — MSN & PhD',
+      description: 'Expert nursing thesis writing for MSN and PhD students. Proposal, literature review, methodology, and full manuscripts. From $26/page.',
+    },
+  },
+  {
+    slug: 'reliable-nursing-assignment-help',
+    navLabel: 'Assignment Help',
+    icon: 'clipboard-list',
+    title: 'Online Nursing Assignment Help',
+    hero: {
+      headline: 'Nursing Assignment Help — All Types, All Levels',
+      sub: 'From short weekly assignments to complex semester projects — matched with a nurse writer who has completed the same coursework and understands your rubric.',
+    },
+    includes: [
+      'Assignment completed to your exact brief, rubric, and word count',
+      'BSN, MSN, or DNP writer matched to your academic level',
+      'APA 7th or alternate referencing style on request',
+      'Free revisions until all requirements are met',
+      '24/7 order tracking and direct writer messaging',
+    ],
+    delivers: [
+      'Completed nursing assignment to required length and format',
+      'Full reference list formatted to your style guide',
+      'Turnitin plagiarism report',
+      'Grade guarantee — full refund if requirements are not met after revisions',
+    ],
+    whoFor: 'Nursing students at any level who need reliable help with weekly assignments, take-home tests, module papers, or complex coursework — especially those balancing clinicals, work, and study.',
+    priceFrom: 15,
+    relatedSlugs: ['nursing-coursework-help-online', 'online-nursing-homework-help', 'nursing-care-plan-writing-services'],
+    meta: {
+      title: 'Online Nursing Assignment Help — Reliable, Fast',
+      description: 'Reliable nursing assignment help for all levels. Short assignments to full projects — written by BSN/MSN nurses to your exact rubric. From $15/page.',
+    },
+  },
 ]
 
 export function useServices() {

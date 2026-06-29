@@ -811,11 +811,111 @@ SERVICE_DATA = [
             {"q": "Can you help with clinical education content for nurse educators?", "a": "Yes — case scenarios, simulation debriefs, competency assessment tools, and clinical teaching materials."},
         ],
     },
+    {
+        "slug": "online-nursing-papers-writing-service",
+        "title": "Nursing Paper Writing Service",
+        "seo_title": "Nursing Paper Writing Service — Any Type, 24/7 Help",
+        "search_description": "Professional nursing paper writing service. Essays, research papers, case studies, care plans and more — written by BSN/MSN/DNP nurses. From $15/page.",
+        "hero_headline": "Dependable Nursing Paper Help — Any Type, Any Deadline",
+        "hero_sub": "Essays, research papers, case studies, care plans, and more — written by BSN, MSN, and DNP nurses available 24/7 for urgent and standard deadlines.",
+        "who_for": "Nursing students at all academic levels — ADN, RN, BSN, MSN, DNP, PhD — who need reliable, plagiarism-free papers written by qualified nurses on any nursing topic or assignment type.",
+        "pricing_from": "15.00",
+        "turnaround_hours_fastest": 2,
+        "turnaround_hours_standard": 72,
+        "primary_cta_text": "Order now",
+        "primary_cta_url": "/order/",
+        "includes_items": [
+            "Original nursing paper written to your exact brief and rubric",
+            "Plagiarism-free with Turnitin report included",
+            "APA 7th edition formatting as standard",
+            "Editing and paraphrasing available on request",
+            "Urgent delivery from 2 hours for qualifying assignments",
+        ],
+        "delivers_items": [
+            "Complete nursing paper to your required length and format",
+            "Turnitin similarity report under 5%",
+            "Title page, outline, and full reference list",
+            "Unlimited free revisions within the revision window",
+        ],
+        "faqs": [
+            {"q": "What types of nursing papers can you write?", "a": "Essays, research papers, case studies, care plans, SOAP notes, concept maps, capstone papers, dissertations, presentations — any nursing assignment type."},
+            {"q": "How fast can you turn around a nursing paper?", "a": "As fast as 2 hours for qualifying assignments. Most orders are matched with a writer within minutes of placement."},
+            {"q": "Is the paper checked for plagiarism?", "a": "Yes — every paper is scanned with Turnitin before delivery. The report is included at no extra charge and similarity is kept below 5%."},
+            {"q": "Can I request a specific writer?", "a": "Yes — if you have worked with a writer before and want to request them for your next order, contact support and we will do our best to accommodate."},
+        ],
+    },
+    {
+        "slug": "online-nursing-thesis-writing-helpers",
+        "title": "Online Nursing Thesis Writing Service",
+        "seo_title": "Online Nursing Thesis Writing Service — MSN & PhD",
+        "search_description": "Expert nursing thesis writing for MSN and PhD students. Proposal, literature review, methodology, and full manuscripts. From $26/page.",
+        "hero_headline": "MSN & PhD Nursing Thesis Writing — Proposal to Final Chapter",
+        "hero_sub": "Structured thesis manuscripts written by masters- and doctoral-prepared nurses who understand graduate-level expectations, committee requirements, and PICOT-grounded research.",
+        "who_for": "MSN and PhD nursing students who need structured, rigorous thesis writing support — from the initial proposal through to final submission and defence preparation.",
+        "pricing_from": "26.00",
+        "turnaround_hours_fastest": 12,
+        "turnaround_hours_standard": 336,
+        "primary_cta_text": "Order now",
+        "primary_cta_url": "/order/",
+        "includes_items": [
+            "Thesis proposal development and problem statement",
+            "Literature review with gap analysis and synthesis",
+            "Methodology chapter (quantitative, qualitative, or mixed methods)",
+            "Data analysis and discussion grounded in nursing theory",
+            "APA 7th edition formatting throughout",
+            "Free revisions and plagiarism report",
+        ],
+        "delivers_items": [
+            "Full thesis manuscript or individual chapters to your schedule",
+            "Formatted reference list with DOIs",
+            "Free revisions within agreed scope",
+            "Turnitin plagiarism report",
+        ],
+        "faqs": [
+            {"q": "Can you write just one chapter of my thesis?", "a": "Yes — chapter-by-chapter orders are accepted. Many students begin with the literature review or methodology and expand from there."},
+            {"q": "Which research designs do you support?", "a": "Quantitative, qualitative, and mixed methods designs including RCTs, cohort studies, phenomenology, grounded theory, and systematic reviews."},
+            {"q": "Can you help with the thesis proposal before the full document?", "a": "Yes — thesis proposals are a common starting point. Your writer will help develop the problem statement, PICOT or research question, and preliminary literature overview."},
+            {"q": "What nursing theories do you work with?", "a": "Orem, Roy, Watson, Benner, Peplau, Leininger, Nightingale — or whichever framework your programme or committee requires."},
+        ],
+    },
+    {
+        "slug": "reliable-nursing-assignment-help",
+        "title": "Online Nursing Assignment Help",
+        "seo_title": "Online Nursing Assignment Help — Reliable, Fast",
+        "search_description": "Reliable nursing assignment help for all levels. Short assignments to full projects — written by BSN/MSN nurses to your exact rubric. From $15/page.",
+        "hero_headline": "Nursing Assignment Help — All Types, All Levels",
+        "hero_sub": "From short weekly assignments to complex semester projects — matched with a nurse writer who has completed the same coursework and understands your rubric.",
+        "who_for": "Nursing students at any level who need reliable help with weekly assignments, take-home tests, module papers, or complex coursework — especially those balancing clinicals, work, and study.",
+        "pricing_from": "15.00",
+        "turnaround_hours_fastest": 2,
+        "turnaround_hours_standard": 72,
+        "primary_cta_text": "Order now",
+        "primary_cta_url": "/order/",
+        "includes_items": [
+            "Assignment completed to your exact brief, rubric, and word count",
+            "BSN, MSN, or DNP writer matched to your academic level",
+            "APA 7th or alternate referencing style on request",
+            "Free revisions until all requirements are met",
+            "24/7 order tracking and direct writer messaging",
+        ],
+        "delivers_items": [
+            "Completed nursing assignment to required length and format",
+            "Full reference list formatted to your style guide",
+            "Turnitin plagiarism report",
+            "Grade guarantee — full refund if requirements are not met after revisions",
+        ],
+        "faqs": [
+            {"q": "What kinds of assignments can you help with?", "a": "Any nursing assignment — weekly discussion posts, short reflection papers, take-home tests, case analyses, care plans, module essays, group projects, and more."},
+            {"q": "Can you follow my course rubric exactly?", "a": "Yes — upload your rubric with your order and the writer will follow every criterion. Many clients share their module guidelines and assignment instructions in full."},
+            {"q": "How do I communicate with my writer?", "a": "Through the order portal's direct messaging system. Messages are monitored 24/7 and most writers respond within an hour during active work on your order."},
+            {"q": "What if I am not satisfied with the delivered assignment?", "a": "Request a free revision — unlimited revisions are included within the revision window and always handled by your original writer. If requirements still are not met, you qualify for a full refund."},
+        ],
+    },
 ]
 
 
 class Command(BaseCommand):
-    help = "Seed all 24 NurseMyGrade service pages into Wagtail"
+    help = "Seed all 27 NurseMyGrade service pages into Wagtail"
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument(
