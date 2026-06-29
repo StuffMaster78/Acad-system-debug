@@ -460,6 +460,99 @@ const nurses = [
     </div>
   </section>
 
+  <!-- ─── SEO content — mirrors the live NMG long-form authority section ─── -->
+  <section class="bg-slate-50 py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+      <!-- Heading -->
+      <div class="mx-auto max-w-3xl text-center mb-14">
+        <span class="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-700 mb-4">Trusted by nursing students</span>
+        <h2 class="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
+          The Leading Nursing Paper Writing Service
+        </h2>
+        <p class="mt-5 text-lg text-slate-600 leading-relaxed">
+          NurseMyGrade is staffed exclusively by credentialed nurses — BSN, MSN, and DNP — who write the same papers their clients are submitting. 4.98★ across 9,800+ nursing orders.
+        </p>
+      </div>
+
+      <!-- Why choose us — 3-col grid -->
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-16">
+        <div v-for="r in [
+          { icon: 'stethoscope',   title: 'Qualified nursing writers',        desc: 'Every writer holds at minimum a BSN with verified clinical experience. MSN and DNP writers available for advanced work.' },
+          { icon: 'shield-check',  title: '100% plagiarism-free',             desc: 'Every paper is scanned with Turnitin before delivery. Similarity kept below 5%. Report included at no extra charge.' },
+          { icon: 'refresh-cw',   title: 'Unlimited free revisions',          desc: 'Within the revision window, request as many changes as needed — always handled by your original nurse writer.' },
+          { icon: 'message-circle', title: 'Direct writer communication',     desc: 'Message your assigned nurse through the order portal. Most writers respond within an hour during active work.' },
+          { icon: 'book-open',    title: 'APA, AMA, and Harvard formatting',  desc: 'All major citation styles applied correctly. Reference lists, in-text citations, headings, and running heads — all formatted to spec.' },
+          { icon: 'zap',          title: 'As fast as 3 hours',                desc: 'Urgent deadline? Most care plans, SOAP notes, and essays can be delivered in as little as 3 hours.' },
+          { icon: 'globe',        title: 'Country-specific references',        desc: 'UK, Australian, Canadian, and US nursing guidelines applied correctly depending on your programme\'s region.' },
+          { icon: 'trophy',       title: 'Grade or money back',               desc: 'If the completed paper does not meet your stated requirements after revisions, you qualify for a full refund. No conditions.' },
+          { icon: 'lock',         title: '100% confidential',                 desc: 'Your identity, order details, and any login credentials shared for platform-based assignments are never stored or shared.' },
+        ]" :key="r.title"
+          class="flex gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100">
+            <Icon :name="r.icon" class="h-5 w-5 text-brand-600" />
+          </div>
+          <div>
+            <h3 class="font-semibold text-slate-900">{{ r.title }}</h3>
+            <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ r.desc }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Horizontal scroll — service category highlights -->
+      <div class="mb-2">
+        <h3 class="font-serif text-xl font-bold text-slate-900 mb-1">Every nursing assignment type, covered</h3>
+        <p class="text-sm text-slate-500 mb-6">Scroll to explore what we write — each category is handled by nurses with matching clinical experience.</p>
+      </div>
+      <div class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4" style="scrollbar-width: none;">
+        <div v-for="cat in [
+          {
+            icon: 'clipboard-list', label: 'Care Plans & SOAP Notes',
+            items: ['NANDA-I diagnoses with PES format', 'NIC interventions and NOC outcomes', 'ADPIE-structured clinical reasoning', 'SOAP notes for NP and advanced practice'],
+          },
+          {
+            icon: 'graduation-cap', label: 'Capstone & Research',
+            items: ['BSN, MSN, and DNP capstone projects', 'PICOT question development', 'Evidence-based practice papers', 'Systematic literature reviews'],
+          },
+          {
+            icon: 'monitor',        label: 'Clinical Simulations',
+            items: ['Shadow Health DCE completion', 'iHuman virtual patient cases', 'Tina Jones, Brian Foster & all patients', 'Differential diagnosis and clinical reasoning'],
+          },
+          {
+            icon: 'book-open',      label: 'Online Class Help',
+            items: ['Full course or individual module support', 'Weekly discussion posts and responses', 'Quizzes and take-home tests', 'Assignment submission management'],
+          },
+          {
+            icon: 'search',         label: 'Research & Evidence',
+            items: ['APA 7th nursing research papers', 'Annotated bibliographies', 'CINAHL and PubMed literature search', 'Quantitative and qualitative designs'],
+          },
+          {
+            icon: 'file-text',      label: 'Advanced Degrees',
+            items: ['MSN scholarly papers', 'DNP practice-focused projects', 'PhD nursing research', 'Thesis chapters on demand'],
+          },
+        ]" :key="cat.label"
+          class="snap-start w-72 shrink-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <div class="mb-4 flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100">
+              <Icon :name="cat.icon" class="h-5 w-5 text-brand-600" />
+            </div>
+            <h4 class="font-semibold text-slate-900 leading-tight">{{ cat.label }}</h4>
+          </div>
+          <ul class="space-y-2">
+            <li v-for="item in cat.items" :key="item" class="flex items-start gap-2 text-sm text-slate-500">
+              <Icon name="check" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" />
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+      </div>
+      <p class="mt-3 text-center text-xs text-slate-400 sm:hidden">← Scroll to explore →</p>
+
+    </div>
+  </section>
+
   <!-- ─── FAQ ─────────────────────────────────────────────────────────────── -->
   <HomeFaq />
 
