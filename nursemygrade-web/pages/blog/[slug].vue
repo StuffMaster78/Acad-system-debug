@@ -177,7 +177,7 @@ const faqBlocks = computed(() =>
 
 const config2 = useRuntimeConfig()
 const siteUrl = config2.public.siteUrl || 'https://nursemygrade.com'
-const canonicalUrl = `${siteUrl}/blog/${slug}`
+const canonicalUrl = `${siteUrl}/${slug}`
 
 useSeoMeta({
   title:                computed(() => cmsArticle.value?.meta?.seo_title || postTitle.value),
@@ -235,7 +235,7 @@ const ldScripts = computed(() => {
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://nursemygrade.com/' },
         { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://nursemygrade.com/blog' },
-        { '@type': 'ListItem', position: 3, name: postTitle.value, item: canonicalUrl },
+        { '@type': 'ListItem', position: 3, name: postTitle.value, item: `${siteUrl}/${slug}` },
       ],
     }),
   })
@@ -461,7 +461,7 @@ useHead({
             <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">More by {{ staticPost?.author?.name.split(' ')[0] }}</p>
             <ul class="space-y-3">
               <li v-for="p in byAuthor" :key="p.slug">
-                <NuxtLink :href="`/blog/${p.slug}`" class="group flex items-start gap-3">
+                <NuxtLink :href="`/${p.slug}`" class="group flex items-start gap-3">
                   <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-300 group-hover:bg-brand-600 transition-colors" />
                   <div class="min-w-0">
                     <p class="text-sm font-medium leading-snug text-slate-800 group-hover:text-brand-700 transition-colors line-clamp-2">{{ p.title }}</p>
@@ -487,7 +487,7 @@ useHead({
             <template v-if="cmsArticle">
               <NuxtLink
                 v-for="r in cmsRelated" :key="r.meta?.slug"
-                :href="`/blog/${r.meta?.slug}`"
+                :href="`/${r.meta?.slug}`"
                 class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
               >
                 <div class="mb-2 flex items-center gap-2">
@@ -501,7 +501,7 @@ useHead({
             <template v-else>
               <NuxtLink
                 v-for="r in related" :key="r.slug"
-                :href="`/blog/${r.slug}`"
+                :href="`/${r.slug}`"
                 class="card group flex flex-col transition-shadow hover:border-brand-200 hover:shadow-md"
               >
                 <div class="mb-2 flex items-center gap-2">

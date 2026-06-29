@@ -46,7 +46,7 @@ const related = service ? getRelated(service.relatedSlugs) : []
 const bodyBlocks = computed(() => cmsPage.value?.body ?? [])
 
 const siteUrl = config.public.siteUrl || 'https://nursemygrade.com'
-const canonicalUrl = `${siteUrl}/services/${slug}`
+const canonicalUrl = `${siteUrl}/${slug}`
 
 useSeoMeta({
   title:         displayMeta.value.title || displayTitle.value,
@@ -336,7 +336,7 @@ if (cmsPage.value?.schema) {
                 <ul class="space-y-1.5">
                   <li v-for="r in related" :key="r.slug">
                     <NuxtLink
-                      :to="`/services/${r.slug}`"
+                      :to="`/${r.slug}`"
                       class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
                     >
                       <Icon :name="r.icon" class="h-3.5 w-3.5 shrink-0 text-brand-400" />

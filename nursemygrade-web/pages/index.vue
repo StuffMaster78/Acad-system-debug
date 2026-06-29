@@ -99,12 +99,12 @@ const pillars = [
 ]
 
 const services = [
-  { icon: markRaw(ClipboardList), title: 'Care Plans',        href: '/services/care-plans',              badge: 'Most requested', desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — ADPIE formatted and clinically grounded.' },
-  { icon: markRaw(FileText),      title: 'SOAP Notes',        href: '/services/soap-notes',              badge: null,             desc: 'Accurate S-O-A-P documentation for NP and advanced practice programmes.' },
-  { icon: markRaw(Hospital),      title: 'Nursing Essays',    href: '/services/nursing-essays',          badge: null,             desc: 'Reflective, argumentative, and EBP essays grounded in current nursing science.' },
-  { icon: markRaw(Target),        title: 'Capstone Projects', href: '/services/capstone-projects',       badge: 'Full support',   desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support from start to submission.' },
-  { icon: markRaw(Microscope),    title: 'Research Papers',   href: '/services/nursing-research-papers', badge: null,             desc: 'Evidence-based nursing research, APA 7th, peer-reviewed nursing journals.' },
-  { icon: markRaw(Globe),         title: 'Concept Maps',      href: '/services/concept-maps',            badge: null,             desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
+  { icon: markRaw(ClipboardList), title: 'Care Plans',        href: '/services/nursing-care-plan-writing-services',      badge: 'Most requested', desc: 'NANDA-I diagnoses, NIC interventions, NOC outcomes — ADPIE formatted and clinically grounded.' },
+  { icon: markRaw(FileText),      title: 'SOAP Notes',        href: '/services/nursing-soap-note-writing-help',          badge: null,             desc: 'Accurate S-O-A-P documentation for NP and advanced practice programmes.' },
+  { icon: markRaw(Hospital),      title: 'Nursing Essays',    href: '/services/online-nursing-essays-help',              badge: null,             desc: 'Reflective, argumentative, and EBP essays grounded in current nursing science.' },
+  { icon: markRaw(Target),        title: 'Capstone Projects', href: '/services/nursing-capstone-project-writing-service', badge: 'Full support',   desc: 'PICOT to final paper — BSN, MSN, and DNP capstone support from start to submission.' },
+  { icon: markRaw(Microscope),    title: 'Research Papers',   href: '/services/best-online-nursing-research-paper-service', badge: null,          desc: 'Evidence-based nursing research, APA 7th, peer-reviewed nursing journals.' },
+  { icon: markRaw(Globe),         title: 'Concept Maps',      href: '/services/concept-map-writing-services',            badge: null,             desc: 'Pathophysiology to nursing diagnosis — clinical linkages clearly mapped.' },
 ]
 
 const nursingAreas = [

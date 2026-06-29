@@ -898,6 +898,7 @@ class Command(BaseCommand):
 
     def _apply_fields(self, page, svc: dict):
         from decimal import Decimal
+        from cms_service_pages.management.commands.nmg_body_blocks import BODY_BLOCKS
 
         page.title = svc["title"]
         page.seo_title = svc.get("seo_title", "")
@@ -924,13 +925,18 @@ class Command(BaseCommand):
             {"type": "item", "value": item}
             for item in svc.get("delivers_items", [])
         ]
-        page.body = [
-            {
-                "type": "faq",
-                "value": {
-                    "question": faq["q"],
-                    "answer": f"<p>{faq['a']}</p>",
-                },
-            }
-            for faq in svc.get("faqs", [])
-        ]
+
+        slug = svc.get("slug", "")
+        if slug in BODY_BLOCKS:
+            page.body = BODY_BLOCKS[slug]
+        else:
+            page.body = [
+                {
+                    "type": "faq",
+                    "value": {
+                        "question": faq["q"],
+                        "answer": f"<p>{faq['a']}</p>",
+                    },
+                }
+                for faq in svc.get("faqs", [])
+            ]
