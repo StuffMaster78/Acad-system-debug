@@ -31,12 +31,12 @@ const nav = [
 ]
 
 const featuredServices = [
-  { label: 'Essay Writing',          href: '/services/essay-writing-service',           desc: 'Any type, any level'        },
-  { label: 'Research Papers',        href: '/services/research-paper-writing-service',  desc: 'All subjects covered'       },
-  { label: 'Dissertations',          href: '/services/dissertation-writing-service',    desc: 'Proposal to defence'        },
-  { label: 'Coursework Help',        href: '/services/coursework',                      desc: 'Module-by-module support'   },
-  { label: 'Data Analysis',          href: '/services/data-analysis',                   desc: 'SPSS, R, Python, Excel'     },
-  { label: 'Editing & Proofreading', href: '/services/assignment-editing-service',      desc: 'Polish any draft'           },
+  { label: 'Essay Writing',          href: '/essay-writing',          desc: 'Any type, any level'        },
+  { label: 'Research Papers',        href: '/research-papers',        desc: 'All subjects covered'       },
+  { label: 'Dissertations',          href: '/dissertations',          desc: 'Proposal to defence'        },
+  { label: 'Coursework Help',        href: '/coursework',             desc: 'Module-by-module support'   },
+  { label: 'Data Analysis',          href: '/data-analysis',          desc: 'SPSS, R, Python, Excel'     },
+  { label: 'Editing & Proofreading', href: '/editing-proofreading',   desc: 'Polish any draft'           },
 ]
 </script>
 

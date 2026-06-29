@@ -3,24 +3,24 @@ const app  = useAppUrl()
 const year = new Date().getFullYear()
 
 const writingServices = [
-  { label: 'Essay Writing',       href: '/services/essay-writing'       },
-  { label: 'Research Papers',     href: '/services/research-papers'     },
-  { label: 'Term Papers',         href: '/services/term-papers'         },
-  { label: 'Case Studies',        href: '/services/case-studies'        },
-  { label: 'Literature Reviews',  href: '/services/literature-review'   },
-  { label: 'Coursework Help',     href: '/services/coursework'          },
-  { label: 'Online Class Help',   href: '/services/online-class-help'   },
-  { label: 'Homework Help',       href: '/services/homework-help'       },
+  { label: 'Essay Writing',       href: '/essay-writing'       },
+  { label: 'Research Papers',     href: '/research-papers'     },
+  { label: 'Term Papers',         href: '/term-papers'         },
+  { label: 'Case Studies',        href: '/case-studies'        },
+  { label: 'Literature Reviews',  href: '/literature-review'   },
+  { label: 'Coursework Help',     href: '/coursework'          },
+  { label: 'Online Class Help',   href: '/online-class-help'   },
+  { label: 'Homework Help',       href: '/homework-help'       },
 ]
 
 const advancedServices = [
-  { label: 'Dissertations',       href: '/services/dissertations'       },
-  { label: 'Thesis Writing',      href: '/services/thesis-writing'      },
-  { label: 'Capstone Projects',   href: '/services/capstone-projects'   },
-  { label: 'Data Analysis',       href: '/services/data-analysis'       },
-  { label: 'Nursing Essays',      href: '/services/nursing-essays'      },
-  { label: 'Admission Essays',    href: '/services/admission-essays'    },
-  { label: 'Editing & Proofread', href: '/services/editing-proofreading'},
+  { label: 'Dissertations',       href: '/dissertations'       },
+  { label: 'Thesis Writing',      href: '/thesis-writing'      },
+  { label: 'Capstone Projects',   href: '/capstone-projects'   },
+  { label: 'Data Analysis',       href: '/data-analysis'       },
+  { label: 'Nursing Essays',      href: '/nursing-essays'      },
+  { label: 'Admission Essays',    href: '/admission-essays'    },
+  { label: 'Editing & Proofread', href: '/editing-proofreading'},
 ]
 
 const company = [

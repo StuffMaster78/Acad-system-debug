@@ -49,9 +49,11 @@ export default defineNuxtConfig({
     '/legal/refunds': { prerender: true },
     // Blog index pre-rendered; post pages ISR so Wagtail edits go live fast
     '/blog':          { prerender: true },
-    '/blog/**':       { isr: 1800 },
-    // Service pages ISR — CMS edits reflect within 1 hour
-    '/services/**':   { isr: 3600 },
+    // Legacy /blog/:slug and /services/:slug — 301 stub pages (fast redirect)
+    '/blog/**':       { isr: 86400 },
+    '/services/**':   { isr: 86400 },
+    // Flat slug catch-all — covers both blog posts and service pages
+    '/**':            { isr: 1800 },
   },
 
   nitro: {
@@ -87,12 +89,12 @@ export default defineNuxtConfig({
         '/apply',
         '/blog',
         '/services',
-        '/services/essay-writing',
-        '/services/research-papers',
-        '/services/dissertations',
-        '/services/nursing-essays',
-        '/services/editing-proofreading',
-        '/services/data-analysis',
+        '/essay-writing',
+        '/research-papers',
+        '/dissertations',
+        '/nursing-essays',
+        '/editing-proofreading',
+        '/data-analysis',
         '/legal/terms',
         '/legal/privacy',
         '/legal/refunds',

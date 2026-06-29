@@ -167,7 +167,7 @@ const gridPosts   = computed(() => {
         <!-- ── Hero card: full-width image with title overlay ── -->
         <NuxtLink
           v-if="heroPost"
-          :to="`/blog/${heroPost.meta?.slug}`"
+          :to="`/${heroPost.meta?.slug}`"
           class="group relative block overflow-hidden rounded-2xl"
           style="min-height:420px"
         >
@@ -221,7 +221,7 @@ const gridPosts   = computed(() => {
         <div v-if="largeCards.length" class="grid gap-6 sm:grid-cols-2">
           <NuxtLink
             v-for="post in largeCards" :key="post.id"
-            :to="`/blog/${post.meta?.slug}`"
+            :to="`/${post.meta?.slug}`"
             class="group relative overflow-hidden rounded-2xl"
             style="min-height:280px"
           >
@@ -254,7 +254,7 @@ const gridPosts   = computed(() => {
         <div v-if="gridPosts.length" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <NuxtLink
             v-for="post in gridPosts" :key="post.id"
-            :to="`/blog/${post.meta?.slug}`"
+            :to="`/${post.meta?.slug}`"
             class="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
             <!-- Image with fixed height -->
