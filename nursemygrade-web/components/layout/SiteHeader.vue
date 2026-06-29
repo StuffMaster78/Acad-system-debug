@@ -1,16 +1,22 @@
 <script setup lang="ts">
 const portal = usePortalStore()
-const allServices = useCmsServiceList()
-const { getAll: getAllStaticServices } = useServices()
-// Split nursing services into two columns for the mega-menu
-const menuServicesA = computed(() => {
-  const list = allServices.value.length ? allServices.value : getAllStaticServices()
-  return list.slice(0, 6)
-})
-const menuServicesB = computed(() => {
-  const list = allServices.value.length ? allServices.value : getAllStaticServices()
-  return list.slice(6)
-})
+// Curated mega-menu lists — fixed so the dropdown stays compact
+const menuWriting = [
+  { slug: 'online-nursing-essays-help',              navLabel: 'Nursing Essays' },
+  { slug: 'nursing-care-plan-writing-services',      navLabel: 'Care Plans' },
+  { slug: 'best-online-nursing-research-paper-service', navLabel: 'Research Papers' },
+  { slug: 'nursing-capstone-project-writing-service', navLabel: 'Capstone Projects' },
+  { slug: 'nursing-dissertation-writing-service',    navLabel: 'Dissertations' },
+  { slug: 'reliable-nursing-assignment-help',        navLabel: 'Assignment Help' },
+]
+
+const menuSims = [
+  { slug: 'shadow-health-help-online',   navLabel: 'Shadow Health DCEs' },
+  { slug: 'ihuman-patients',             navLabel: 'iHuman Patient Cases' },
+  { slug: 'nursing-class-help-online',   navLabel: 'Online Class Help' },
+  { slug: 'nursing-soap-note-writing-help', navLabel: 'SOAP Notes' },
+  { slug: 'concept-map-writing-services', navLabel: 'Concept Maps' },
+]
 
 const orderPaths = [
   { id: 'paper',   label: 'Nursing Papers',        desc: 'Essays, care plans, research papers, SOAP notes', href: '/order?type=paper',   color: 'text-brand-600'  },
@@ -161,7 +167,7 @@ const ORDER_SVG: Record<string, string> = {
                   <div>
                     <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Writing</p>
                     <ul class="space-y-0.5">
-                      <li v-for="s in menuServicesA" :key="s.slug">
+                      <li v-for="s in menuWriting" :key="s.slug">
                         <NuxtLink :href="`/${s.slug}`"
                           class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
                           @click="servicesOpen = false">
@@ -173,16 +179,19 @@ const ORDER_SVG: Record<string, string> = {
                   <div>
                     <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Simulations & More</p>
                     <ul class="space-y-0.5">
-                      <li v-for="s in menuServicesB" :key="s.slug">
+                      <li v-for="s in menuSims" :key="s.slug">
                         <NuxtLink :href="`/${s.slug}`"
                           class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
                           @click="servicesOpen = false">
                           {{ s.navLabel }}
                         </NuxtLink>
                       </li>
-                      <li>
-                        <NuxtLink href="/services" class="px-2 py-1.5 text-xs font-semibold text-brand-600 hover:underline block" @click="servicesOpen = false">
-                          All services →
+                      <li class="pt-1 border-t border-slate-100 mt-1">
+                        <NuxtLink href="/services"
+                          class="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+                          @click="servicesOpen = false">
+                          All services
+                          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </NuxtLink>
                       </li>
                     </ul>
