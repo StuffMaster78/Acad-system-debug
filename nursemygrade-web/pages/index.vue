@@ -622,8 +622,8 @@ const nurses = [
     </div>
   </section>
 
-  <!-- ─── Wagtail SEO — horizontal scroll, two-column dark cards on light bg ── -->
-  <section v-if="seoSections.length" class="bg-slate-100 py-16 overflow-hidden">
+  <!-- ─── Wagtail SEO — horizontal scroll cards ───────────────────────────── -->
+  <section v-if="seoSections.length" class="bg-white py-16 overflow-hidden border-t border-slate-100">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
       <!-- Section heading + arrow controls -->
@@ -632,27 +632,17 @@ const nurses = [
           <span class="mb-2 inline-block text-xs font-bold uppercase tracking-wider text-brand-600">About NurseMyGrade</span>
           <h2 class="font-serif text-2xl font-bold text-slate-900 sm:text-3xl">Why Nurses Trust Us</h2>
         </div>
-        <!-- Arrow buttons -->
+        <!-- Desktop arrow buttons -->
         <div class="hidden sm:flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-brand-600 shadow-sm transition-all hover:border-brand-500 hover:bg-brand-50 hover:shadow-md disabled:opacity-30"
-            aria-label="Previous section"
-            @click="seoScrollPrev"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+          <button type="button" aria-label="Previous section"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm transition-all hover:border-brand-400 hover:text-brand-600 hover:shadow"
+            @click="seoScrollPrev">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button
-            type="button"
-            class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-white text-brand-600 shadow-sm transition-all hover:border-brand-500 hover:bg-brand-50 hover:shadow-md disabled:opacity-30"
-            aria-label="Next section"
-            @click="seoScrollNext"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+          <button type="button" aria-label="Next section"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-white shadow-sm transition-all hover:bg-brand-700 hover:shadow-md"
+            @click="seoScrollNext">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
@@ -667,74 +657,61 @@ const nurses = [
         <div
           v-for="(section, idx) in seoSections"
           :key="section.heading"
-          class="snap-start shrink-0 w-[88vw] sm:w-[620px] lg:w-[700px]
-                 rounded-2xl overflow-hidden shadow-lg
-                 bg-brand-900 ring-1 ring-brand-800"
+          class="snap-start shrink-0 w-[88vw] sm:w-[640px] lg:w-[720px]
+                 rounded-2xl bg-white border border-slate-200 shadow-sm
+                 overflow-hidden flex flex-col"
         >
-          <!-- Card top accent strip -->
-          <div class="h-1 w-full bg-gradient-to-r from-brand-500 to-teal-400" />
-
           <!-- Card header -->
-          <div class="flex items-start gap-4 px-7 pt-6 pb-5">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-700 ring-1 ring-brand-600">
-              <Icon :name="section.icon" class="h-5 w-5 text-teal-300" />
+          <div class="flex items-center gap-4 px-6 py-5 bg-slate-50 border-b border-slate-100">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100">
+              <Icon :name="section.icon" class="h-5 w-5 text-brand-700" />
             </div>
             <div class="min-w-0">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-brand-400 mb-0.5">
-                {{ idx + 1 }} / {{ seoSections.length }}
+              <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
+                {{ idx + 1 }} of {{ seoSections.length }}
               </p>
-              <h3 class="font-serif text-lg font-bold leading-snug text-white">
+              <h3 class="font-serif text-lg font-bold text-slate-900 leading-snug">
                 {{ section.heading }}
               </h3>
             </div>
           </div>
 
-          <!-- Divider -->
-          <div class="mx-7 border-t border-brand-800" />
-
           <!-- Two-column body -->
-          <div class="px-7 py-6">
+          <div class="px-7 py-6 flex-1">
             <div class="columns-1 sm:columns-2 gap-x-8 [column-fill:balance]
-                        prose prose-sm prose-invert max-w-none
-                        prose-p:text-brand-200 prose-p:leading-[1.75]
-                        prose-li:text-brand-200 prose-li:leading-[1.7]
-                        prose-strong:text-white prose-strong:font-semibold
-                        prose-a:text-teal-300 prose-headings:hidden">
+                        prose prose-slate prose-sm max-w-none
+                        prose-p:text-slate-600 prose-p:leading-[1.8] [&_p]:mb-3
+                        prose-li:text-slate-600 prose-li:leading-[1.75] [&_li]:mb-1
+                        prose-strong:text-slate-800
+                        prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline">
               <BlockRenderer :blocks="section.blocks" link-context="service" />
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Dot indicators + mobile arrows -->
-      <div class="mt-5 flex items-center justify-center gap-4">
-        <!-- Mobile prev -->
-        <button type="button"
-          class="sm:hidden flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 shadow-sm hover:border-brand-400 hover:text-brand-600 transition-colors"
-          aria-label="Previous" @click="seoScrollPrev">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      <!-- Navigation row: prev · dots · next (centred, always visible) -->
+      <div class="mt-6 flex items-center justify-center gap-3">
+        <button type="button" aria-label="Previous"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-brand-400 hover:text-brand-600"
+          @click="seoScrollPrev">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
-        <!-- Dots -->
         <div class="flex items-center gap-2">
           <button
-            v-for="(_, i) in seoSections"
-            :key="i"
-            type="button"
-            class="rounded-full transition-all duration-300"
-            :class="seoActiveIdx === i
-              ? 'h-2.5 w-8 bg-brand-600'
-              : 'h-2.5 w-2.5 bg-slate-300 hover:bg-slate-400'"
+            v-for="(_, i) in seoSections" :key="i" type="button"
+            class="rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            :class="seoActiveIdx === i ? 'h-2.5 w-7 bg-brand-600' : 'h-2.5 w-2.5 bg-slate-300 hover:bg-brand-300'"
             :aria-label="`Go to section ${i + 1}`"
             @click="seoScrollTo(i)"
           />
         </div>
 
-        <!-- Mobile next -->
-        <button type="button"
-          class="sm:hidden flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 shadow-sm hover:border-brand-400 hover:text-brand-600 transition-colors"
-          aria-label="Next" @click="seoScrollNext">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <button type="button" aria-label="Next"
+          class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-white shadow-sm transition-all hover:bg-brand-700"
+          @click="seoScrollNext">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
 
