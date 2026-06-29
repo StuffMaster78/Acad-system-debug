@@ -66,14 +66,14 @@ function rewriteLinks(html: string): string {
   out = out.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
     (_, path, qs) => `href="${path}${qs ?? ''}"`)
 
-  // Step 1: Rewrite relative single-segment paths to /blog/ or /services/.
-  // Allow optional trailing slash: /slug/  as well as /slug
+  // Step 1: Collapse any legacy /blog/:slug or /services/:slug links that
+  // arrived from older CMS content — all content now lives at /:slug.
+  out = out.replace(/href="\/(?:blog|services)\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g,
+    (_match, slug) => `href="/${slug}"`)
+
+  // Step 1b: Rewrite bare single-segment paths to flat /:slug.
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
-    if (_gcServiceSlugs.has(slug)) return `href="/services/${slug}"`
-    if (_blogSlugs.has(slug))      return `href="/blog/${slug}"`
-    if (_fixedRoutes.has(slug))    return `href="/${slug}"`
-    if (props.linkContext === 'blog')    return `href="/blog/${slug}"`
-    if (props.linkContext === 'service') return `href="/services/${slug}"`
+    if (_fixedRoutes.has(slug)) return `href="/${slug}"`
     return `href="/${slug}"`
   })
 
@@ -96,8 +96,6 @@ function pageHref(meta: Record<string, unknown>): string {
   if (url) { try { return new URL(url).pathname.replace(/\/$/, '') || '/' } catch { if (url.startsWith('/')) return url.replace(/\/$/, '') } }
   const slug = String(meta.slug ?? '')
   const type = String(meta.type ?? '').toLowerCase()
-  if (type.includes('servicepage') || type.includes('service_page')) return `/services/${slug}`
-  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
   return `/${slug}`
 }
 

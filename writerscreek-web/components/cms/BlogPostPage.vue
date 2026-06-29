@@ -128,8 +128,6 @@ function rewriteLinks(html: string): string {
   // Strip legacy /blog/ prefix from inline CMS links so they resolve to flat URLs.
   html = html.replace(/href="\/blog\/([a-z][a-z0-9-]*)\/?"/gi, 'href="/$1"')
   let out = html.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, seg) => {
-    if (_wcServiceSlugs.has(seg)) return `href="/services/${seg}"`
-    if (_wcFixedRoutes.has(seg))  return `href="/${seg}"`
     return `href="/${seg}"`
   })
   out = out.replace(/(<a\s[^>]*href="https?:\/\/[^"]*"[^>]*)>/gi, (m, attrs) =>
