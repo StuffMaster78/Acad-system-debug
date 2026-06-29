@@ -11,9 +11,14 @@ import {
   RefreshCw,
 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
-import { billingApi, type ClientInvoice, type ClientPaymentRequest } from "@/api/billing";
+import {
+  billingApi,
+  type ClientInvoice,
+  type ClientPaymentRequest,
+  type ReceiptRecord,
+} from "@/api/billing";
 
-const activeTab = ref<"invoices" | "payment-requests">("invoices");
+const activeTab = ref<"invoices" | "payment-requests" | "receipts">("invoices");
 
 const invoices = ref<ClientInvoice[]>([]);
 const invoicesLoading = ref(false);
@@ -27,6 +32,19 @@ const prError = ref("");
 // Installment payment
 const payingInstallmentId = ref<number | null>(null);
 const installmentPayError = ref<Record<number, string>>({});
+
+// Full invoice payment
+const payingInvoiceId = ref<number | null>(null);
+const invoicePayError = ref<Record<number, string>>({});
+
+// Payment request payment
+const payingPrId = ref<number | null>(null);
+const prPayError = ref<Record<number, string>>({});
+
+// Receipts
+const receipts = ref<ReceiptRecord[]>([]);
+const receiptsLoading = ref(false);
+const receiptsError = ref("");
 
 async function payInstallment(installmentId: number, invoiceId: number) {
   payingInstallmentId.value = installmentId;
@@ -74,6 +92,58 @@ async function fetchInvoices() {
   }
 }
 
+async function payInvoice(invoiceId: number) {
+  payingInvoiceId.value = invoiceId;
+  invoicePayError.value = { ...invoicePayError.value, [invoiceId]: "" };
+  try {
+    const { data } = await billingApi.prepareMyInvoicePayment(invoiceId);
+    const checkoutUrl = (data.provider_data as { checkout_url?: string }).checkout_url;
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      await fetchInvoices();
+    }
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    invoicePayError.value = { ...invoicePayError.value, [invoiceId]: detail ?? "Payment failed. Please try again." };
+  } finally {
+    payingInvoiceId.value = null;
+  }
+}
+
+async function payPaymentRequest(prId: number) {
+  payingPrId.value = prId;
+  prPayError.value = { ...prPayError.value, [prId]: "" };
+  try {
+    const { data } = await billingApi.prepareMyPaymentRequestPayment(prId);
+    const checkoutUrl = (data.provider_data as { checkout_url?: string }).checkout_url;
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      await fetchPaymentRequests();
+    }
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    prPayError.value = { ...prPayError.value, [prId]: detail ?? "Payment failed. Please try again." };
+  } finally {
+    payingPrId.value = null;
+  }
+}
+
+async function fetchReceipts() {
+  receiptsLoading.value = true;
+  receiptsError.value = "";
+  try {
+    const { data } = await billingApi.myReceipts();
+    receipts.value = Array.isArray(data) ? data : [];
+  } catch (err: unknown) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    receiptsError.value = detail ?? "Could not load receipts.";
+  } finally {
+    receiptsLoading.value = false;
+  }
+}
+
 async function fetchPaymentRequests() {
   prLoading.value = true;
   prError.value = "";
@@ -91,6 +161,7 @@ async function fetchPaymentRequests() {
 function refresh() {
   fetchInvoices();
   fetchPaymentRequests();
+  fetchReceipts();
 }
 
 function toggleInvoice(id: number) {
@@ -116,9 +187,11 @@ function date(value: string | null | undefined): string {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
 }
 
-const isLoading = computed(() =>
-  activeTab.value === "invoices" ? invoicesLoading.value : prLoading.value,
-);
+const isLoading = computed(() => {
+  if (activeTab.value === "invoices") return invoicesLoading.value;
+  if (activeTab.value === "payment-requests") return prLoading.value;
+  return receiptsLoading.value;
+});
 
 onMounted(refresh);
 </script>
@@ -170,6 +243,18 @@ onMounted(refresh);
           v-if="paymentRequests.length"
           class="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-xs"
         >{{ paymentRequests.length }}</span>
+      </button>
+      <button
+        class="focus-ring rounded-md px-4 py-2 text-sm font-semibold transition-colors"
+        :class="activeTab === 'receipts' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'"
+        type="button"
+        @click="activeTab = 'receipts'"
+      >
+        Receipts
+        <span
+          v-if="receipts.length"
+          class="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-xs"
+        >{{ receipts.length }}</span>
       </button>
     </div>
 
@@ -322,7 +407,21 @@ onMounted(refresh);
               </div>
 
               <div v-else class="rounded-md border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-graphite">
-                Single payment — no installment schedule.
+                <div class="flex items-center justify-between gap-4">
+                  <span>Single payment — no installment schedule.</span>
+                  <div v-if="!inv.is_fully_paid" class="flex gap-2 shrink-0">
+                    <button
+                      class="inline-flex items-center gap-1.5 rounded-lg bg-signal px-3 py-1.5 text-xs font-semibold text-white hover:bg-signal/90 disabled:opacity-50 transition-colors"
+                      type="button"
+                      :disabled="payingInvoiceId === inv.id"
+                      @click="payInvoice(inv.id)"
+                    >
+                      <CreditCard class="h-3 w-3" />
+                      {{ payingInvoiceId === inv.id ? 'Processing…' : 'Pay by card' }}
+                    </button>
+                  </div>
+                </div>
+                <p v-if="invoicePayError[inv.id]" class="mt-2 text-xs text-rose-600">{{ invoicePayError[inv.id] }}</p>
               </div>
 
               <!-- Next installment callout -->
@@ -394,6 +493,7 @@ onMounted(refresh);
                 <th class="px-3 py-2">Status</th>
                 <th class="px-3 py-2">Due</th>
                 <th class="px-3 py-2">Balance</th>
+                <th class="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -412,9 +512,74 @@ onMounted(refresh);
                   <span v-if="pr.is_fully_paid" class="text-signal font-semibold">Paid</span>
                   <span v-else class="text-ink">{{ money(pr.remaining_balance, pr.currency) }}</span>
                 </td>
+                <td class="px-3 py-2.5 text-right">
+                  <div v-if="!pr.is_fully_paid && pr.status === 'issued'" class="flex flex-col gap-1 items-end">
+                    <button
+                      class="inline-flex items-center gap-1 rounded-lg bg-signal px-2.5 py-1 text-xs font-semibold text-white hover:bg-signal/90 disabled:opacity-50 transition-colors"
+                      type="button"
+                      :disabled="payingPrId === pr.id"
+                      @click="payPaymentRequest(pr.id)"
+                    >
+                      <CreditCard class="h-3 w-3" />
+                      {{ payingPrId === pr.id ? 'Processing…' : 'Pay now' }}
+                    </button>
+                    <p v-if="prPayError[pr.id]" class="text-xs text-rose-600 max-w-[120px] text-right">{{ prPayError[pr.id] }}</p>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- ─── RECEIPTS ────────────────────────────────────────────── -->
+    <template v-else-if="activeTab === 'receipts'">
+      <p v-if="receiptsError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        {{ receiptsError }}
+      </p>
+
+      <div v-if="receiptsLoading && !receipts.length" class="space-y-3">
+        <div v-for="n in 3" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-5">
+          <div class="h-4 w-1/3 rounded bg-slate-200" />
+          <div class="mt-3 h-3 w-1/2 rounded bg-slate-100" />
+        </div>
+      </div>
+
+      <div v-else-if="!receipts.length" class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
+        <Receipt class="mx-auto h-8 w-8 text-slate-300" />
+        <p class="mt-3 text-sm font-medium text-ink">No receipts yet</p>
+        <p class="mt-1 text-sm text-graphite">Receipts are issued after each successful payment.</p>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div
+          v-for="rec in receipts"
+          :key="rec.id"
+          class="rounded-lg border border-slate-200 bg-white px-5 py-4"
+        >
+          <div class="flex flex-wrap items-start gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="font-semibold text-ink">{{ rec.title_snapshot || 'Payment Receipt' }}</p>
+                <StatusPill :label="rec.status" :tone="rec.status === 'issued' ? 'success' : 'neutral'" />
+              </div>
+              <p class="mt-1 text-sm text-graphite">
+                Ref: {{ rec.reference }}
+                <span v-if="rec.issued_at"> · {{ date(rec.issued_at) }}</span>
+              </p>
+              <p v-if="rec.processor_display_name" class="mt-0.5 text-xs text-graphite">
+                Processed by {{ rec.processor_display_name }}
+                <span v-if="rec.statement_descriptor_snapshot">
+                  · Statement: <span class="font-mono">{{ rec.statement_descriptor_snapshot }}</span>
+                </span>
+              </p>
+            </div>
+            <div class="shrink-0 text-right">
+              <p class="text-lg font-semibold text-ink">{{ money(rec.amount, rec.currency) }}</p>
+              <p class="mt-0.5 text-xs text-graphite uppercase tracking-wide">{{ rec.currency }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </template>

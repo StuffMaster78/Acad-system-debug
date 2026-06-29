@@ -242,6 +242,16 @@ function toggleReceipt(id: number) {
   expandedReceiptId.value = expandedReceiptId.value === id ? null : id;
 }
 
+const voidingReceiptId = ref<number | null>(null);
+const voidReceiptError = ref("");
+async function handleVoidReceipt(receiptId: number) {
+  voidingReceiptId.value = receiptId;
+  voidReceiptError.value = "";
+  const ok = await payments.voidReceipt(receiptId);
+  if (!ok) voidReceiptError.value = "Failed to void receipt.";
+  voidingReceiptId.value = null;
+}
+
 const metricToneClasses = {
   neutral: "border-slate-200 bg-white",
   good: "border-emerald-200 bg-emerald-50",
@@ -940,6 +950,18 @@ onMounted(() => {
                     <p v-else class="text-sm text-graphite italic">No disclosure text recorded.</p>
                     <p v-if="rec.payment_intent_reference" class="mt-2 text-xs text-graphite">Payment intent: <span class="font-mono">{{ rec.payment_intent_reference }}</span></p>
                     <p v-if="rec.external_reference" class="mt-1 text-xs text-graphite">External ref: <span class="font-mono">{{ rec.external_reference }}</span></p>
+                    <div v-if="rec.status === 'issued'" class="mt-3 flex items-center gap-3">
+                      <button
+                        class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50 transition-colors"
+                        type="button"
+                        :disabled="voidingReceiptId === rec.id"
+                        @click.stop="handleVoidReceipt(rec.id)"
+                      >
+                        <Loader2 v-if="voidingReceiptId === rec.id" class="h-3 w-3 animate-spin" />
+                        {{ voidingReceiptId === rec.id ? 'Voiding…' : 'Void receipt' }}
+                      </button>
+                      <p v-if="voidReceiptError && voidingReceiptId === rec.id" class="text-xs text-rose-600">{{ voidReceiptError }}</p>
+                    </div>
                   </td>
                 </tr>
               </template>

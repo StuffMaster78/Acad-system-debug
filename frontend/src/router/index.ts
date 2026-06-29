@@ -1234,6 +1234,16 @@ export const router = createRouter({
           meta: { surface: "writer" },
           component: () => import("@/views/public/WriterApplyView.vue"),
         },
+        {
+          path: "payment/complete",
+          name: "payment-complete",
+          component: () => import("@/views/public/PaymentCompleteView.vue"),
+        },
+        {
+          path: "pay/:type/:token",
+          name: "public-pay",
+          component: () => import("@/views/public/PublicPayView.vue"),
+        },
       ],
     },
     {

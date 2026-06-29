@@ -882,6 +882,17 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     }
   }
 
+  async function voidReceipt(receiptId: number): Promise<boolean> {
+    try {
+      const { data } = await adminPaymentsApi.voidReceipt(receiptId);
+      const idx = receipts.value.findIndex(r => r.id === receiptId);
+      if (idx !== -1) receipts.value[idx] = data;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     wallets,
     walletEntries,
@@ -922,5 +933,6 @@ export const useAdminPaymentsStore = defineStore("admin-payments", () => {
     rejectPayout,
     applyFinanceControl,
     fetchReceipts,
+    voidReceipt,
   };
 });

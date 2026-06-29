@@ -286,6 +286,8 @@ export const adminPaymentsApi = {
     api.get<ListResponse<RefundReceiptRecord>>(apiPath("/refunds/refund-receipts/"), { params }),
   receipts: (params?: Record<string, unknown>) =>
     api.get<ListResponse<ReceiptRecord>>(apiPath("/billing/receipts/"), { params }),
+  voidReceipt: (receiptId: number) =>
+    api.post<ReceiptRecord>(apiPath(`/billing/receipts/${receiptId}/void/`), {}),
   refundDashboard: (params?: Record<string, unknown>) =>
     api.get<FinanceDashboardResponse>(
       apiPath("/admin-management/refunds/dashboard/dashboard/"),

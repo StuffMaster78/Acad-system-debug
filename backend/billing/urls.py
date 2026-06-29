@@ -27,6 +27,7 @@ from billing.api.views.payment_request_views import (
 from billing.api.views.receipt_views import (
     ReceiptDetailView,
     ReceiptListView,
+    ReceiptVoidView,
 )
 from billing.api.views.reminder_views import (
     InvoiceReminderListCreateView,
@@ -41,11 +42,14 @@ from billing.api.views.supporting_document_views import (
 from billing.api.views.client_invoice_views import (
     ClientInvoiceDetailView,
     ClientInvoiceListView,
+    ClientInvoicePreparePaymentView,
 )
 from billing.api.views.client_payment_request_views import (
     ClientPaymentRequestDetailView,
     ClientPaymentRequestListView,
+    ClientPaymentRequestPreparePaymentView,
 )
+from billing.api.views.client_receipt_views import ClientReceiptListView
 
 urlpatterns = [
     path(
@@ -139,6 +143,11 @@ urlpatterns = [
         name="billing-receipt-detail",
     ),
     path(
+        "receipts/<int:receipt_id>/void/",
+        ReceiptVoidView.as_view(),
+        name="billing-receipt-void",
+    ),
+    path(
         "reminders/",
         ReminderListView.as_view(),
         name="billing-reminder-list",
@@ -177,5 +186,20 @@ urlpatterns = [
         "my/payment-requests/<int:payment_request_id>/",
         ClientPaymentRequestDetailView.as_view(),
         name="billing-client-payment-request-detail",
+    ),
+    path(
+        "my/payment-requests/<int:payment_request_id>/prepare-payment/",
+        ClientPaymentRequestPreparePaymentView.as_view(),
+        name="billing-client-payment-request-prepare-payment",
+    ),
+    path(
+        "my/invoices/<int:invoice_id>/prepare-payment/",
+        ClientInvoicePreparePaymentView.as_view(),
+        name="billing-client-invoice-prepare-payment",
+    ),
+    path(
+        "my/receipts/",
+        ClientReceiptListView.as_view(),
+        name="billing-client-receipt-list",
     ),
 ]

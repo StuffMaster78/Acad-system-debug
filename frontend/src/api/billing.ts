@@ -133,6 +133,52 @@ export interface InstallmentPreparePaymentResult {
   invoice_reference: string;
 }
 
+export interface PreparePaymentResult {
+  payment_intent_reference: string;
+  provider_data: Record<string, unknown>;
+  created: boolean;
+}
+
+export interface ReceiptRecord {
+  id: number;
+  reference: string;
+  client: number | null;
+  recipient_email: string | null;
+  recipient_name: string | null;
+  invoice: number | null;
+  payment_request: number | null;
+  title_snapshot: string;
+  description_snapshot: string | null;
+  company_name_snapshot: string | null;
+  website_name_snapshot: string | null;
+  amount: string;
+  currency: string;
+  status: string;
+  payment_intent_reference: string | null;
+  payment_provider: string | null;
+  processor_display_name: string | null;
+  statement_descriptor_snapshot: string | null;
+  client_disclosure_text: string | null;
+  issued_at: string | null;
+  voided_at: string | null;
+  created_at: string;
+}
+
+export interface PublicInvoice {
+  id: number;
+  reference: string;
+  title: string;
+  description: string | null;
+  amount: string;
+  currency: string;
+  status: string;
+  recipient_name: string | null;
+  issued_at: string | null;
+  due_at: string | null;
+  client_disclosure_text: string | null;
+  statement_descriptor_snapshot: string | null;
+}
+
 type ListResponse<T> = T[] | { count: number; next: string | null; previous: string | null; results: T[] };
 
 export const billingApi = {
@@ -174,6 +220,37 @@ export const billingApi = {
   prepareInstallmentPayment: (installmentId: number, provider: string) =>
     api.post<InstallmentPreparePaymentResult>(
       apiPath(`/billing/installments/${installmentId}/prepare-payment/`),
+      { provider },
+    ),
+
+  // Client-facing: pay a full invoice (non-installment path)
+  prepareMyInvoicePayment: (invoiceId: number, provider = "stripe") =>
+    api.post<PreparePaymentResult>(
+      apiPath(`/billing/my/invoices/${invoiceId}/prepare-payment/`),
+      { provider },
+    ),
+
+  // Client-facing: pay a payment request
+  prepareMyPaymentRequestPayment: (paymentRequestId: number, provider = "stripe") =>
+    api.post<PreparePaymentResult>(
+      apiPath(`/billing/my/payment-requests/${paymentRequestId}/prepare-payment/`),
+      { provider },
+    ),
+
+  // Client-facing: receipts
+  myReceipts: () =>
+    api.get<ReceiptRecord[]>(apiPath("/billing/my/receipts/")),
+
+  // Public (unauthenticated) token-based payment
+  publicPrepareInvoicePayment: (token: string, provider = "stripe") =>
+    api.post<PreparePaymentResult & { invoice: PublicInvoice }>(
+      apiPath(`/billing/pay/invoices/${token}/prepare/`),
+      { provider },
+    ),
+
+  publicPreparePaymentRequestPayment: (token: string, provider = "stripe") =>
+    api.post<PreparePaymentResult & { payment_request: PublicInvoice }>(
+      apiPath(`/billing/pay/payment-requests/${token}/prepare/`),
       { provider },
     ),
 };
