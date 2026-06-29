@@ -151,7 +151,7 @@ useHead({
         <NuxtLink
           v-for="post in posts"
           :key="post.slug"
-          :href="`/blog/${post.slug}`"
+          :href="`/${post.slug}`"
           class="group flex gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-brand-200 hover:shadow-sm"
         >
           <!-- Category dot + info -->

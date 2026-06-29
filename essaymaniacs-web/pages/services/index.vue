@@ -59,7 +59,7 @@ useHead({
         '@type': 'ListItem',
         position: i + 1,
         name: s.title ?? s.navLabel,
-        url: `https://essaymaniacs.com/services/${s.slug}`,
+        url: `https://essaymaniacs.com/${s.slug}`,
       })),
     }),
   }],
@@ -120,7 +120,7 @@ useHead({
             <NuxtLink
               v-for="s in displayed"
               :key="s.slug"
-              :href="`/services/${s.slug}`"
+              :href="`/${s.slug}`"
               class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white p-7 transition-all hover:border-brand-200 hover:shadow-md"
             >
               <!-- Accent corner -->

@@ -42,7 +42,7 @@ const services = getAll().slice(0, 5)
       <ul class="space-y-2">
         <li v-for="s in services" :key="s.slug">
           <NuxtLink
-            :href="`/services/${s.slug}`"
+            :href="`/${s.slug}`"
             class="flex items-center gap-2 text-sm text-slate-600 transition-colors hover:text-brand-600"
           >
             <span class="text-base">{{ s.icon }}</span>

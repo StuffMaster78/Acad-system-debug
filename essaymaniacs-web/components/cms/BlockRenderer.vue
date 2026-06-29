@@ -61,16 +61,18 @@ function rewriteLinks(html: string): string {
   out = out.replace(/href="(\/[^"#?]*)\.php([?#][^"]*)?"(?=[^>]*>)/gi,
     (_, path, qs) => `href="${path}${qs ?? ''}"`)
 
-  // Step 1: Rewrite single-segment relative paths → /blog/ or /services/.
+  // Step 1: Rewrite single-segment relative paths → flat /:slug.
   // The \/?" makes a trailing slash optional so /slug/ works the same as /slug.
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
-    if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
-    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
     if (_fixedRoutes.has(slug))  return `href="/${slug}"`
-    if (props.linkContext === 'blog')    return `href="/blog/${slug}"`
-    if (props.linkContext === 'service') return `href="/services/${slug}"`
     return `href="/${slug}"`
   })
+
+  // Step 1b: Collapse any /blog/:slug or /services/:slug links that arrived
+  // from the CMS with the old prefixed form.
+  out = out.replace(/href="\/(blog|services)\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g,
+    (_match, _prefix, slug) => `href="/${slug}"`,
+  )
 
   // Step 2: Mark remaining absolute (genuinely external) links.
   out = out.replace(/(<a\s[^>]*href="https?:\/\/[^"]*"[^>]*)>/gi, (m, attrs) =>
@@ -91,8 +93,8 @@ function pageHref(meta: Record<string, unknown>): string {
   if (url) { try { return new URL(url).pathname.replace(/\/$/, '') || '/' } catch { if (url.startsWith('/')) return url.replace(/\/$/, '') } }
   const slug = String(meta.slug ?? '')
   const type = String(meta.type ?? '').toLowerCase()
-  if (type.includes('servicepage') || type.includes('service_page')) return `/services/${slug}`
-  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
+  if (type.includes('servicepage') || type.includes('service_page')) return `/${slug}`
+  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/${slug}`
   return `/${slug}`
 }
 

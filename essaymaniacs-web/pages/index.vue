@@ -97,12 +97,12 @@ const whyUs = [
 ]
 
 const services = [
-  { icon: markRaw(PenLine),       title: 'Essays',              href: '/services/essays',           badge: 'Most popular', desc: 'Argumentative, analytical, reflective, narrative — any type, any level, any subject.' },
-  { icon: markRaw(FileText),      title: 'Research Papers',      href: '/services/research-papers',  badge: null,          desc: 'Original research from peer-reviewed sources, any citation style.' },
-  { icon: markRaw(GraduationCap), title: 'Dissertations',        href: '/services/dissertations',    badge: null,          desc: 'Proposal through final chapter, with supervisor feedback integration.' },
-  { icon: markRaw(Briefcase),     title: 'Case Studies',         href: '/services/case-studies',     badge: null,          desc: 'Problem-solution-evaluation structure with real supporting evidence.' },
-  { icon: markRaw(School),        title: 'Admission Essays',     href: '/services/admission-essays', badge: 'High impact', desc: 'Personal statements and scholarship essays tailored to each school.' },
-  { icon: markRaw(CheckCircle2),  title: 'Proofreading',         href: '/services/proofreading',     badge: null,          desc: 'Grammar, argument, structure, and citation accuracy — all checked.' },
+  { icon: markRaw(PenLine),       title: 'Essays',              href: '/essays',           badge: 'Most popular', desc: 'Argumentative, analytical, reflective, narrative — any type, any level, any subject.' },
+  { icon: markRaw(FileText),      title: 'Research Papers',      href: '/research-papers',  badge: null,          desc: 'Original research from peer-reviewed sources, any citation style.' },
+  { icon: markRaw(GraduationCap), title: 'Dissertations',        href: '/dissertations',    badge: null,          desc: 'Proposal through final chapter, with supervisor feedback integration.' },
+  { icon: markRaw(Briefcase),     title: 'Case Studies',         href: '/case-studies',     badge: null,          desc: 'Problem-solution-evaluation structure with real supporting evidence.' },
+  { icon: markRaw(School),        title: 'Admission Essays',     href: '/admission-essays', badge: 'High impact', desc: 'Personal statements and scholarship essays tailored to each school.' },
+  { icon: markRaw(CheckCircle2),  title: 'Proofreading',         href: '/proofreading',     badge: null,          desc: 'Grammar, argument, structure, and citation accuracy — all checked.' },
 ]
 
 const subjects = [

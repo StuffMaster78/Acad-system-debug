@@ -92,15 +92,15 @@ const recentGrades = [
 
 // ── Services ─────────────────────────────────────────────────────────────────
 const services = [
-  { title: 'Research Papers',  href: '/services/research-papers',  badge: 'Most popular', desc: 'Original, citation-rich papers across STEM, business, humanities and social sciences.' },
-  { title: 'Essays',           href: '/services/essays',           badge: null,           desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
-  { title: 'Dissertations',    href: '/services/dissertations',    badge: 'Full support', desc: 'Proposal, literature review, methodology, data analysis, discussion — complete chapters.' },
-  { title: 'Case Studies',     href: '/services/case-studies',     badge: null,           desc: 'In-depth analysis with structured arguments, evidence and clear recommendations.' },
-  { title: 'Data Analysis',    href: '/services/data-analysis',    badge: null,           desc: 'SPSS, R, Python or Excel — full written interpretation and methodology.' },
-  { title: 'Lab Reports',      href: '/services/lab-reports',      badge: null,           desc: 'Structured write-ups with correct methodology, results and discussion sections.' },
-  { title: 'Literature Reviews', href: '/services/literature-reviews', badge: null,        desc: 'Systematic, narrative, and scoping reviews. Themes, gaps, synthesis.' },
-  { title: 'Nursing Research', href: '/services/research-papers', badge: null,              desc: 'PICOT, SOAP, NCP, clinical case studies — specialist nursing writers.' },
-  { title: 'Admission Essays', href: '/services/essays', badge: null,                       desc: 'Personal statements and application essays that stand out to admissions committees.' },
+  { title: 'Research Papers',  href: '/research-papers',  badge: 'Most popular', desc: 'Original, citation-rich papers across STEM, business, humanities and social sciences.' },
+  { title: 'Essays',           href: '/essays',           badge: null,           desc: 'Argumentative, analytical, descriptive — any format, any level, any subject.' },
+  { title: 'Dissertations',    href: '/dissertations',    badge: 'Full support', desc: 'Proposal, literature review, methodology, data analysis, discussion — complete chapters.' },
+  { title: 'Case Studies',     href: '/case-studies',     badge: null,           desc: 'In-depth analysis with structured arguments, evidence and clear recommendations.' },
+  { title: 'Data Analysis',    href: '/data-analysis',    badge: null,           desc: 'SPSS, R, Python or Excel — full written interpretation and methodology.' },
+  { title: 'Lab Reports',      href: '/lab-reports',      badge: null,           desc: 'Structured write-ups with correct methodology, results and discussion sections.' },
+  { title: 'Literature Reviews', href: '/literature-reviews', badge: null,        desc: 'Systematic, narrative, and scoping reviews. Themes, gaps, synthesis.' },
+  { title: 'Nursing Research', href: '/research-papers', badge: null,              desc: 'PICOT, SOAP, NCP, clinical case studies — specialist nursing writers.' },
+  { title: 'Admission Essays', href: '/essays', badge: null,                       desc: 'Personal statements and application essays that stand out to admissions committees.' },
 ]
 
 // ── Researchers ───────────────────────────────────────────────────────────────
