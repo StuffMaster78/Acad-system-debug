@@ -21,6 +21,31 @@ const homeSeoBlocks = computed(
   () => (_homeCms.value?.items?.[0]?.home_seo_body ?? []) as { type: string; id: string; value: unknown }[]
 )
 
+// Group blocks into sections — each heading starts a new card
+const SECTION_ICONS: Record<string, string> = {
+  'leading nursing':    'stethoscope',
+  'why nurseMygrade':   'trophy',
+  'entire class':       'book-open',
+  "let's get you":      'graduation-cap',
+  'capstone':           'search',
+}
+const seoSections = computed(() => {
+  const sections: { heading: string; icon: string; blocks: { type: string; id: string; value: unknown }[] }[] = []
+  let current: typeof sections[0] | null = null
+  for (const block of homeSeoBlocks.value) {
+    if (block.type === 'heading') {
+      if (current) sections.push(current)
+      const text = (block.value as { text: string }).text ?? ''
+      const key = Object.keys(SECTION_ICONS).find(k => text.toLowerCase().startsWith(k)) ?? ''
+      current = { heading: text, icon: SECTION_ICONS[key] ?? 'pen-line', blocks: [] }
+    } else if (current) {
+      current.blocks.push(block)
+    }
+  }
+  if (current) sections.push(current)
+  return sections
+})
+
 const SCROLL_SUBJECTS = STATIC_SUBJECTS.filter(s => s.category !== 'Other')
 const row1 = SCROLL_SUBJECTS.slice(0, Math.ceil(SCROLL_SUBJECTS.length / 2))
 const row2 = SCROLL_SUBJECTS.slice(Math.ceil(SCROLL_SUBJECTS.length / 2))
@@ -569,15 +594,48 @@ const nurses = [
     </div>
   </section>
 
-  <!-- ─── Wagtail-editable long-form SEO content ────────────────────────── -->
-  <section v-if="homeSeoBlocks.length" class="bg-white py-20">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-      <div class="prose prose-slate prose-lg max-w-none
-                  prose-headings:font-serif prose-headings:font-bold prose-headings:text-slate-900
-                  prose-a:text-brand-600 prose-a:underline
-                  prose-strong:text-slate-900">
-        <BlockRenderer :blocks="homeSeoBlocks" link-context="service" />
+  <!-- ─── Wagtail SEO content — horizontal scroll, two-column cards ─────── -->
+  <section v-if="seoSections.length" class="bg-brand-900 py-16 overflow-hidden">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-8 flex items-end justify-between gap-4">
+        <h2 class="font-serif text-2xl font-bold text-white">About NurseMyGrade</h2>
+        <span class="text-xs text-brand-400 hidden sm:block">← Scroll to read →</span>
       </div>
+
+      <!-- Horizontal scroll strip -->
+      <div class="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4"
+           style="scrollbar-width: thin; scrollbar-color: #0d9488 transparent;">
+        <div
+          v-for="section in seoSections"
+          :key="section.heading"
+          class="snap-start shrink-0 w-[90vw] sm:w-[680px] lg:w-[760px]
+                 rounded-2xl border border-brand-800 bg-brand-900 overflow-hidden"
+        >
+          <!-- Card header — full-width teal accent bar + icon + heading -->
+          <div class="flex items-start gap-4 border-b border-brand-800 px-7 py-6">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-700">
+              <Icon :name="section.icon" class="h-5 w-5 text-brand-300" />
+            </div>
+            <h3 class="font-serif text-lg font-bold leading-snug text-white pt-1">
+              {{ section.heading }}
+            </h3>
+          </div>
+
+          <!-- Two-column body -->
+          <div class="px-7 py-6">
+            <div class="columns-1 sm:columns-2 gap-x-8 [column-fill:balance]
+                        prose prose-sm prose-invert max-w-none
+                        prose-p:text-brand-200 prose-p:leading-relaxed
+                        prose-headings:text-white prose-headings:font-serif
+                        prose-li:text-brand-200 prose-strong:text-white
+                        prose-a:text-brand-300">
+              <BlockRenderer :blocks="section.blocks" link-context="service" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-3 text-center text-xs text-brand-600 sm:hidden">← Scroll to read all sections →</p>
     </div>
   </section>
 
