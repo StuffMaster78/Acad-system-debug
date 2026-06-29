@@ -6,17 +6,16 @@ const route  = useRoute()
 const slug   = route.params.slug as string
 const config = useRuntimeConfig()
 const { getBySlug, getRelated } = useServices()
-const { getBySlug: getBlogBySlug } = useBlog()
-
 // ── Step 1: synchronous lookups + useFetch registration (BEFORE any await) ──
-const service    = getBySlug(slug)
-const staticBlog = getBlogBySlug(slug)
+const service = getBySlug(slug)
 
 // useServiceCms must be called here (before awaits) so Nuxt SSR suspends for it
 import type { CmsServicePage } from '~/composables/useServiceCms'
 const { page: serviceCmsPage } = useServiceCms(slug)
 
-// ── Step 2: awaited slug-type resolution for unknown slugs ───────────────────
+// ── Step 2: check for CMS-only service pages (single awaited call) ───────────
+// Blog posts are handled by BlogPostPage for any non-service slug —
+// BlogPostPage throws 404 itself if the CMS has no matching blog post.
 const apiBase  = import.meta.server
   ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
   : (config.public.apiBase || '')
@@ -24,35 +23,25 @@ const siteHost = import.meta.server
   ? { Host: (config.siteHostname as string) || 'nursemygrade.com' }
   : undefined
 
-const { data: _slugType } = await useAsyncData<'service' | 'blog' | null>(
-  `slug-type-${slug}`,
+const { data: _isCmsService } = await useAsyncData<boolean>(
+  `slug-svc-${slug}`,
   async () => {
-    if (service)     return 'service'  // in static catalogue — skip API
-    if (staticBlog)  return 'blog'
+    if (service) return true   // in static catalogue — no API needed
     try {
-      // Check CMS service page first (one call, avoids blog call for CMS-only services)
-      const svcRes = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
+      const res = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
         params: { type: 'cms_service_pages.ServicePage', slug, fields: 'title' },
         headers: siteHost,
       })
-      if ((svcRes as any).meta?.total_count > 0) return 'service'
-      // Then check blog
-      const blogRes = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
-        params: { type: 'cms_blog.BlogPostPage', slug, fields: 'title' },
-        headers: siteHost,
-      })
-      return (blogRes as any).meta?.total_count > 0 ? 'blog' : null
-    } catch { return null }
+      return (res as any).meta?.total_count > 0
+    } catch { return false }
   },
 )
 
 // ── Step 3: route to correct destination ────────────────────────────────────
-const isBlogPost      = staticBlog || _slugType.value === 'blog'
-const isCmsService    = _slugType.value === 'service'
-
-if (!service && !isBlogPost && !isCmsService) {
-  throw createError({ statusCode: 404, statusMessage: 'Page not found' })
-}
+const isCmsService = _isCmsService.value === true
+// Any non-service slug is treated as a potential blog post;
+// BlogPostPage handles its own 404 if the CMS has no matching post.
+const isBlogPost   = !service && !isCmsService
 
 // ── Service page: use serviceCmsPage (populated by SSR Suspense by render time)
 const resolvedCmsPage = serviceCmsPage
