@@ -48,8 +48,13 @@ class ProviderRequestAssembler:
 
     @classmethod
     def to_payment_request(cls, payment_intent: PaymentIntent) -> ProviderPaymentRequest:
-        site_url = getattr(payment_intent.website, "root_url", None) or ""
-        infoq_base = (site_url or getattr(settings, "INFOQ_PAYMENT_BASE_URL", "")).rstrip("/")
+        # Prefer gateway config callback URL → website.root_url → global fallback
+        gateway_cfg = getattr(payment_intent.website, "payment_gateway_config", None)
+        if gateway_cfg and gateway_cfg.is_active:
+            infoq_base = gateway_cfg.effective_callback_base_url
+        else:
+            site_url = getattr(payment_intent.website, "root_url", None) or ""
+            infoq_base = (site_url or getattr(settings, "INFOQ_PAYMENT_BASE_URL", "")).rstrip("/")
         ref = payment_intent.reference
 
         return ProviderPaymentRequest(

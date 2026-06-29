@@ -104,6 +104,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "All Users", to: "/superadmin/access", icon: UserCog },
     { label: "Finance", to: "/superadmin/finance", icon: CreditCard },
     { label: "Payment Disclosure", to: "/superadmin/payment-disclosure", icon: Receipt },
+    { label: "Payment Gateway", to: "/superadmin/payment-gateway", icon: Settings },
     { label: "Payment Reminders", to: "/superadmin/payment-reminders", icon: Bell },
     { label: "Refunds", to: "/superadmin/refunds", icon: RotateCcw },
     { label: "Compensation", to: "/superadmin/compensation", icon: TrendingUp },
@@ -161,6 +162,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Payments", to: "/admin/payments", icon: CreditCard },
 
     { label: "Payment Disclosure", to: "/admin/payment-disclosure", icon: Receipt },
+    { label: "Payment Gateway", to: "/admin/payment-gateway", icon: Settings },
     { label: "Payment Reminders", to: "/admin/payment-reminders", icon: Bell },
     { label: "Refunds", to: "/admin/refunds", icon: RotateCcw },
     { label: "Compensation", to: "/admin/compensation", icon: TrendingUp },
@@ -317,6 +319,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Finance", items: [
       { label: "Finance", to: "/superadmin/finance", icon: CreditCard },
       { label: "Payment Disclosure", to: "/superadmin/payment-disclosure", icon: Receipt },
+      { label: "Payment Gateway", to: "/superadmin/payment-gateway", icon: Settings },
       { label: "Payment Reminders", to: "/superadmin/payment-reminders", icon: Bell },
       { label: "Refunds", to: "/superadmin/refunds", icon: RotateCcw },
       { label: "Compensation", to: "/superadmin/compensation", icon: TrendingUp },
@@ -388,6 +391,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
     { label: "Finance", items: [
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
       { label: "Payment Disclosure", to: "/admin/payment-disclosure", icon: Receipt },
+      { label: "Payment Gateway", to: "/admin/payment-gateway", icon: Settings },
       { label: "Payment Reminders", to: "/admin/payment-reminders", icon: Bell },
       { label: "Refunds", to: "/admin/refunds", icon: RotateCcw },
       { label: "Compensation", to: "/admin/compensation", icon: TrendingUp },

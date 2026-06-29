@@ -453,6 +453,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminPaymentDisclosureView.vue"),
       },
       {
+        path: "payment-gateway",
+        name: "admin-payment-gateway",
+        component: () => import("@/views/admin/AdminPaymentGatewayView.vue"),
+      },
+      {
         path: "bids",
         name: "admin-bids",
         component: () => import("@/views/admin/AdminBidsView.vue"),
@@ -893,6 +898,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "payment-disclosure",
         name: "superadmin-payment-disclosure",
         component: () => import("@/views/admin/AdminPaymentDisclosureView.vue"),
+      },
+      {
+        path: "payment-gateway",
+        name: "superadmin-payment-gateway",
+        component: () => import("@/views/admin/AdminPaymentGatewayView.vue"),
       },
       {
         path: "special-orders/:id",
