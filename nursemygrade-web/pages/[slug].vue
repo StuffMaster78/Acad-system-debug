@@ -337,12 +337,10 @@ useHead({
       </div>
     </main>
 
-    <!-- Two-column SEO body: stats, prose, how-it-works, features, checklist -->
-    <section v-if="cmsBodyBlocks.length" class="border-t border-slate-100 bg-slate-50 py-14">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="service-body columns-1 md:columns-2 md:gap-x-12 [column-fill:balance]">
-          <ServicePageBody :blocks="cmsBodyBlocks" />
-        </div>
+    <!-- Service page body blocks — each block manages its own layout -->
+    <section v-if="cmsBodyBlocks.length" class="border-t border-slate-100 bg-white py-14">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <ServicePageBody :blocks="cmsBodyBlocks" />
       </div>
     </section>
 
@@ -366,11 +364,3 @@ useHead({
   </div>
 </template>
 
-<style scoped>
-.service-body :deep(h2) { font-family: Georgia, serif; font-weight: 700; color: #134e4a; margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.25rem; }
-.service-body :deep(h3) { font-weight: 600; color: #115e59; margin-top: 1.5rem; margin-bottom: 0.5rem; }
-.service-body :deep(p)  { color: #475569; line-height: 1.7; margin-bottom: 0.75rem; font-size: 0.9375rem; }
-.service-body :deep(ul), .service-body :deep(ol) { padding-left: 1.25rem; color: #475569; font-size: 0.9375rem; }
-.service-body :deep(li) { margin-bottom: 0.375rem; line-height: 1.6; }
-.service-body :deep(a)  { color: #0d9488; text-decoration: underline; }
-</style>
