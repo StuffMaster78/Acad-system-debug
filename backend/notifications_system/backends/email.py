@@ -104,6 +104,17 @@ class EmailBackend(BaseDeliveryBackend):
                 from_address=from_address,
                 reply_to=reply_to,
             )
+            # --- Forward payment notifications to configured addresses
+            if self.delivery.event_key.startswith("billing."):
+                self._forward_to_payment_notification_emails(
+                    provider=provider,
+                    subject=subject,
+                    body_html=body_html,
+                    body_text=body_text,
+                    from_name=from_name,
+                    from_address=from_address,
+                    website=website,
+                )
             return DeliveryResult(
                 success=True,
                 message='Email sent.',
@@ -122,4 +133,54 @@ class EmailBackend(BaseDeliveryBackend):
                 message=f"Send failed: {exc}",
                 error_code='SEND_ERROR',
                 meta={'to': to_email},
+            )
+
+    @staticmethod
+    def _forward_to_payment_notification_emails(
+        *,
+        provider,
+        subject: str,
+        body_html: str,
+        body_text: str,
+        from_name: str,
+        from_address: str,
+        website,
+    ) -> None:
+        """
+        Forward a copy of a billing notification email to every active
+        PaymentNotificationEmail address configured for this website.
+        Failures are logged and swallowed — the primary delivery is unaffected.
+        """
+        try:
+            from payments_processor.models.gateway_config import PaymentNotificationEmail
+            recipients = (
+                PaymentNotificationEmail.objects
+                .filter(website=website, is_active=True)
+                .values_list("email", flat=True)
+            )
+            for fwd_email in recipients:
+                try:
+                    provider.send(
+                        to=fwd_email,
+                        subject=f"[FWD] {subject}",
+                        body_html=body_html,
+                        body_text=body_text,
+                        from_name=from_name,
+                        from_address=from_address,
+                        reply_to=None,
+                    )
+                    logger.info(
+                        "EmailBackend: forwarded billing notification to %s.",
+                        fwd_email,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "EmailBackend: forward to %s failed: %s.",
+                        fwd_email,
+                        exc,
+                    )
+        except Exception as exc:
+            logger.warning(
+                "EmailBackend: could not load payment notification emails: %s.",
+                exc,
             )
