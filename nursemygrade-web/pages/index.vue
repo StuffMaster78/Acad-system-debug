@@ -7,24 +7,19 @@ import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 const app = useAppUrl()
 
 // Fetch home_seo_body from TenantHomePage — editable in Wagtail admin
-const config = useRuntimeConfig()
-const _homeApiBase = import.meta.server
-  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
-  : (config.public.apiBase || '')
-const _homeHost = import.meta.server
-  ? { Host: (config.siteHostname as string) || 'nursemygrade.com' }
-  : undefined
-
-const { data: _homeCms } = await useAsyncData('nmg-home-cms', async () => {
-  try {
-    const res = await $fetch<{ items: { home_seo_body: unknown[] }[] }>(
-      `${_homeApiBase}/api/v2/pages/`,
-      { params: { type: 'cms_core.TenantHomePage', fields: 'home_seo_body', limit: 1 }, headers: _homeHost },
-    )
-    return res.items?.[0]?.home_seo_body ?? []
-  } catch { return [] }
-})
-const homeSeoBlocks = computed(() => (_homeCms.value ?? []) as { type: string; id: string; value: unknown }[])
+const _homeConfig = useRuntimeConfig()
+const { data: _homeCms } = useFetch<{ items: { home_seo_body: unknown[] }[] }>(
+  '/api/v2/pages/',
+  {
+    key: 'nmg-home-seo-body',
+    baseURL: String(_homeConfig.public.apiBase || ''),
+    query: { type: 'cms_core.TenantHomePage', fields: 'home_seo_body', limit: 1 },
+    default: () => ({ items: [] }),
+  },
+)
+const homeSeoBlocks = computed(
+  () => (_homeCms.value?.items?.[0]?.home_seo_body ?? []) as { type: string; id: string; value: unknown }[]
+)
 
 const SCROLL_SUBJECTS = STATIC_SUBJECTS.filter(s => s.category !== 'Other')
 const row1 = SCROLL_SUBJECTS.slice(0, Math.ceil(SCROLL_SUBJECTS.length / 2))
