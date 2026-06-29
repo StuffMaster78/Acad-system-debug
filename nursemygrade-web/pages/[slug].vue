@@ -41,10 +41,6 @@ const { data: _blogType } = await useAsyncData<boolean>(
 // ── Step 3: route to correct destination ────────────────────────────────────
 const isBlogPost = staticBlog || _blogType.value
 
-if (!service && isBlogPost) {
-  await navigateTo(`/blog/${slug}`, { redirectCode: 301 })
-}
-
 if (!service && !isBlogPost) {
   throw createError({ statusCode: 404, statusMessage: 'Page not found' })
 }
@@ -144,7 +140,10 @@ useHead({
 </script>
 
 <template>
-  <div class="pb-20 lg:pb-0">
+  <!-- Blog post: rendered directly at /{slug} (no /blog/ redirect) -->
+  <BlogPostPage v-if="!service && isBlogPost" :slug="slug" />
+
+  <div v-else class="pb-20 lg:pb-0">
 
     <!-- Breadcrumb -->
     <div class="border-b border-brand-100 bg-white px-4 py-3 sm:px-6 lg:px-8">

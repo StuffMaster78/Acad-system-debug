@@ -181,8 +181,6 @@ function pageHref(meta: Record<string, unknown>): string {
   // Fallback: derive prefix from page type
   const slug = asStr(meta.slug)
   const type = asStr(meta.type).toLowerCase()
-  if (type.includes('servicepage') || type.includes('service_page')) return `/services/${slug}`
-  if (type.includes('blogpost') || type.includes('blog_post') || type.includes('blogdetail')) return `/blog/${slug}`
   return `/${slug}`
 }
 

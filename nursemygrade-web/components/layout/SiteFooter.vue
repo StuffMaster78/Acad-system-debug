@@ -48,11 +48,11 @@ const quickLinks = [
 ]
 
 const resources = [
-  { label: 'Care Plan Guide',       href: '/blog/nursing-care-plan-guide'                          },
-  { label: 'SOAP Note Guide',       href: '/blog/soap-notes-guide-for-nursing-students'            },
-  { label: 'APA 7th for Nursing',   href: '/blog/apa-7th-edition-guide-nursing-papers'             },
-  { label: 'Shadow Health Tips',    href: '/blog/tips-for-succeeding-in-shadow-health-assessments' },
-  { label: 'iHuman Tips',           href: '/blog/ihuman-tips-help-and-tricks'                      },
+  { label: 'Care Plan Guide',       href: '/nursing-care-plan-guide'                          },
+  { label: 'SOAP Note Guide',       href: '/soap-notes-guide-for-nursing-students'            },
+  { label: 'APA 7th for Nursing',   href: '/apa-7th-edition-guide-nursing-papers'             },
+  { label: 'Shadow Health Tips',    href: '/tips-for-succeeding-in-shadow-health-assessments' },
+  { label: 'iHuman Tips',           href: '/ihuman-tips-help-and-tricks'                      },
 ]
 
 const legal = [
