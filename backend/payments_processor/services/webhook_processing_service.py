@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction as db_transaction
 from django.utils import timezone
 
 from payments_processor.enums import (
+    PaymentDisputeStatus,
     PaymentIntentStatus,
     PaymentTransactionKind,
     PaymentTransactionStatus,
@@ -17,7 +18,8 @@ from payments_processor.exceptions import (
     PaymentIntentNotFoundError,
     PaymentVerificationError,
 )
-from payments_processor.models import ProviderWebhookEvent
+from payments_processor.models import PaymentDispute, ProviderWebhookEvent
+from payments_processor.models.payment_transaction import PaymentTransaction
 from payments_processor.providers.registry import get_provider
 from payments_processor.selectors.payment_intent_selectors import (
     get_payment_intent_by_reference,
@@ -36,6 +38,24 @@ from payments_processor.validators.webhook_validators import (
     validate_webhook_provider,
     validate_webhook_status_transition,
 )
+
+
+_DISPUTE_EVENT_TYPES = frozenset({
+    "charge.dispute.created",
+    "charge.dispute.updated",
+    "charge.dispute.closed",
+    "charge.dispute.funds_reinstated",
+    "charge.dispute.funds_withdrawn",
+})
+
+_STRIPE_DISPUTE_STATUS_MAP: dict[str, str] = {
+    "needs_response":  PaymentDisputeStatus.OPEN,
+    "under_review":    PaymentDisputeStatus.UNDER_REVIEW,
+    "charge_refunded": PaymentDisputeStatus.CLOSED,
+    "won":             PaymentDisputeStatus.WON,
+    "lost":            PaymentDisputeStatus.LOST,
+    "closed":          PaymentDisputeStatus.CLOSED,
+}
 
 
 class WebhookProcessingService:
@@ -91,6 +111,16 @@ class WebhookProcessingService:
 
         validate_webhook_event_id(event_id)
         validate_webhook_event_type(event_type)
+
+        # Dispute events carry different data — route before the
+        # reference-required check.
+        if event_type in _DISPUTE_EVENT_TYPES:
+            return cls._handle_dispute_event(
+                provider_key=provider_key,
+                event_id=event_id,
+                event_type=event_type,
+                payload=payload,
+            )
 
         if not reference:
             raise PaymentVerificationError(
@@ -188,6 +218,102 @@ class WebhookProcessingService:
             "requires_internal_application": (
                 payment_intent.status == PaymentIntentStatus.SUCCEEDED
             ),
+        }
+
+    @classmethod
+    def _handle_dispute_event(
+        cls,
+        *,
+        provider_key: str,
+        event_id: str,
+        event_type: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Create or update a PaymentDispute record from a Stripe dispute event.
+
+        Resolves the linked PaymentIntent via the charge ID stored on
+        PaymentTransaction records (provider_transaction_id field).
+        """
+        data_object: dict = payload.get("data", {}).get("object", {})
+        dispute_id: str = data_object.get("id", "")
+        charge_id: str = data_object.get("charge", "")
+        raw_status: str = data_object.get("status", "needs_response")
+        reason: str = data_object.get("reason", "")
+        amount_cents = data_object.get("amount")
+        currency: str = str(data_object.get("currency", "USD")).upper()
+
+        internal_status = _STRIPE_DISPUTE_STATUS_MAP.get(
+            raw_status, PaymentDisputeStatus.OPEN
+        )
+
+        with db_transaction.atomic():
+            # Resolve PaymentIntent via the transaction that recorded this charge
+            payment_intent = None
+            if charge_id:
+                txn = (
+                    PaymentTransaction.objects
+                    .select_related("payment_intent__website")
+                    .filter(provider_transaction_id=charge_id)
+                    .first()
+                )
+                if txn:
+                    payment_intent = txn.payment_intent
+
+            webhook_event = cls._create_webhook_event(
+                provider=provider_key,
+                event_id=event_id,
+                event_type=event_type,
+                payload=payload,
+                signature_verified=True,
+                payment_intent=payment_intent,
+            )
+
+            if payment_intent and dispute_id:
+                from decimal import Decimal as _D
+                from django.utils import timezone as _tz
+
+                amount = (
+                    _D(amount_cents) / 100 if amount_cents is not None else _D("0.00")
+                )
+
+                dispute, created = PaymentDispute.objects.get_or_create(
+                    provider=provider_key,
+                    provider_dispute_id=dispute_id,
+                    defaults={
+                        "website": payment_intent.website,
+                        "payment_intent": payment_intent,
+                        "status": internal_status,
+                        "reason": reason,
+                        "amount": amount,
+                        "currency": currency,
+                        "opened_at": _tz.now(),
+                        "raw_payload": payload,
+                    },
+                )
+
+                if not created:
+                    dispute.status = internal_status
+                    dispute.raw_payload = payload
+                    update_fields = ["status", "raw_payload", "updated_at"]
+                    if internal_status in (
+                        PaymentDisputeStatus.WON,
+                        PaymentDisputeStatus.LOST,
+                        PaymentDisputeStatus.CLOSED,
+                    ):
+                        dispute.resolved_at = _tz.now()
+                        update_fields.append("resolved_at")
+                    dispute.save(update_fields=update_fields)
+
+            cls._mark_webhook_processed(webhook_event=webhook_event)
+
+        return {
+            "provider": provider_key,
+            "event_id": event_id,
+            "event_type": event_type,
+            "dispute_id": dispute_id,
+            "dispute_status": internal_status,
+            "payment_intent_found": payment_intent is not None,
         }
 
     @staticmethod
