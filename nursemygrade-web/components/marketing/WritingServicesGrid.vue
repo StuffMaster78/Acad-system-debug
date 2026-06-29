@@ -1,14 +1,11 @@
 <script setup lang="ts">
-// Static list used as fallback; Wagtail CMS enriches in production
 const { getAll } = useServices()
 const cmsServices = useCmsServiceList()
 
-// Merge: prefer CMS slugs if available, pad with static list so page always has content
 const services = computed(() => {
   const cms = cmsServices.value
   const stat = getAll()
   if (cms.length) {
-    // Return CMS list, enriched with static icon/priceFrom
     return cms.map(s => {
       const local = stat.find(l => l.slug === s.slug)
       return { slug: s.slug, navLabel: s.navLabel, icon: local?.icon ?? 'file-text', priceFrom: s.priceFrom }
@@ -18,34 +15,40 @@ const services = computed(() => {
 })
 
 const serviceLinks = [
-  { label: 'Nursing Essay Writing Help',           href: '/online-nursing-essays-help' },
-  { label: 'Nursing Care Plan Writing',            href: '/nursing-care-plan-writing-services' },
-  { label: 'SOAP Note Writing Service',            href: '/nursing-soap-note-writing-help' },
-  { label: 'Capstone Project Writing Help',        href: '/nursing-capstone-project-writing-service' },
-  { label: 'Nursing Research Paper Writing',       href: '/best-online-nursing-research-paper-service' },
-  { label: 'Nursing Case Study Help',              href: '/nursing-case-study-help' },
-  { label: 'Nursing Dissertation Writing',         href: '/nursing-dissertation-writing-service' },
-  { label: 'Concept Map Writing Services',         href: '/concept-map-writing-services' },
-  { label: 'Nursing Coursework Help',              href: '/nursing-coursework-help-online' },
-  { label: 'Online Nursing Class Help',            href: '/nursing-class-help-online' },
-  { label: 'Shadow Health Help & Answers',         href: '/shadow-health-help-online' },
-  { label: 'iHuman Virtual Patient Help',          href: '/ihuman-help' },
-  { label: 'Buy Nursing Papers Online',            href: '/nursing-research-for-sale-online' },
-  { label: 'Nursing Report Writing',               href: '/nursing-report-writing-service' },
-  { label: 'Nursing Presentation (PPT)',           href: '/nursing-presentation-writing-service' },
-  { label: 'BSN Writing Services',                 href: '/reliable-and-cheap-bsn-writing-service' },
-  { label: 'MSN Writing Help',                     href: '/reliable-msn-writing-services' },
-  { label: 'APA Format Nursing Papers',            href: '/apa-format-nursing-paper-writing-service' },
-  { label: 'Medical Paper Writing',                href: '/health-and-medicine-paper-writing-service' },
-  { label: 'Nursing Homework Help',                href: '/online-nursing-homework-help' },
-  { label: 'Postgraduate Nursing Help',            href: '/postgraduate-nursing-papers-assignments-help' },
-  { label: 'Health & Medical Writers for Hire',    href: '/hire-a-health-and-medical-writer' },
-  { label: 'Evidence-Based Practice Papers',       href: '/nursing-evidence-based-practice' },
-  { label: 'Nursing Annotated Bibliography',       href: '/nursing-annotated-bibliography' },
-  { label: 'Nursing Papers Writing Service',       href: '/online-nursing-papers-writing-service' },
-  { label: 'Nursing Thesis Writing',               href: '/online-nursing-thesis-writing-helpers' },
-  { label: 'Nursing Assignment Help',              href: '/reliable-nursing-assignment-help' },
+  { label: 'Nursing Essay Writing Help',       href: '/online-nursing-essays-help' },
+  { label: 'Nursing Care Plan Writing',        href: '/nursing-care-plan-writing-services' },
+  { label: 'SOAP Note Writing Service',        href: '/nursing-soap-note-writing-help' },
+  { label: 'Capstone Project Writing Help',    href: '/nursing-capstone-project-writing-service' },
+  { label: 'Nursing Research Paper Writing',   href: '/best-online-nursing-research-paper-service' },
+  { label: 'Nursing Case Study Help',          href: '/nursing-case-study-help' },
+  { label: 'Nursing Dissertation Writing',     href: '/nursing-dissertation-writing-service' },
+  { label: 'Online Nursing Class Help',        href: '/nursing-class-help-online' },
+  { label: 'Shadow Health Help & Answers',     href: '/shadow-health-help-online' },
+  { label: 'BSN Writing Services',             href: '/reliable-and-cheap-bsn-writing-service' },
+  { label: 'MSN Writing Help',                 href: '/reliable-msn-writing-services' },
+  { label: 'Nursing Assignment Help',          href: '/reliable-nursing-assignment-help' },
+  // — shown when expanded —
+  { label: 'Concept Map Writing Services',     href: '/concept-map-writing-services' },
+  { label: 'Nursing Coursework Help',          href: '/nursing-coursework-help-online' },
+  { label: 'iHuman Virtual Patient Help',      href: '/ihuman-help' },
+  { label: 'Buy Nursing Papers Online',        href: '/nursing-research-for-sale-online' },
+  { label: 'Nursing Report Writing',           href: '/nursing-report-writing-service' },
+  { label: 'Nursing Presentation (PPT)',       href: '/nursing-presentation-writing-service' },
+  { label: 'APA Format Nursing Papers',        href: '/apa-format-nursing-paper-writing-service' },
+  { label: 'Medical Paper Writing',            href: '/health-and-medicine-paper-writing-service' },
+  { label: 'Nursing Homework Help',            href: '/online-nursing-homework-help' },
+  { label: 'Postgraduate Nursing Help',        href: '/postgraduate-nursing-papers-assignments-help' },
+  { label: 'Health & Medical Writers for Hire', href: '/hire-a-health-and-medical-writer' },
+  { label: 'Evidence-Based Practice Papers',  href: '/nursing-evidence-based-practice' },
+  { label: 'Nursing Annotated Bibliography',   href: '/nursing-annotated-bibliography' },
+  { label: 'Nursing Papers Writing Service',   href: '/online-nursing-papers-writing-service' },
+  { label: 'Nursing Thesis Writing',           href: '/online-nursing-thesis-writing-helpers' },
 ]
+
+const VISIBLE = 12
+const expanded = ref(false)
+const visibleLinks = computed(() => expanded.value ? serviceLinks : serviceLinks.slice(0, VISIBLE))
+const hiddenCount = serviceLinks.length - VISIBLE
 </script>
 
 <template>
@@ -64,10 +67,10 @@ const serviceLinks = [
         </p>
       </div>
 
-      <!-- Services grid — scrollable on mobile, 3-col on desktop -->
+      <!-- Services grid -->
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <NuxtLink
-          v-for="item in serviceLinks"
+          v-for="item in visibleLinks"
           :key="item.label"
           :href="item.href"
           class="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-all hover:border-brand-300 hover:bg-brand-50 hover:shadow-sm"
@@ -82,11 +85,35 @@ const serviceLinks = [
         </NuxtLink>
       </div>
 
-      <!-- Wagtail CMS note — only visible in dev -->
-      <p class="mt-4 text-center text-xs text-slate-400">
-        Additional services can be added by your content team in the Wagtail admin → Service Pages.
-        <NuxtLink href="/services" class="font-medium text-brand-500 hover:underline ml-1">View all →</NuxtLink>
-      </p>
+      <!-- All Services toggle -->
+      <div class="mt-6 flex items-center justify-center gap-4">
+        <button
+          v-if="!expanded"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-6 py-2.5 text-sm font-semibold text-brand-600 shadow-sm transition-all hover:bg-brand-50 hover:border-brand-400 hover:shadow"
+          @click="expanded = true"
+        >
+          <Icon name="grid" class="h-4 w-4" />
+          All Services
+          <span class="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-bold text-brand-700">+{{ hiddenCount }}</span>
+        </button>
+        <template v-else>
+          <NuxtLink
+            href="/services"
+            class="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-6 py-2.5 text-sm font-semibold text-brand-600 shadow-sm transition-all hover:bg-brand-50"
+          >
+            <Icon name="layout-grid" class="h-4 w-4" />
+            Browse all services →
+          </NuxtLink>
+          <button
+            type="button"
+            class="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            @click="expanded = false"
+          >
+            Show less ↑
+          </button>
+        </template>
+      </div>
 
       <!-- Calculator + CTA -->
       <div class="mt-14 grid gap-10 lg:grid-cols-2 items-start">
