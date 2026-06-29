@@ -1,5 +1,6 @@
 from django.urls import path
 
+from orders.api.views.files.order_file_bulk_download_view import OrderFileBulkDownloadView
 from orders.api.views.files.order_file_views import (
     OrderClientMaterialFileUploadView,
     OrderDraftFileUploadView,
@@ -99,5 +100,10 @@ urlpatterns = [
         "<int:order_id>/files/<int:attachment_id>/request-deletion/",
         OrderFileDeletionRequestView.as_view(),
         name="order-file-request-deletion",
+    ),
+    path(
+        "<int:order_id>/files/bulk-download/",
+        OrderFileBulkDownloadView.as_view(),
+        name="order-file-bulk-download",
     ),
 ]

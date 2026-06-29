@@ -7,7 +7,7 @@
 # Stage 1: dependency builder
 FROM python:3.12-slim AS builder
 
-# Build deps needed for psycopg2, Pillow, argon2-cffi, cryptography
+# Build deps needed for psycopg2, Pillow, argon2-cffi, cryptography, pdf2image
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libwebp-dev \
     libffi-dev \
     libssl-dev \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -31,13 +32,14 @@ FROM python:3.12-slim AS runner
 LABEL org.opencontainers.image.title="Writing System Platform"
 LABEL org.opencontainers.image.description="Multi-tenant academic writing services backend"
 
-# Runtime libs only
+# Runtime libs only (poppler-utils needed for pdf2image PDF→image conversion)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libjpeg62-turbo \
     zlib1g \
     libwebp7 \
     curl \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security

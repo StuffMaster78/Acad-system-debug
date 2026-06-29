@@ -76,3 +76,9 @@ django-compression-middleware==0.5.0
 
 # Cheat sheet email delivery (lead-gen PDF system)
 resend==2.10.0
+
+# File handling — PDF thumbnail generation (requires poppler-utils system package)
+pdf2image==1.17.0
+
+# File handling — ClamAV antivirus client (connect to clamd socket/daemon)
+pyclamd==0.4.1

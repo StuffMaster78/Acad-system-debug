@@ -13,6 +13,10 @@ from files_management.api.views.admin_views import (
     AdminFilePolicyListCreateView,
     AdminQuarantineReleaseView,
 )
+from files_management.api.views.audit_views import (
+    FileAccessLogListView,
+    FileDownloadLogListView,
+)
 from files_management.api.views.admin_extra_views import (
     AdminExternalLinkListCreateView,
     AdminFileListView,
@@ -95,5 +99,15 @@ urlpatterns = [
         "cms/upload/",
         CMSFileUploadView.as_view(),
         name="cms-file-upload",
+    ),
+    path(
+        "audit/access-log/",
+        FileAccessLogListView.as_view(),
+        name="admin-file-access-log",
+    ),
+    path(
+        "audit/download-log/",
+        FileDownloadLogListView.as_view(),
+        name="admin-file-download-log",
     ),
 ]
