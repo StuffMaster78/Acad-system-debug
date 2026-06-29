@@ -4,7 +4,7 @@ const { getBySlug } = useServices()
 
 const simulations = [
   {
-    href: '/services/shadow-health-help-online',
+    href: '/shadow-health-help-online',
     icon: 'monitor-play',
     name: 'Shadow Health DCEs',
     tagline: 'Tina Jones, Brian Foster, Danny Rivera & all patients',
@@ -59,7 +59,7 @@ useHead({
         '@type': 'ListItem',
         position: i + 1,
         name: s.title,
-        url: `https://nursemygrade.com/services/${s.slug}`,
+        url: `https://nursemygrade.com/${s.slug}`,
       })),
     }),
   }],
@@ -73,7 +73,7 @@ useHead({
       <div class="section py-0">
         <div class="mx-auto max-w-3xl">
           <span class="inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-brand-200 ring-1 ring-white/20 mb-6">
-            10 nursing services · Shadow Health · iHuman
+            27 nursing services · Shadow Health · iHuman
           </span>
           <h1 class="font-serif text-4xl font-bold text-white sm:text-5xl">
             Every nursing paper type,<br class="hidden sm:block" /> covered by real nurses
@@ -119,7 +119,7 @@ useHead({
             <NuxtLink
               v-for="s in services"
               :key="s.slug"
-              :href="`/services/${s.slug}`"
+              :href="`/${s.slug}`"
               class="group snap-start w-72 shrink-0 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md hover:border-brand-200 flex flex-col"
             >
               <div class="mb-4 flex items-center gap-3">
@@ -143,7 +143,7 @@ useHead({
             <NuxtLink
               v-for="s in services"
               :key="s.slug"
-              :href="`/services/${s.slug}`"
+              :href="`/${s.slug}`"
               class="group rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md hover:border-brand-200 flex flex-col"
             >
               <div class="mb-4 flex items-center gap-3">

@@ -14,10 +14,10 @@ const menuServicesB = computed(() => {
 
 const orderPaths = [
   { id: 'paper',   label: 'Nursing Papers',        desc: 'Essays, care plans, research papers, SOAP notes', href: '/order?type=paper',   color: 'text-brand-600'  },
-  { id: 'class',   label: 'Online Class Help',     desc: 'Full course or individual module management',      href: '/services/nursing-class-help-online',               color: 'text-green-600'  },
-  { id: 'special', label: 'Capstone / Dissertation', desc: 'End-to-end BSN, MSN, or DNP project support', href: '/services/nursing-capstone-project-writing-service', color: 'text-rose-600'   },
-  { id: 'combo',   label: 'Mentoring',             desc: 'Admission essays, career guidance, school prep',  href: '/contact',                                          color: 'text-amber-600'  },
-  { id: 'diagram', label: 'Concept Maps',          desc: 'Pathophysiology linkage maps for any scenario',   href: '/services/concept-map-writing-services',            color: 'text-teal-600'   },
+  { id: 'class',   label: 'Online Class Help',     desc: 'Full course or individual module management',      href: '/nursing-class-help-online',               color: 'text-green-600'  },
+  { id: 'special', label: 'Capstone / Dissertation', desc: 'End-to-end BSN, MSN, or DNP project support', href: '/nursing-capstone-project-writing-service', color: 'text-rose-600'   },
+  { id: 'combo',   label: 'Mentoring',             desc: 'Admission essays, career guidance, school prep',  href: '/contact',                                  color: 'text-amber-600'  },
+  { id: 'diagram', label: 'Concept Maps',          desc: 'Pathophysiology linkage maps for any scenario',   href: '/concept-map-writing-services',            color: 'text-teal-600'   },
   { id: 'design',  label: 'Custom Quote',          desc: 'Unusual brief? Tell us — we\'ll price it',        href: '/quote',              color: 'text-purple-600' },
 ]
 
@@ -162,7 +162,7 @@ const ORDER_SVG: Record<string, string> = {
                     <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Writing</p>
                     <ul class="space-y-0.5">
                       <li v-for="s in menuServicesA" :key="s.slug">
-                        <NuxtLink :href="`/services/${s.slug}`"
+                        <NuxtLink :href="`/${s.slug}`"
                           class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
                           @click="servicesOpen = false">
                           {{ s.navLabel }}
@@ -174,7 +174,7 @@ const ORDER_SVG: Record<string, string> = {
                     <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Simulations & More</p>
                     <ul class="space-y-0.5">
                       <li v-for="s in menuServicesB" :key="s.slug">
-                        <NuxtLink :href="`/services/${s.slug}`"
+                        <NuxtLink :href="`/${s.slug}`"
                           class="block rounded-lg px-2 py-1.5 text-xs text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
                           @click="servicesOpen = false">
                           {{ s.navLabel }}
