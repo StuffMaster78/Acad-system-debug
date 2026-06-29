@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       }
     )
     for (const item of svcRes.items ?? []) {
-      if (item.meta?.slug) urls.push({ loc: `/services/${item.meta.slug}` })
+      if (item.meta?.slug) urls.push({ loc: `/${item.meta.slug}` })
     }
   } catch { /* Wagtail unavailable during build — skip */ }
 

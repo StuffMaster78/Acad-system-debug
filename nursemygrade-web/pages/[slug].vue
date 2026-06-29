@@ -16,7 +16,7 @@ const staticBlog = getBlogBySlug(slug)
 import type { CmsServicePage } from '~/composables/useServiceCms'
 const { page: serviceCmsPage } = useServiceCms(slug)
 
-// ── Step 2: single awaited check (blog-type detection for unknown slugs) ──
+// ── Step 2: awaited slug-type resolution for unknown slugs ───────────────────
 const apiBase  = import.meta.server
   ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
   : (config.public.apiBase || '')
@@ -24,24 +24,33 @@ const siteHost = import.meta.server
   ? { Host: (config.siteHostname as string) || 'nursemygrade.com' }
   : undefined
 
-const { data: _blogType } = await useAsyncData<boolean>(
-  `slug-blog-${slug}`,
+const { data: _slugType } = await useAsyncData<'service' | 'blog' | null>(
+  `slug-type-${slug}`,
   async () => {
-    if (service || staticBlog) return false  // known — skip API call
+    if (service)     return 'service'  // in static catalogue — skip API
+    if (staticBlog)  return 'blog'
     try {
-      const res = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
+      // Check CMS service page first (one call, avoids blog call for CMS-only services)
+      const svcRes = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
+        params: { type: 'cms_service_pages.ServicePage', slug, fields: 'title' },
+        headers: siteHost,
+      })
+      if ((svcRes as any).meta?.total_count > 0) return 'service'
+      // Then check blog
+      const blogRes = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
         params: { type: 'cms_blog.BlogPostPage', slug, fields: 'title' },
         headers: siteHost,
       })
-      return (res as any).meta?.total_count > 0
-    } catch { return false }
+      return (blogRes as any).meta?.total_count > 0 ? 'blog' : null
+    } catch { return null }
   },
 )
 
 // ── Step 3: route to correct destination ────────────────────────────────────
-const isBlogPost = staticBlog || _blogType.value
+const isBlogPost      = staticBlog || _slugType.value === 'blog'
+const isCmsService    = _slugType.value === 'service'
 
-if (!service && !isBlogPost) {
+if (!service && !isBlogPost && !isCmsService) {
   throw createError({ statusCode: 404, statusMessage: 'Page not found' })
 }
 
@@ -141,7 +150,7 @@ useHead({
 
 <template>
   <!-- Blog post: rendered directly at /{slug} (no /blog/ redirect) -->
-  <BlogPostPage v-if="!service && isBlogPost" :slug="slug" />
+  <BlogPostPage v-if="isBlogPost && !service && !isCmsService" :slug="slug" />
 
   <div v-else class="pb-20 lg:pb-0">
 

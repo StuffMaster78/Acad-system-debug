@@ -374,6 +374,36 @@ const services: ServiceData[] = [
     },
   },
   {
+    slug: 'ihuman-patients',
+    navLabel: 'iHuman Patients',
+    icon: 'stethoscope',
+    title: 'iHuman Virtual Patient Cases — Nursing Help',
+    hero: {
+      headline: 'iHuman Patient Cases Completed by Real Nurses',
+      sub: 'History, physical exam, ranked differentials, and clinical reasoning for every iHuman virtual patient — handled by nurses who work with these cases clinically.',
+    },
+    includes: [
+      'Patient history and physical examination documentation',
+      'Ranked differential diagnoses with clinical rationale',
+      'Diagnostic tests ordered with evidence-based justification',
+      'Treatment plan and patient education sections',
+      'All sections completed to your course rubric',
+    ],
+    delivers: [
+      'Complete iHuman case submission-ready document',
+      'Clinical reasoning narrative for each differential',
+      'Management and follow-up plan',
+      'Turnitin plagiarism report included',
+    ],
+    whoFor: 'Nursing and NP students working through iHuman virtual patient encounters who need clinically accurate case documentation, differential reasoning, and treatment planning support.',
+    priceFrom: 35,
+    relatedSlugs: ['ihuman-help', 'shadow-health-help-online', 'nursing-case-study-help'],
+    meta: {
+      title: 'iHuman Virtual Patient Cases — Nursing Help | NurseMyGrade',
+      description: 'Expert iHuman virtual patient case completion. History, differentials, clinical reasoning, and treatment plans — by practicing nurses. From $35.',
+    },
+  },
+  {
     slug: 'nursing-research-for-sale-online',
     navLabel: 'Buy Nursing Papers',
     icon: 'file-text',
@@ -880,7 +910,7 @@ export function useCmsServiceList() {
         category: null as string | null,
       }))
     }
-    return cmsItems.map(page => {
+    return cmsItems.filter(page => page?.meta?.slug).map(page => {
       const slug = page.meta.slug
       const local = staticServices.find(s => s.slug === slug)
       return {

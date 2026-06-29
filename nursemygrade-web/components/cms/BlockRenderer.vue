@@ -143,11 +143,6 @@ function rewriteLinks(html: string): string {
     (_, path, qs) => `href="${path}${qs ?? ''}"`)
 
   out = out.replace(/href="\/([a-z][a-z0-9-]*)\/?"(?=[^>]*>)/g, (_match, slug) => {
-    if (_serviceSlugs.has(slug)) return `href="/services/${slug}"`
-    if (_blogSlugs.has(slug))    return `href="/blog/${slug}"`
-    if (_fixedRoutes.has(slug))  return `href="/${slug}"`
-    if (props.linkContext === 'blog')    return `href="/blog/${slug}"`
-    if (props.linkContext === 'service') return `href="/services/${slug}"`
     return `href="/${slug}"`
   })
 

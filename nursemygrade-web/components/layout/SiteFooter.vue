@@ -3,29 +3,29 @@ const portal = usePortalStore()
 const year = new Date().getFullYear()
 
 const writingServices = [
-  { label: 'Nursing Essays',        href: '/services/online-nursing-essays-help'               },
-  { label: 'Care Plans',            href: '/services/nursing-care-plan-writing-services'       },
-  { label: 'SOAP Notes',            href: '/services/nursing-soap-note-writing-help'           },
-  { label: 'Research Papers',       href: '/services/best-online-nursing-research-paper-service'},
-  { label: 'Capstone Projects',     href: '/services/nursing-capstone-project-writing-service' },
-  { label: 'Dissertations',         href: '/services/nursing-dissertation-writing-service'     },
+  { label: 'Nursing Essays',        href: '/online-nursing-essays-help'               },
+  { label: 'Care Plans',            href: '/nursing-care-plan-writing-services'       },
+  { label: 'SOAP Notes',            href: '/nursing-soap-note-writing-help'           },
+  { label: 'Research Papers',       href: '/best-online-nursing-research-paper-service'},
+  { label: 'Capstone Projects',     href: '/nursing-capstone-project-writing-service' },
+  { label: 'Dissertations',         href: '/nursing-dissertation-writing-service'     },
 ]
 
 const clinicalServices = [
-  { label: 'Case Studies',          href: '/services/nursing-case-study-help'        },
-  { label: 'Concept Maps',          href: '/services/concept-map-writing-services'   },
-  { label: 'Coursework Help',       href: '/services/nursing-coursework-help-online' },
-  { label: 'Shadow Health',         href: '/services/shadow-health-help-online'      },
-  { label: 'iHuman Patients',       href: '/services/ihuman-patients'                },
-  { label: 'Online Class Help',     href: '/services/nursing-class-help-online'      },
+  { label: 'Case Studies',          href: '/nursing-case-study-help'        },
+  { label: 'Concept Maps',          href: '/concept-map-writing-services'   },
+  { label: 'Coursework Help',       href: '/nursing-coursework-help-online' },
+  { label: 'Shadow Health',         href: '/shadow-health-help-online'      },
+  { label: 'iHuman Patients',       href: '/ihuman-patients'                },
+  { label: 'Online Class Help',     href: '/nursing-class-help-online'      },
 ]
 
 const specialtyServices = [
-  { label: 'BSN Writing',           href: '/services/reliable-and-cheap-bsn-writing-service'  },
-  { label: 'MSN Writing Help',      href: '/services/reliable-msn-writing-services'            },
-  { label: 'APA Nursing Papers',    href: '/services/apa-format-nursing-paper-writing-service' },
-  { label: 'Nursing Reports',       href: '/services/nursing-report-writing-service'           },
-  { label: 'Nursing Presentations', href: '/services/nursing-presentation-writing-service'     },
+  { label: 'BSN Writing',           href: '/reliable-and-cheap-bsn-writing-service'  },
+  { label: 'MSN Writing Help',      href: '/reliable-msn-writing-services'            },
+  { label: 'APA Nursing Papers',    href: '/apa-format-nursing-paper-writing-service' },
+  { label: 'Nursing Reports',       href: '/nursing-report-writing-service'           },
+  { label: 'Nursing Presentations', href: '/nursing-presentation-writing-service'     },
 ]
 
 const company = [

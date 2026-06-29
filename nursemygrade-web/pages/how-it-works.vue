@@ -76,15 +76,15 @@ const guarantees = [
 ]
 
 const services = [
-  { label: 'Nursing Essays',         href: '/services/nursing-essays' },
-  { label: 'Care Plans',             href: '/services/care-plans' },
-  { label: 'SOAP Notes',             href: '/services/soap-notes' },
-  { label: 'Capstone Projects',      href: '/services/capstone-projects' },
-  { label: 'Nursing Research Papers',href: '/services/nursing-research-papers' },
-  { label: 'Shadow Health Help',     href: '/services/shadow-health' },
-  { label: 'iHuman Cases',           href: '/services/ihuman-patients' },
-  { label: 'Online Class Help',      href: '/services/online-nursing-classes' },
-  { label: 'Nursing Dissertations',  href: '/services/nursing-dissertations' },
+  { label: 'Nursing Essays',          href: '/online-nursing-essays-help' },
+  { label: 'Care Plans',              href: '/nursing-care-plan-writing-services' },
+  { label: 'SOAP Notes',              href: '/nursing-soap-note-writing-help' },
+  { label: 'Capstone Projects',       href: '/nursing-capstone-project-writing-service' },
+  { label: 'Nursing Research Papers', href: '/best-online-nursing-research-paper-service' },
+  { label: 'Shadow Health Help',      href: '/shadow-health-help-online' },
+  { label: 'iHuman Cases',            href: '/ihuman-patients' },
+  { label: 'Online Class Help',       href: '/nursing-class-help-online' },
+  { label: 'Nursing Dissertations',   href: '/nursing-dissertation-writing-service' },
 ]
 </script>
 
