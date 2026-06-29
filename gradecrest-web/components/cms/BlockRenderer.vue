@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Plus, Minus, X } from '@lucide/vue'
+import { CheckCircle2, ArrowRight, ExternalLink, Download, Star, Zap, Shield, Plus, Minus, X, ShieldCheck, Calculator, Clock, FileText } from '@lucide/vue'
 import { Circle } from '~/utils/lucide-icons'
 
 const app = useAppUrl()
@@ -219,6 +219,28 @@ function tblHead(s: string)    { return _tbl(s).head }
 function tblRow(s: string)     { return _tbl(s).row }
 function tblColHead(s: string) { return _tbl(s).col }
 function tblCell(s: string)    { return _tbl(s).cell }
+
+// ── Service-page block type aliases ──────────────────────────────────────────
+type HeroVal         = { headline: string; subheadline?: string; cta_text?: string; cta_url?: string; background_image?: { url: string } }
+type TrustStripVal   = { rating_value: number; review_count: number; years_in_business: number; orders_completed: number }
+type FeatureItem     = { icon_name?: string; title: string; description: string }
+type FeatureGridVal  = { heading?: string; features: FeatureItem[] }
+type StepItem        = { step_number?: number; title: string; description: string }
+type HowItWorksVal   = { heading?: string; steps: StepItem[] }
+type PricingRow      = { service: string; price: string; turnaround: string }
+type PricingTableVal = { heading?: string; rows: PricingRow[] }
+type CompRow         = { feature: string; us: string; competitor: string }
+type CompTableVal    = { heading?: string; competitor_name?: string; rows: CompRow[] }
+type TestimonialItem = { quote: string; author_name: string; author_title?: string; rating: number }
+type TestimonialsVal = { heading?: string; testimonials: TestimonialItem[] }
+type GuaranteeItem   = { icon_name?: string; title: string; description: string }
+type GuaranteesVal   = { heading?: string; guarantees: GuaranteeItem[] }
+type BenefitItem     = { title: string; description: string }
+type BadgeItem       = { label: string; icon_emoji?: string }
+type BenefitsVal     = { heading: string; intro?: string; benefits: BenefitItem[]; badges?: BadgeItem[]; closing_text?: string }
+type CalculatorVal   = { title?: string; subtitle?: string; service_code?: string; cta_text?: string; cta_url?: string; default_pages?: number; default_deadline_hours?: number }
+type Dataset         = { label: string; values: string; color?: string }
+type ChartVal        = { chart_type: string; title: string; caption?: string; x_labels: string; datasets: Dataset[] }
 
 // ── Mid-article CTA injection ─────────────────────────────────────────────────
 // Injects the inline CTA HTML after the 4th paragraph block.
@@ -1061,6 +1083,348 @@ const enrichedBlocks = computed<(Block & { _cta?: boolean })[]>(() => {
         <a :href="asStr(asObj(block.value).cta_url) || '/order'" class="inline-flex items-center gap-2 rounded-lg bg-gc-600 px-4 py-2 text-xs font-bold text-white hover:bg-gc-700 transition-colors">{{ asStr(asObj(block.value).cta_text) || 'Order Now' }}</a>
       </div>
     </div>
+
+    <!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'hero'" class="my-0 not-prose overflow-hidden rounded-2xl sm:flex">
+      <!-- Dark left panel -->
+      <div class="flex flex-col justify-center bg-gc-900 px-8 py-10 sm:w-1/2 sm:px-10 sm:py-14">
+        <h1 class="text-2xl font-extrabold leading-tight text-white sm:text-3xl">
+          {{ asStr((asObj(block.value) as HeroVal).headline) }}
+        </h1>
+        <p v-if="asStr((asObj(block.value) as HeroVal).subheadline)" class="mt-3 text-base leading-relaxed text-gc-200">
+          {{ asStr((asObj(block.value) as HeroVal).subheadline) }}
+        </p>
+        <a
+          :href="ctaUrl(asStr((asObj(block.value) as HeroVal).cta_url))"
+          class="mt-8 inline-flex w-fit items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-bold text-gc-900 shadow-lg transition-colors hover:bg-gc-50"
+        >
+          {{ asStr((asObj(block.value) as HeroVal).cta_text) || 'Get Started' }}
+          <ArrowRight class="size-4" />
+        </a>
+      </div>
+      <!-- White right panel — trust indicators -->
+      <div class="flex flex-col items-center justify-center gap-6 bg-white px-8 py-10 sm:w-1/2 sm:px-10">
+        <div class="flex items-center gap-1">
+          <Star v-for="n in 5" :key="n" class="size-6 fill-amber-400 text-amber-400" />
+        </div>
+        <p class="text-center text-sm font-semibold text-slate-600">Trusted by thousands of students worldwide</p>
+        <div class="flex flex-wrap justify-center gap-4 text-center">
+          <div class="rounded-xl border border-gc-100 bg-gc-50 px-5 py-4">
+            <p class="text-2xl font-extrabold text-gc-700">98%</p>
+            <p class="mt-0.5 text-xs text-slate-500">Satisfaction rate</p>
+          </div>
+          <div class="rounded-xl border border-gc-100 bg-gc-50 px-5 py-4">
+            <p class="text-2xl font-extrabold text-gc-700">24/7</p>
+            <p class="mt-0.5 text-xs text-slate-500">Support available</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Trust Strip ───────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'trust_strip'" class="my-6 not-prose">
+      <div class="flex flex-wrap items-center justify-center divide-y divide-slate-200 rounded-full border border-slate-200 bg-white shadow-sm sm:divide-x sm:divide-y-0">
+        <div class="flex flex-1 flex-col items-center justify-center px-6 py-3 text-center sm:min-w-[120px]">
+          <p class="text-xl font-extrabold text-gc-700">{{ asStr(asObj(block.value).rating_value) || String(asObj(block.value).rating_value ?? '') || '4.9' }}</p>
+          <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Star Rating</p>
+        </div>
+        <div class="flex flex-1 flex-col items-center justify-center px-6 py-3 text-center sm:min-w-[120px]">
+          <p class="text-xl font-extrabold text-gc-700">{{ asStr(asObj(block.value).review_count) || String(asObj(block.value).review_count ?? '') }}</p>
+          <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Reviews</p>
+        </div>
+        <div class="flex flex-1 flex-col items-center justify-center px-6 py-3 text-center sm:min-w-[120px]">
+          <p class="text-xl font-extrabold text-gc-700">{{ asStr(asObj(block.value).years_in_business) || String(asObj(block.value).years_in_business ?? '') }}+</p>
+          <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Years in Business</p>
+        </div>
+        <div class="flex flex-1 flex-col items-center justify-center px-6 py-3 text-center sm:min-w-[120px]">
+          <p class="text-xl font-extrabold text-gc-700">{{ asStr(asObj(block.value).orders_completed) || String(asObj(block.value).orders_completed ?? '') }}+</p>
+          <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Orders Completed</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Feature Grid ──────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'feature_grid'" class="my-8 not-prose">
+      <h2 v-if="asStr((asObj(block.value) as FeatureGridVal).heading)" class="mb-6 text-xl font-bold text-ink">
+        {{ asStr((asObj(block.value) as FeatureGridVal).heading) }}
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div
+          v-for="(feat, j) in asArr((asObj(block.value) as FeatureGridVal).features)"
+          :key="j"
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <div class="mb-3 flex items-center gap-3">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gc-600 text-sm font-bold text-white">
+              {{ j + 1 }}
+            </span>
+            <p class="font-semibold text-ink">{{ asStr(asObj(feat).title) }}</p>
+          </div>
+          <p class="text-sm leading-relaxed text-slate-600">{{ asStr(asObj(feat).description) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── How It Works ──────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'how_it_works'" class="my-8 not-prose">
+      <h2 v-if="asStr((asObj(block.value) as HowItWorksVal).heading)" class="mb-6 text-xl font-bold text-ink">
+        {{ asStr((asObj(block.value) as HowItWorksVal).heading) }}
+      </h2>
+      <ol class="relative border-l-2 border-gc-200 ml-4 space-y-0">
+        <li
+          v-for="(step, j) in asArr((asObj(block.value) as HowItWorksVal).steps)"
+          :key="j"
+          class="ml-6 pb-8 last:pb-0"
+        >
+          <span class="absolute -left-4 flex size-8 items-center justify-center rounded-full bg-gc-600 ring-4 ring-white text-xs font-bold text-white z-10">
+            {{ asObj(step).step_number ?? (j + 1) }}
+          </span>
+          <p class="font-semibold text-ink">{{ asStr(asObj(step).title) }}</p>
+          <div
+            v-if="asStr(asObj(step).description)"
+            class="mt-1 text-sm leading-relaxed text-slate-600"
+            v-html="asStr(asObj(step).description)"
+          />
+        </li>
+      </ol>
+    </div>
+
+    <!-- ── Pricing Table ─────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'pricing_table'" class="my-8 not-prose">
+      <h2 v-if="asStr((asObj(block.value) as PricingTableVal).heading)" class="mb-4 text-xl font-bold text-ink">
+        {{ asStr((asObj(block.value) as PricingTableVal).heading) }}
+      </h2>
+      <div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="bg-gc-900">
+                <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-200">Service</th>
+                <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-200">Turnaround</th>
+                <th class="px-5 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-slate-200">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, j) in asArr((asObj(block.value) as PricingTableVal).rows)"
+                :key="j"
+                class="border-t border-slate-100 transition-colors hover:bg-slate-50"
+              >
+                <td class="px-5 py-3.5 font-medium text-ink">{{ asStr(asObj(row).service) }}</td>
+                <td class="px-5 py-3.5 text-slate-500">{{ asStr(asObj(row).turnaround) }}</td>
+                <td class="px-5 py-3.5 text-right font-bold text-gc-600">{{ asStr(asObj(row).price) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Comparison Table ──────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'comparison_table'" class="my-8 not-prose">
+      <h2 v-if="asStr((asObj(block.value) as CompTableVal).heading)" class="mb-4 text-xl font-bold text-ink">
+        {{ asStr((asObj(block.value) as CompTableVal).heading) }}
+      </h2>
+      <div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="bg-gc-900">
+                <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-200">Feature</th>
+                <th class="px-5 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white">GradeCrest</th>
+                <th class="px-5 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  {{ asStr((asObj(block.value) as CompTableVal).competitor_name) || 'Others' }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, j) in asArr((asObj(block.value) as CompTableVal).rows)"
+                :key="j"
+                class="border-t border-slate-100"
+              >
+                <td class="px-5 py-3.5 text-slate-600">{{ asStr(asObj(row).feature) }}</td>
+                <td class="bg-gc-50 px-5 py-3.5 text-center font-semibold text-gc-700">{{ asStr(asObj(row).us) }}</td>
+                <td class="px-5 py-3.5 text-center text-slate-400">{{ asStr(asObj(row).competitor) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Testimonials ──────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'testimonials'" class="my-8 not-prose">
+      <h2 v-if="asStr((asObj(block.value) as TestimonialsVal).heading)" class="mb-6 text-xl font-bold text-ink">
+        {{ asStr((asObj(block.value) as TestimonialsVal).heading) }}
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div
+          v-for="(t, j) in asArr((asObj(block.value) as TestimonialsVal).testimonials)"
+          :key="j"
+          class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <!-- Stars -->
+          <div class="mb-3 flex gap-0.5">
+            <Star
+              v-for="n in 5"
+              :key="n"
+              class="size-4"
+              :class="n <= Number(asObj(t).rating || 5) ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'"
+            />
+          </div>
+          <!-- Quote -->
+          <div
+            class="flex-1 text-sm leading-relaxed text-slate-700 italic"
+            v-html="asStr(asObj(t).quote)"
+          />
+          <!-- Author -->
+          <div class="mt-4 border-t border-slate-100 pt-3">
+            <p class="text-sm font-semibold text-ink">{{ asStr(asObj(t).author_name) }}</p>
+            <p v-if="asStr(asObj(t).author_title)" class="text-xs text-slate-400">{{ asStr(asObj(t).author_title) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Guarantees ────────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'guarantees'" class="my-8 not-prose">
+      <h2 v-if="asStr((asObj(block.value) as GuaranteesVal).heading)" class="mb-6 text-xl font-bold text-ink">
+        {{ asStr((asObj(block.value) as GuaranteesVal).heading) }}
+      </h2>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div
+          v-for="(g, j) in asArr((asObj(block.value) as GuaranteesVal).guarantees)"
+          :key="j"
+          class="rounded-2xl border border-gc-100 bg-gc-50 p-5"
+        >
+          <div class="mb-3 flex size-10 items-center justify-center rounded-lg bg-gc-100">
+            <ShieldCheck class="size-5 text-gc-600" />
+          </div>
+          <p class="font-semibold text-ink">{{ asStr(asObj(g).title) }}</p>
+          <p class="mt-1 text-sm leading-relaxed text-slate-600">{{ asStr(asObj(g).description) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Benefits Section ──────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'benefits_section'" class="my-8 not-prose sm:flex sm:gap-10">
+      <!-- Left: headline + intro + bullet benefits -->
+      <div class="flex-1 min-w-0">
+        <h2 class="text-xl font-bold text-ink">
+          {{ asStr((asObj(block.value) as BenefitsVal).heading) }}
+        </h2>
+        <p v-if="asStr((asObj(block.value) as BenefitsVal).intro)" class="mt-2 text-sm leading-relaxed text-slate-600">
+          {{ asStr((asObj(block.value) as BenefitsVal).intro) }}
+        </p>
+        <ul class="mt-4 space-y-3">
+          <li
+            v-for="(b, j) in asArr((asObj(block.value) as BenefitsVal).benefits)"
+            :key="j"
+            class="flex items-start gap-3"
+          >
+            <CheckCircle2 class="size-5 shrink-0 text-gc-600 mt-0.5" />
+            <div>
+              <p class="text-sm font-semibold text-ink">{{ asStr(asObj(b).title) }}</p>
+              <p v-if="asStr(asObj(b).description)" class="mt-0.5 text-sm text-slate-600">{{ asStr(asObj(b).description) }}</p>
+            </div>
+          </li>
+        </ul>
+        <p v-if="asStr((asObj(block.value) as BenefitsVal).closing_text)" class="mt-4 text-sm font-semibold text-gc-700">
+          {{ asStr((asObj(block.value) as BenefitsVal).closing_text) }}
+        </p>
+      </div>
+      <!-- Right: horizontally scrollable badge strip -->
+      <div class="mt-6 shrink-0 sm:mt-0 sm:w-56">
+        <div class="flex flex-row gap-2 overflow-x-auto pb-2 sm:flex-col sm:overflow-x-visible sm:pb-0">
+          <span
+            v-for="(badge, j) in asArr((asObj(block.value) as BenefitsVal).badges)"
+            :key="j"
+            class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-gc-200 bg-gc-50 px-4 py-2.5 text-sm font-semibold text-gc-800"
+          >
+            <span v-if="asStr(asObj(badge).icon_emoji)" class="text-base">{{ asStr(asObj(badge).icon_emoji) }}</span>
+            {{ asStr(asObj(badge).label) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Calculator ────────────────────────────────────────────────────────── -->
+    <div v-else-if="block.type === 'calculator'" class="my-8 not-prose">
+      <div class="overflow-hidden rounded-2xl bg-gc-800 shadow-xl">
+        <div class="px-7 py-7 sm:flex sm:items-center sm:justify-between sm:gap-8">
+          <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-gc-300">
+              {{ asStr((asObj(block.value) as CalculatorVal).subtitle) || 'Instant Pricing' }}
+            </p>
+            <p class="mt-1 text-xl font-bold text-white">
+              {{ asStr((asObj(block.value) as CalculatorVal).title) || 'Get Your Quote' }}
+            </p>
+            <div class="mt-4 flex flex-wrap gap-4 text-sm text-gc-200">
+              <span class="flex items-center gap-1.5">
+                <FileText class="size-4 text-gc-400" />
+                {{ Number(asObj(block.value).default_pages) || 1 }} page{{ (Number(asObj(block.value).default_pages) || 1) === 1 ? '' : 's' }}
+              </span>
+              <span class="flex items-center gap-1.5">
+                <Clock class="size-4 text-gc-400" />
+                {{ Number(asObj(block.value).default_deadline_hours) || 24 }}h deadline
+              </span>
+            </div>
+          </div>
+          <a
+            :href="ctaUrl(asStr((asObj(block.value) as CalculatorVal).cta_url))"
+            class="mt-5 flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-bold text-gc-800 shadow transition-colors hover:bg-gc-50 sm:mt-0"
+          >
+            <Calculator class="size-4" />
+            {{ asStr((asObj(block.value) as CalculatorVal).cta_text) || 'Calculate Price' }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Chart (horizontal bar, pure CSS) ─────────────────────────────────── -->
+    <figure v-else-if="block.type === 'chart'" class="my-8 not-prose">
+      <p v-if="asStr((asObj(block.value) as ChartVal).title)" class="mb-1 text-sm font-bold text-ink">
+        {{ asStr((asObj(block.value) as ChartVal).title) }}
+      </p>
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5">
+        <div
+          v-for="(ds, di) in asArr((asObj(block.value) as ChartVal).datasets)"
+          :key="di"
+          class="mb-4 last:mb-0"
+        >
+          <p class="mb-2 text-xs font-semibold text-slate-600">{{ asStr(asObj(ds).label) }}</p>
+          <div class="space-y-2">
+            <div
+              v-for="(xLabel, xi) in asStr((asObj(block.value) as ChartVal).x_labels).split(',')"
+              :key="xi"
+              class="flex items-center gap-3"
+            >
+              <span class="w-24 shrink-0 truncate text-right text-xs text-slate-500">{{ xLabel.trim() }}</span>
+              <div class="relative flex-1 overflow-hidden rounded-full bg-slate-100" style="height:18px">
+                <div
+                  class="absolute inset-y-0 left-0 rounded-full transition-all"
+                  :style="{
+                    width: (() => {
+                      const vals = asStr(asObj(ds).values).split(',').map(v => Number(v.trim()) || 0)
+                      const max = Math.max(...vals, 1)
+                      return `${Math.round(((vals[xi] ?? 0) / max) * 100)}%`
+                    })(),
+                    backgroundColor: asStr(asObj(ds).color) || '#4f46e5'
+                  }"
+                />
+              </div>
+              <span class="w-10 shrink-0 text-xs font-semibold text-slate-700 tabular-nums">
+                {{ asStr(asObj(ds).values).split(',')[xi]?.trim() ?? '' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption v-if="asStr((asObj(block.value) as ChartVal).caption)" class="mt-2 text-center text-xs text-slate-400">
+        {{ asStr((asObj(block.value) as ChartVal).caption) }}
+      </figcaption>
+    </figure>
 
   </template>
 </template>
