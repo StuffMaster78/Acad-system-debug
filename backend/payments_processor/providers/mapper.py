@@ -48,7 +48,8 @@ class ProviderRequestAssembler:
 
     @classmethod
     def to_payment_request(cls, payment_intent: PaymentIntent) -> ProviderPaymentRequest:
-        infoq_base = getattr(settings, "INFOQ_PAYMENT_BASE_URL", "").rstrip("/")
+        site_url = getattr(payment_intent.website, "root_url", None) or ""
+        infoq_base = (site_url or getattr(settings, "INFOQ_PAYMENT_BASE_URL", "")).rstrip("/")
         ref = payment_intent.reference
 
         return ProviderPaymentRequest(

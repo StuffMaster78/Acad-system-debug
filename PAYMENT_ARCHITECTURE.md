@@ -54,19 +54,27 @@ STRIPE_WEBHOOK_SECRET=whsec_...        # HMAC key for webhook signature verifica
 INFOQ_PAYMENT_BASE_URL=https://app.gradecrest.com   # portal base URL for Stripe redirects
 ```
 
-`INFOQ_PAYMENT_BASE_URL` controls the `success_url` and `cancel_url` sent to Stripe:
+`success_url` and `cancel_url` sent to Stripe are built per-website:
 
 ```
-success_url  →  {INFOQ_PAYMENT_BASE_URL}/payment/complete?status=success&ref={reference}
-cancel_url   →  {INFOQ_PAYMENT_BASE_URL}/payment/complete?status=cancelled&ref={reference}
+success_url  →  {website.root_url}/payment/complete?status=success&ref={reference}
+cancel_url   →  {website.root_url}/payment/complete?status=cancelled&ref={reference}
 ```
 
-In dev use `http://localhost:5173` (the Vite frontend port).
-In production use the portal base URL for the primary site (e.g. `https://app.gradecrest.com`).
+The mapper (`payments_processor/providers/mapper.py`) reads `payment_intent.website.root_url`
+first, falling back to `INFOQ_PAYMENT_BASE_URL` if `root_url` is blank (e.g. dev or a
+site not yet configured). This means each site automatically gets its own correct return URL —
+no configuration needed beyond setting `Website.root_url` in the admin.
 
-> **Note:** For multi-site deployments where clients pay from different portals, a future
-> improvement is to set `INFOQ_PAYMENT_BASE_URL` dynamically from `payment_intent.website.root_url`.
-> Currently it is a single global setting — clients always return to the configured base URL.
+`INFOQ_PAYMENT_BASE_URL` is now only a **dev fallback**:
+
+```env
+# Dev fallback only — production uses website.root_url automatically
+INFOQ_PAYMENT_BASE_URL=http://localhost:5173
+```
+
+So each site's `root_url` acts as its own base URL. Set it once in the admin and Stripe
+redirects will always land on the right portal.
 
 ### Webhook endpoint
 
@@ -511,4 +519,4 @@ No changes to the orchestration or application layer — they are provider-agnos
 | `billing.receipt.issued` fires on all settlements unconditionally | Receipt is a regulatory artifact — it should always be sent regardless of other notification preferences |
 | Dispute webhooks written to DB automatically | Gives admin visibility without manual polling of the Stripe dashboard |
 | Writer payouts: manual ops, no automated rail | Volume doesn't justify Wise/Stripe Connect integration yet; PayoutRecord model is ready to attach a rail when needed |
-| `INFOQ_PAYMENT_BASE_URL` global setting | Single-site simplicity for now; future improvement is per-website dynamic URL from `website.root_url` |
+| `website.root_url` drives Stripe redirect URLs | Each site's return URL is automatically correct; `INFOQ_PAYMENT_BASE_URL` is now a dev-only fallback |
