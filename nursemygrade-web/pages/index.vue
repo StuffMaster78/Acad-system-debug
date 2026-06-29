@@ -2,8 +2,29 @@
 import { markRaw } from 'vue'
 import { PenLine, Monitor, GraduationCap, ClipboardList, FileText, Hospital, Target, Microscope, Globe, Trophy, Bot, Stethoscope, Lock, RefreshCw, Zap } from '@lucide/vue'
 import { STATIC_SUBJECTS } from '~/composables/useOrderForm'
+import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 
 const app = useAppUrl()
+
+// Fetch home_seo_body from TenantHomePage — editable in Wagtail admin
+const config = useRuntimeConfig()
+const _homeApiBase = import.meta.server
+  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+  : (config.public.apiBase || '')
+const _homeHost = import.meta.server
+  ? { Host: (config.siteHostname as string) || 'nursemygrade.com' }
+  : undefined
+
+const { data: _homeCms } = await useAsyncData('nmg-home-cms', async () => {
+  try {
+    const res = await $fetch<{ items: { home_seo_body: unknown[] }[] }>(
+      `${_homeApiBase}/api/v2/pages/`,
+      { params: { type: 'cms_core.TenantHomePage', fields: 'home_seo_body', limit: 1 }, headers: _homeHost },
+    )
+    return res.items?.[0]?.home_seo_body ?? []
+  } catch { return [] }
+})
+const homeSeoBlocks = computed(() => (_homeCms.value ?? []) as { type: string; id: string; value: unknown }[])
 
 const SCROLL_SUBJECTS = STATIC_SUBJECTS.filter(s => s.category !== 'Other')
 const row1 = SCROLL_SUBJECTS.slice(0, Math.ceil(SCROLL_SUBJECTS.length / 2))
@@ -550,6 +571,18 @@ const nurses = [
       </div>
       <p class="mt-3 text-center text-xs text-slate-400 sm:hidden">← Scroll to explore →</p>
 
+    </div>
+  </section>
+
+  <!-- ─── Wagtail-editable long-form SEO content ────────────────────────── -->
+  <section v-if="homeSeoBlocks.length" class="bg-white py-20">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <div class="prose prose-slate prose-lg max-w-none
+                  prose-headings:font-serif prose-headings:font-bold prose-headings:text-slate-900
+                  prose-a:text-brand-600 prose-a:underline
+                  prose-strong:text-slate-900">
+        <BlockRenderer :blocks="homeSeoBlocks" link-context="service" />
+      </div>
     </div>
   </section>
 

@@ -12,12 +12,14 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 
 from wagtail.models import Page
-from wagtail.fields import RichTextField
+from wagtail.fields import RichTextField, StreamField
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
+
+from cms_core.blocks import SERVICE_PAGE_BLOCKS
 
 
 # ===========================================================================
@@ -34,9 +36,18 @@ class TenantHomePage(Page):
         └── EssayManiacs Home (TenantHomePage)
     """
     intro = RichTextField(blank=True)
+    home_seo_body = StreamField(
+        SERVICE_PAGE_BLOCKS,
+        blank=True,
+        use_json_field=True,
+        verbose_name="Homepage SEO content (below testimonials)",
+        help_text="Long-form SEO content shown above the FAQ section. "
+                  "Use Heading, Paragraph, Feature Grid, Checklist, and FAQ blocks.",
+    )
 
     content_panels = Page.content_panels + [
         FieldPanel("intro"),
+        FieldPanel("home_seo_body"),
     ]
 
     subpage_types = [
@@ -49,6 +60,7 @@ class TenantHomePage(Page):
 
     api_fields = [
         APIField("intro"),
+        APIField("home_seo_body"),
     ]
 
     class Meta:
