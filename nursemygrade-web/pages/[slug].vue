@@ -1,33 +1,379 @@
 <script setup lang="ts">
-// Root-level catch-all: redirects old SEO URLs like /reliable-and-cheap-bsn-writing-service
-// to their canonical /services/[slug] or /blog/[slug] path.
-const route = useRoute()
-const slug = route.params.slug as string
+// Canonical root-level handler for service pages at /{slug}.
+// Blog posts redirect to /blog/{slug}.
+// /services/{slug} redirects here via 301 — see pages/services/[slug].vue.
+const route  = useRoute()
+const slug   = route.params.slug as string
 const config = useRuntimeConfig()
-const base = String(config.public.apiBase || '')
+const { getBySlug, getRelated } = useServices()
+const { getBySlug: getBlogBySlug } = useBlog()
 
-const { data: redirect } = await useAsyncData<string | null>(`root-redirect-${slug}`, async () => {
-  try {
-    // Try ServicePage first
-    const svc = await $fetch<{ meta: { total_count: number } }>(`${base}/api/v2/pages/`, {
-      params: { type: 'cms_service_pages.ServicePage', slug, fields: 'title' },
-    })
-    if ((svc as any).meta?.total_count > 0) return `/services/${slug}`
+// ── Step 1: synchronous lookups + useFetch registration (BEFORE any await) ──
+const service    = getBySlug(slug)
+const staticBlog = getBlogBySlug(slug)
 
-    // Try BlogPostPage
-    const blog = await $fetch<{ meta: { total_count: number } }>(`${base}/api/v2/pages/`, {
-      params: { type: 'cms_blog.BlogPostPage', slug, fields: 'title' },
-    })
-    if ((blog as any).meta?.total_count > 0) return `/blog/${slug}`
-  } catch { /* fall through to 404 */ }
-  return null
-})
+// useServiceCms must be called here (before awaits) so Nuxt SSR suspends for it
+import type { CmsServicePage } from '~/composables/useServiceCms'
+const { page: serviceCmsPage } = useServiceCms(slug)
 
-if (redirect.value) {
-  await navigateTo(redirect.value, { redirectCode: 301 })
-} else {
+// ── Step 2: single awaited check (blog-type detection for unknown slugs) ──
+const apiBase  = import.meta.server
+  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+  : (config.public.apiBase || '')
+const siteHost = import.meta.server
+  ? { Host: (config.siteHostname as string) || 'nursemygrade.com' }
+  : undefined
+
+const { data: _blogType } = await useAsyncData<boolean>(
+  `slug-blog-${slug}`,
+  async () => {
+    if (service || staticBlog) return false  // known — skip API call
+    try {
+      const res = await $fetch<{ meta: { total_count: number } }>(`${apiBase}/api/v2/pages/`, {
+        params: { type: 'cms_blog.BlogPostPage', slug, fields: 'title' },
+        headers: siteHost,
+      })
+      return (res as any).meta?.total_count > 0
+    } catch { return false }
+  },
+)
+
+// ── Step 3: route to correct destination ────────────────────────────────────
+const isBlogPost = staticBlog || _blogType.value
+
+if (!service && isBlogPost) {
+  await navigateTo(`/blog/${slug}`, { redirectCode: 301 })
+}
+
+if (!service && !isBlogPost) {
   throw createError({ statusCode: 404, statusMessage: 'Page not found' })
 }
+
+// ── Service page: use serviceCmsPage (populated by SSR Suspense by render time)
+const resolvedCmsPage = serviceCmsPage
+
+// ── Service page logic ──────────────────────────────────────────────────────
+const displayTitle    = computed(() => service?.title ?? resolvedCmsPage.value?.title ?? '')
+const displayHero     = computed(() => service?.hero ?? { headline: displayTitle.value, sub: '' })
+const displayPrice    = computed(() => service?.priceFrom ?? parseFloat(resolvedCmsPage.value?.pricing_from ?? '15'))
+const displayMeta     = computed(() => service?.meta ?? { title: displayTitle.value, description: '' })
+const displayIncludes = computed(() => service?.includes ?? [])
+const related         = service ? getRelated(service.relatedSlugs) : []
+
+const bodyBlocks     = computed(() => resolvedCmsPage.value?.body ?? [])
+type FaqBlock = { type: string; id: string; value: { question: string; answer: string } }
+const cmsFaqBlocks   = computed(() => bodyBlocks.value.filter(b => b.type === 'faq') as FaqBlock[])
+const cmsBodyBlocks  = computed(() => bodyBlocks.value.filter(b => b.type !== 'faq'))
+
+const openFaqIds = ref<Set<string>>(new Set())
+function toggleCmsFaq(id: string) {
+  if (openFaqIds.value.has(id)) openFaqIds.value.delete(id)
+  else openFaqIds.value.add(id)
+}
+
+const siteUrl      = config.public.siteUrl || 'https://nursemygrade.com'
+const canonicalUrl = `${siteUrl}/${slug}`
+
+useSeoMeta({
+  title:         displayMeta.value.title || displayTitle.value,
+  description:   displayMeta.value.description,
+  ogTitle:       displayMeta.value.title || displayTitle.value,
+  ogDescription: displayMeta.value.description,
+  ogImage:       'https://nursemygrade.com/og-default.png',
+  ogType:        'website',
+  ogImageWidth:  1200,
+  ogImageHeight: 630,
+  twitterCard:   'summary_large_image',
+})
+
+const faqSchemaItems = computed(() =>
+  cmsFaqBlocks.value.length
+    ? cmsFaqBlocks.value.map(b => ({
+        '@type': 'Question',
+        name: b.value.question,
+        acceptedAnswer: { '@type': 'Answer', text: b.value.answer.replace(/<[^>]+>/g, '') },
+      }))
+    : [
+        { '@type': 'Question', name: 'How fast can you deliver?', acceptedAnswer: { '@type': 'Answer', text: 'As fast as 3 hours for urgent orders.' } },
+        { '@type': 'Question', name: 'Are your writers real nurses?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Every writer holds at minimum a BSN with active clinical experience.' } },
+      ]
+)
+
+useHead({
+  link: [{ rel: 'canonical', href: canonicalUrl }],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://nursemygrade.com/' },
+          { '@type': 'ListItem', position: 2, name: 'Services', item: 'https://nursemygrade.com/services' },
+          { '@type': 'ListItem', position: 3, name: displayTitle.value, item: canonicalUrl },
+        ],
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqSchemaItems.value,
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        name: displayTitle.value,
+        description: displayMeta.value.description,
+        dateModified: resolvedCmsPage.value?.last_substantive_update ?? new Date().toISOString().slice(0, 10),
+        provider: { '@type': 'Organization', name: 'NurseMyGrade', url: 'https://nursemygrade.com' },
+        offers: {
+          '@type': 'Offer',
+          price: displayPrice.value,
+          priceCurrency: 'USD',
+          priceSpecification: { '@type': 'UnitPriceSpecification', price: displayPrice.value, priceCurrency: 'USD', unitText: 'page' },
+        },
+      }),
+    },
+  ],
+})
 </script>
 
-<template><div /></template>
+<template>
+  <div class="pb-20 lg:pb-0">
+
+    <!-- Breadcrumb -->
+    <div class="border-b border-brand-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl">
+        <Breadcrumbs :items="[{ label: 'Services', href: '/services' }, { label: displayTitle }]" />
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <section class="bg-gradient-to-br from-brand-50 to-white py-12 sm:py-16" aria-label="Service overview">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid gap-10 lg:grid-cols-2 lg:items-start xl:gap-16">
+          <div><MultiStepOrderForm /></div>
+          <div class="flex flex-col justify-center lg:order-first xl:order-last">
+            <div class="mb-5 flex flex-wrap gap-2">
+              <span
+                v-for="level in ['BSN', 'MSN', 'DNP / PhD']"
+                :key="level"
+                class="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                {{ level }} writers
+              </span>
+            </div>
+            <h1 class="font-serif text-3xl font-bold text-brand-900 sm:text-4xl xl:text-5xl leading-tight">
+              {{ displayHero.headline }}
+            </h1>
+            <p v-if="displayHero.sub" class="mt-3 text-brand-600 leading-relaxed">{{ displayHero.sub }}</p>
+            <div class="mt-6 space-y-2.5">
+              <div
+                v-for="signal in [
+                  { icon: 'trophy',       text: 'Grade or money back — no conditions' },
+                  { icon: 'stethoscope',  text: 'Written by credentialed nursing professionals' },
+                  { icon: 'shield-check', text: 'Free Turnitin plagiarism report included' },
+                  { icon: 'bot',          text: '100% human-written — zero AI content' },
+                ]"
+                :key="signal.text"
+                class="flex items-center gap-3 text-sm text-slate-700"
+              >
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100">
+                  <Icon :name="signal.icon" class="h-3.5 w-3.5 text-brand-600" />
+                </span>
+                {{ signal.text }}
+              </div>
+            </div>
+            <div class="mt-6 flex items-center gap-2 text-sm text-slate-500">
+              <svg v-for="i in 5" :key="i" class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span class="font-semibold text-slate-700">4.98</span>
+              <span>· 9,800+ nursing papers delivered</span>
+            </div>
+            <div class="mt-7 lg:hidden">
+              <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-700 shadow-sm">
+                Order from ${{ displayPrice }}/page →
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main content -->
+    <main class="bg-white">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        <div class="lg:grid lg:grid-cols-3 lg:gap-12 xl:gap-16">
+
+          <article class="lg:col-span-2 space-y-12 min-w-0" aria-label="Service details">
+
+            <section v-if="service?.whoFor" aria-labelledby="who-heading">
+              <h2 id="who-heading" class="font-serif text-xl font-bold text-brand-900 mb-3">Who this service is for</h2>
+              <p class="text-slate-600 leading-relaxed">{{ service.whoFor }}</p>
+            </section>
+
+            <section v-if="displayIncludes.length" aria-labelledby="includes-heading">
+              <h2 id="includes-heading" class="font-serif text-xl font-bold text-brand-900 mb-5">What's included</h2>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div
+                  v-for="(item, i) in displayIncludes"
+                  :key="item"
+                  class="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50 p-4"
+                >
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{{ i + 1 }}</span>
+                  <span class="text-sm text-slate-700 leading-relaxed">{{ item }}</span>
+                </div>
+              </div>
+            </section>
+
+            <section aria-labelledby="guarantees-heading">
+              <h2 id="guarantees-heading" class="font-serif text-xl font-bold text-brand-900 mb-5">Our guarantees</h2>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div
+                  v-for="g in [
+                    { icon: 'trophy',       title: 'Grade or money back',      desc: 'Full refund if the work doesn\'t meet your stated requirements after revisions.' },
+                    { icon: 'stethoscope',  title: 'Written by real nurses',   desc: 'BSN minimum, MSN and DNP writers available. Credentials verified before assignment.' },
+                    { icon: 'shield-check', title: 'Free Turnitin report',     desc: 'Every paper checked before delivery. Report included at no extra charge.' },
+                    { icon: 'refresh-cw',   title: 'Unlimited free revisions', desc: 'Within the revision window, always by your original writer.' },
+                  ]"
+                  :key="g.title"
+                  class="flex gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
+                >
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100">
+                    <Icon :name="g.icon" class="h-4 w-4 text-brand-600" />
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900">{{ g.title }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500 leading-relaxed">{{ g.desc }}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- FAQ — from Wagtail CMS body blocks, static fallback if not yet seeded -->
+            <section aria-labelledby="faq-heading">
+              <h2 id="faq-heading" class="font-serif text-xl font-bold text-brand-900 mb-5">
+                Common questions about {{ displayTitle.toLowerCase() }}
+              </h2>
+              <template v-if="cmsFaqBlocks.length">
+                <div class="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                  <div v-for="faq in cmsFaqBlocks" :key="faq.id" class="overflow-hidden">
+                    <button
+                      class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
+                      @click="toggleCmsFaq(faq.id)"
+                    >
+                      {{ faq.value.question }}
+                      <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform" :class="openFaqIds.has(faq.id) ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </button>
+                    <div v-show="openFaqIds.has(faq.id)" class="border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-sm text-slate-600 leading-relaxed" v-html="faq.value.answer" />
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                  <details v-for="faq in [
+                    { q: 'How fast can you deliver?', a: 'As fast as 3 hours for urgent orders. Most papers are matched with a qualified nurse writer within minutes of placing your order.' },
+                    { q: 'Are your writers real nurses?', a: 'Yes. Every writer holds at minimum a BSN with active clinical experience. MSN and DNP writers are available for advanced nursing work.' },
+                    { q: 'What if I need revisions?', a: 'Unlimited free revisions are included within the revision window, always handled by your original writer.' },
+                    { q: 'Is using a nursing writing service legal?', a: 'Yes. We provide model nursing papers for reference and study. Every order includes an academic use acknowledgement.' },
+                  ]" :key="faq.q" class="group px-5 py-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-slate-900">
+                      {{ faq.q }}
+                      <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600 transition-transform group-open:rotate-45 text-xs font-bold">+</span>
+                    </summary>
+                    <p class="mt-3 text-sm text-slate-500 leading-relaxed">{{ faq.a }}</p>
+                  </details>
+                </div>
+              </template>
+            </section>
+
+          </article>
+
+          <!-- Sidebar -->
+          <aside class="hidden lg:block" aria-label="Order summary">
+            <div class="sticky top-24 space-y-4">
+              <div class="overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm">
+                <div class="bg-brand-700 px-5 py-4">
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-brand-300 mb-1">Starting from</p>
+                  <p class="text-3xl font-bold text-white">${{ displayPrice }}<span class="text-sm font-normal text-brand-300">/page</span></p>
+                </div>
+                <div class="p-5 space-y-4">
+                  <NuxtLink to="/order" class="block w-full rounded-xl bg-brand-600 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-brand-700 shadow-sm">Order now →</NuxtLink>
+                  <NuxtLink to="/pricing" class="block w-full rounded-xl border border-brand-200 py-2.5 text-center text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-50">See full pricing</NuxtLink>
+                  <ul class="space-y-2 pt-1">
+                    <li v-for="t in ['Grade or money back', 'Written by BSN/MSN/DNP nurses', 'Free Turnitin report', 'Zero AI content', 'Unlimited free revisions']" :key="t" class="flex items-center gap-2 text-xs text-slate-600">
+                      <Icon name="check" class="h-3.5 w-3.5 shrink-0 text-brand-500" />{{ t }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div v-if="resolvedCmsPage?.reviewer" class="rounded-2xl border border-brand-100 bg-brand-50 p-4">
+                <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                  <Icon name="check-circle" class="h-3.5 w-3.5 text-brand-500" />Content reviewed by
+                </div>
+                <p class="text-sm font-semibold text-slate-900">{{ resolvedCmsPage.reviewer.name }}</p>
+                <p v-if="resolvedCmsPage.reviewer.role" class="text-xs text-slate-500 mt-0.5">{{ resolvedCmsPage.reviewer.role }}</p>
+              </div>
+              <div v-if="related.length" class="rounded-2xl border border-slate-100 bg-white p-5">
+                <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Related services</p>
+                <ul class="space-y-1.5">
+                  <li v-for="r in related" :key="r.slug">
+                    <NuxtLink :to="`/${r.slug}`" class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700">
+                      <Icon :name="r.icon" class="h-3.5 w-3.5 shrink-0 text-brand-400" />{{ r.navLabel }}
+                    </NuxtLink>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- Two-column SEO body: stats, prose, how-it-works, features, checklist -->
+    <section v-if="cmsBodyBlocks.length" class="border-t border-slate-100 bg-slate-50 py-14">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="service-body columns-1 md:columns-2 md:gap-x-12 [column-fill:balance]">
+          <ServicePageBody :blocks="cmsBodyBlocks" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="bg-brand-700 py-14 text-center" aria-label="Get started">
+      <div class="mx-auto max-w-xl px-4 space-y-4">
+        <h2 class="font-serif text-2xl font-bold text-white sm:text-3xl">Ready to work with a nurse writer?</h2>
+        <p class="text-brand-100 text-sm leading-relaxed">From ${{ displayPrice }}/page · Matched within minutes · Grade or money back</p>
+        <NuxtLink to="/order" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-brand-700 shadow-lg transition-colors hover:bg-brand-50">
+          Place your order →
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!-- Mobile fixed CTA -->
+    <div class="fixed bottom-0 inset-x-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-sm px-4 py-3 flex gap-3 lg:hidden">
+      <NuxtLink to="/pricing" class="flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700">See pricing</NuxtLink>
+      <NuxtLink to="/order" class="flex h-11 flex-[2] items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">Order from ${{ displayPrice }}/page</NuxtLink>
+    </div>
+
+  </div>
+</template>
+
+<style scoped>
+.service-body :deep(h2) { font-family: Georgia, serif; font-weight: 700; color: #134e4a; margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.25rem; }
+.service-body :deep(h3) { font-weight: 600; color: #115e59; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+.service-body :deep(p)  { color: #475569; line-height: 1.7; margin-bottom: 0.75rem; font-size: 0.9375rem; }
+.service-body :deep(ul), .service-body :deep(ol) { padding-left: 1.25rem; color: #475569; font-size: 0.9375rem; }
+.service-body :deep(li) { margin-bottom: 0.375rem; line-height: 1.6; }
+.service-body :deep(a)  { color: #0d9488; text-decoration: underline; }
+</style>

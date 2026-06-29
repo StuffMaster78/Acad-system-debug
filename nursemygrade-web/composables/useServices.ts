@@ -673,6 +673,66 @@ const services: ServiceData[] = [
       description: 'Hire credentialed health and medical writers for academic and educational content. BSN, MSN, DNP writers available. From $24/page.',
     },
   },
+  {
+    slug: 'nursing-evidence-based-practice',
+    navLabel: 'EBP Papers',
+    icon: 'search',
+    title: 'Evidence-Based Practice (EBP) Nursing Paper Writing Service',
+    hero: {
+      headline: 'EBP Nursing Papers Built on Current Clinical Evidence',
+      sub: 'PICOT-driven evidence-based practice papers, systematic appraisals, and EBP project proposals — written by nurses who apply evidence-based practice every clinical shift.',
+    },
+    includes: [
+      'PICOT question development and refinement',
+      'Systematic literature search with inclusion/exclusion criteria',
+      'Critical appraisal using validated tools (CASP, JBI)',
+      'Evidence synthesis and clinical applicability discussion',
+      'APA 7th edition formatting throughout',
+    ],
+    delivers: [
+      'Full EBP paper with PICOT, evidence appraisal, and clinical recommendations',
+      'Synthesis table summarising appraised studies',
+      'Implications for practice section',
+      'Formatted reference list with DOIs',
+    ],
+    whoFor: 'BSN, MSN, and DNP nursing students who need rigorous EBP papers that demonstrate critical appraisal skills and application of current evidence to clinical practice.',
+    priceFrom: 26,
+    relatedSlugs: ['nursing-annotated-bibliography', 'best-online-nursing-research-paper-service', 'nursing-capstone-project-writing-service'],
+    meta: {
+      title: 'Evidence-Based Practice Nursing Paper Writing Service — EBP Help',
+      description: 'Expert EBP nursing papers using PICOT, clinical appraisal, and synthesis of current evidence. Written by BSN/MSN nurses. From $26/page.',
+    },
+  },
+  {
+    slug: 'nursing-annotated-bibliography',
+    navLabel: 'Annotated Bibliography',
+    icon: 'book-open',
+    title: 'Nursing Annotated Bibliography Writing Service',
+    hero: {
+      headline: 'Nursing Annotated Bibliographies — Critically Summarised, APA Formatted',
+      sub: 'Source-by-source summaries with critical evaluation of relevance, methodology, and clinical applicability — properly formatted in APA 7th edition by nurses who read the literature daily.',
+    },
+    includes: [
+      'Full APA 7th citation for each source',
+      'Summary of the source\'s purpose, methodology, and key findings',
+      'Critical evaluation of strengths, limitations, and relevance',
+      'Commentary on how each source fits your research question',
+      'Nursing sources from CINAHL, PubMed, Cochrane',
+    ],
+    delivers: [
+      'Complete annotated bibliography to your required source count',
+      'Annotations written in academic nursing language',
+      'APA 7th formatted references and annotations',
+      'Sources drawn from peer-reviewed nursing literature',
+    ],
+    whoFor: 'Nursing students who need an annotated bibliography for a research paper, capstone project, or literature review assignment — with genuine critical analysis of each source.',
+    priceFrom: 24,
+    relatedSlugs: ['nursing-evidence-based-practice', 'best-online-nursing-research-paper-service', 'nursing-capstone-project-writing-service'],
+    meta: {
+      title: 'Nursing Annotated Bibliography Writing Service — APA 7th Edition',
+      description: 'Expert nursing annotated bibliographies with critical summaries and APA 7th citations. Written by qualified nurses. From $24/page.',
+    },
+  },
 ]
 
 export function useServices() {
