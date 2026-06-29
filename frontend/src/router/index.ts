@@ -256,6 +256,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         component: () => import("@/views/admin/AdminFilesView.vue"),
       },
       {
+        path: "file-audit",
+        name: "admin-file-audit",
+        component: () => import("@/views/admin/AdminFileAuditView.vue"),
+      },
+      {
         path: "writers",
         name: "admin-writers",
         component: () => import("@/views/admin/AdminWritersView.vue"),
@@ -1045,6 +1050,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "files",
         name: "superadmin-files",
         component: () => import("@/views/admin/AdminFilesView.vue"),
+      },
+      {
+        path: "file-audit",
+        name: "superadmin-file-audit",
+        component: () => import("@/views/admin/AdminFileAuditView.vue"),
       },
       {
         path: "analytics",

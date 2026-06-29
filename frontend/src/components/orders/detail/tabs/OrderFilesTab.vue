@@ -1,6 +1,20 @@
 <template>
   <div class="space-y-0 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white overflow-hidden">
 
+    <!-- Toolbar -->
+    <div class="flex items-center justify-between gap-2 px-5 py-2.5 bg-slate-50/80">
+      <span class="text-xs font-semibold text-graphite uppercase tracking-wide">Files</span>
+      <button
+        v-if="!files.isLoading"
+        class="focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-graphite hover:border-slate-300 hover:text-ink disabled:opacity-50"
+        :disabled="bulkDownloading"
+        @click="bulkDownload">
+        <Loader2 v-if="bulkDownloading" class="h-3.5 w-3.5 animate-spin" />
+        <Archive v-else class="h-3.5 w-3.5" />
+        Download all (.zip)
+      </button>
+    </div>
+
     <!-- System notices -->
     <div v-if="files.error" class="flex items-center gap-2 bg-rose-50 px-5 py-3 text-sm text-rose-700">
       <AlertCircle class="h-4 w-4 shrink-0" />{{ files.error }}
@@ -83,6 +97,14 @@
             </div>
             <!-- Actions -->
             <div class="flex shrink-0 items-center gap-2">
+              <!-- Preview button (PDF / images only) -->
+              <button
+                v-if="['jpg','jpeg','png','gif','webp','pdf'].includes((att.managed_file?.original_filename ?? att.display_name ?? '').split('.').pop()?.toLowerCase() ?? '')"
+                class="focus-ring flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                title="Preview"
+                @click="openPreview(att)">
+                <Eye class="h-4 w-4" />
+              </button>
               <button v-if="att.delivery_status === 'approved' || att.delivery_status === 'submitted'"
                 class="focus-ring inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                 :disabled="downloading === att.id"
@@ -166,7 +188,7 @@
         <FileTile v-for="att in clientMaterials" :key="att.id"
           :att="att" :order-id="orderId" :role="role"
           :downloading="downloading" :can-delete="canRequestDeletion"
-          @download="download" @request-delete="openDeletePrompt" />
+          @download="download" @request-delete="openDeletePrompt" @preview="openPreview" />
       </div>
     </section>
 
@@ -199,7 +221,7 @@
         <FileTile v-for="att in draftFiles" :key="att.id"
           :att="att" :order-id="orderId" :role="role"
           :downloading="downloading" :can-delete="canRequestDeletion"
-          @download="download" @request-delete="openDeletePrompt" />
+          @download="download" @request-delete="openDeletePrompt" @preview="openPreview" />
       </div>
 
       <!-- Submit work panel (writer) -->
@@ -269,7 +291,7 @@
             :att="att" :order-id="orderId" :role="role"
             :downloading="downloading" :can-delete="canRequestDeletion"
             :show-revision-badge="false"
-            @download="download" @request-delete="openDeletePrompt" />
+            @download="download" @request-delete="openDeletePrompt" @preview="openPreview" />
         </div>
       </template>
     </section>
@@ -343,7 +365,7 @@
         <FileTile v-for="att in writerGuides" :key="att.id"
           :att="att" :order-id="orderId" :role="role"
           :downloading="downloading" :can-delete="false" :can-staff-detach="isStaffRole"
-          @download="download" @staff-detach="staffDetach" />
+          @download="download" @staff-detach="staffDetach" @preview="openPreview" />
       </div>
     </section>
 
@@ -377,7 +399,7 @@
         <FileTile v-for="att in internalFiles" :key="att.id"
           :att="att" :order-id="orderId" :role="role"
           :downloading="downloading" :can-delete="false" :can-staff-detach="true"
-          @download="download" @staff-detach="staffDetach" />
+          @download="download" @staff-detach="staffDetach" @preview="openPreview" />
       </div>
     </section>
 
@@ -402,24 +424,63 @@
       </div>
     </Teleport>
 
+    <!-- File preview overlay -->
+    <Teleport to="body">
+      <div
+        v-if="previewingAttachment"
+        class="fixed inset-0 z-[60] flex flex-col bg-black/90"
+        @click.self="closePreview">
+        <!-- Top bar -->
+        <div class="flex shrink-0 items-center gap-3 px-5 py-3 bg-black/60">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-white">{{ attFileName(previewingAttachment) }}</p>
+            <p v-if="attFileSize(previewingAttachment)" class="text-xs text-slate-400">{{ attFileSize(previewingAttachment) }}</p>
+          </div>
+          <button
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white"
+            title="Close (Esc)"
+            @click="closePreview">
+            <X class="h-5 w-5" />
+          </button>
+        </div>
+        <!-- Content -->
+        <div class="flex flex-1 items-center justify-center overflow-hidden p-4" @click.self="closePreview">
+          <div v-if="previewLoading" class="text-slate-400 text-sm">Loading preview…</div>
+          <template v-else-if="previewUrl">
+            <img
+              v-if="previewType(attExt(previewingAttachment)) === 'image'"
+              :src="previewUrl"
+              class="max-h-[90vh] max-w-[90vw] object-contain rounded shadow-2xl"
+              :alt="attFileName(previewingAttachment)" />
+            <iframe
+              v-else-if="previewType(attExt(previewingAttachment)) === 'pdf'"
+              :src="previewUrl"
+              class="w-full h-full rounded"
+              style="min-height: 80vh;" />
+          </template>
+          <div v-else class="text-slate-400 text-sm">Preview unavailable.</div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineComponent, h, type PropType } from "vue";
+import { ref, computed, defineComponent, h, onMounted, onUnmounted, type PropType } from "vue";
 import {
-  AlertCircle, BookOpen, CheckCircle2, Download, ExternalLink,
-  FileEdit, FileUp, Loader2, Lock, Paperclip, RotateCcw,
+  AlertCircle, Archive, BookOpen, CheckCircle2, Download, ExternalLink,
+  Eye, FileEdit, FileUp, Loader2, Lock, Paperclip, RotateCcw,
   Send, Trophy, X,
 } from "@lucide/vue";
 import type { UserRole } from "@/types/roles";
-import type { FileAttachment, DeliveryStatus } from "@/api/files";
+import { filesApi, type FileAttachment, type DeliveryStatus, type FilePurpose } from "@/api/files";
 import { legalApi, type HelpArticleSummary } from "@/api/legal";
 import { writerApi } from "@/api/writer";
 import { useFilesStore, type QueuedFile } from "@/stores/files";
 import { isStaff } from "../types";
 import type { OrderLifecycle, OrderSummary } from "../types";
-import type { FilePurpose } from "@/api/files";
+import { apiBaseOrigin } from "@/api/client";
 
 // ── Inline sub-components ──────────────────────────────────────────────────
 
@@ -571,7 +632,7 @@ const FileTile = defineComponent({
     canStaffDetach: { type: Boolean, default: false },
     showRevisionBadge: { type: Boolean, default: true },
   },
-  emits: ["download", "request-delete", "staff-detach"],
+  emits: ["download", "request-delete", "staff-detach", "preview"],
   setup(props, { emit }) {
     const PURPOSE_LABELS: Record<string, string> = {
       order_instruction: "Instruction", order_reference: "Reference",
@@ -614,6 +675,8 @@ const FileTile = defineComponent({
       return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
     }
 
+    const TILE_PREVIEW_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "pdf"]);
+
     return () => {
       const att = props.att;
       const isLink = !!att.external_link;
@@ -625,6 +688,7 @@ const FileTile = defineComponent({
         zip: "bg-purple-100 text-purple-700",
       };
       const extCls = EXT_COLOR[extStr] ?? "bg-slate-100 text-slate-600";
+      const showPreview = !isLink && TILE_PREVIEW_EXTS.has(extStr);
 
       return h("div", { class: "flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors" }, [
         // Extension badge
@@ -665,6 +729,14 @@ const FileTile = defineComponent({
 
         // Actions
         h("div", { class: "flex shrink-0 items-center gap-1.5" }, [
+          // Preview (images + PDF only)
+          showPreview
+            ? h("button", {
+                class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600",
+                title: "Preview",
+                onClick: () => emit("preview", att),
+              }, h(Eye, { class: "h-3.5 w-3.5" }))
+            : null,
           // Download / open
           h("button", {
             class: "focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-graphite hover:border-slate-300 hover:text-ink disabled:opacity-40",
@@ -857,6 +929,80 @@ async function download(id: number) {
   try { await files.downloadFile(props.orderId, id); }
   finally { downloading.value = null; }
 }
+
+// ── Bulk download ──────────────────────────────────────────────────────────
+const bulkDownloading = ref(false);
+async function bulkDownload() {
+  bulkDownloading.value = true;
+  try {
+    const url = `${apiBaseOrigin}/api/orders/${props.orderId}/files/bulk-download/`;
+    const resp = await fetch(url, { credentials: "include" });
+    const blob = await resp.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `order-${props.orderId}-files.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } finally {
+    bulkDownloading.value = false;
+  }
+}
+
+// ── Preview ────────────────────────────────────────────────────────────────
+const PREVIEW_IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+const PREVIEW_PDF_EXTS = new Set(["pdf"]);
+
+function canPreview(ext: string) {
+  return PREVIEW_IMAGE_EXTS.has(ext.toLowerCase()) || PREVIEW_PDF_EXTS.has(ext.toLowerCase());
+}
+function previewType(ext: string): "image" | "pdf" | null {
+  if (PREVIEW_IMAGE_EXTS.has(ext.toLowerCase())) return "image";
+  if (PREVIEW_PDF_EXTS.has(ext.toLowerCase())) return "pdf";
+  return null;
+}
+function attExt(att: FileAttachment) {
+  const name = att.managed_file?.original_filename ?? att.display_name ?? "";
+  return name.includes(".") ? name.split(".").pop()?.toLowerCase() ?? "" : "";
+}
+function attFileName(att: FileAttachment) {
+  return att.managed_file?.original_filename ?? att.display_name ?? `File #${att.id}`;
+}
+function attFileSize(att: FileAttachment) {
+  const bytes = att.managed_file?.file_size_bytes;
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+const previewingAttachment = ref<FileAttachment | null>(null);
+const previewUrl = ref<string | null>(null);
+const previewLoading = ref(false);
+
+async function openPreview(att: FileAttachment) {
+  previewLoading.value = true;
+  previewingAttachment.value = att;
+  try {
+    const { data } = await filesApi.orderFileDownload(props.orderId, att.id);
+    previewUrl.value = data.url;
+  } catch {
+    previewUrl.value = null;
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+function closePreview() {
+  previewingAttachment.value = null;
+  previewUrl.value = null;
+}
+
+function onOverlayKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape") closePreview();
+}
+
+onMounted(() => { document.addEventListener("keydown", onOverlayKeydown); });
+onUnmounted(() => { document.removeEventListener("keydown", onOverlayKeydown); });
 
 // ── Delete request ─────────────────────────────────────────────────────────
 const deletingId       = ref<number | null>(null);

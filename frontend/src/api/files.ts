@@ -132,6 +132,31 @@ export interface AdminActionResponse {
   scan_status?: string;
 }
 
+export interface AuditAccessLogEntry {
+  id: number;
+  file_id: number;
+  file_name: string;
+  access_type: string;
+  user_id: number | null;
+  user_email: string | null;
+  ip_address: string | null;
+  success: boolean;
+  error_detail: string;
+  bytes_transferred: number;
+  created_at: string;
+}
+
+export interface AuditDownloadLogEntry {
+  id: number;
+  file_id: number;
+  file_name: string;
+  downloaded_by_id: number | null;
+  downloaded_by_email: string | null;
+  ip_address: string | null;
+  user_agent: string;
+  downloaded_at: string;
+}
+
 const PURPOSE_ENDPOINT: Record<string, string> = {
   order_instruction:    "instructions",
   order_reference:      "references",
@@ -250,4 +275,11 @@ export const filesApi = {
     // Do NOT set Content-Type header manually — axios handles multipart boundary
     return api.post<{ file_id: string }>(apiPath("/files/upload/"), form);
   },
+
+  // Audit log endpoints (admin only)
+  auditAccessLog: (params?: Record<string, unknown>) =>
+    api.get<AuditAccessLogEntry[]>(apiPath("/files/admin/audit/access-log/"), { params }),
+
+  auditDownloadLog: (params?: Record<string, unknown>) =>
+    api.get<AuditDownloadLogEntry[]>(apiPath("/files/admin/audit/download-log/"), { params }),
 };
