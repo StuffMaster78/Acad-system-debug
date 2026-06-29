@@ -2983,5 +2983,405 @@ BODY_BLOCKS = {
              "require 24–48 hours depending on complexity.</p>"),
     ],
 
+    # ── 25. Nursing Papers (general) ─────────────────────────────────────────
+    "online-nursing-papers-writing-service": [
+        _stats(
+            ("All assignment types", "essays to dissertations"),
+            ("2 hrs", "fastest delivery"),
+            ("BSN–DNP", "writer credentials"),
+            ("<5%", "Turnitin similarity"),
+        ),
+        _h("Why Nursing Students Choose NurseMyGrade for Nursing Paper Help"),
+        _p(
+            "<p>Nursing academic programmes require students to write across a wide range of "
+            "assignment types simultaneously: a care plan on Monday, a research paper due "
+            "Thursday, a reflection journal every two weeks, a case study at the end of the "
+            "module. Each type has its own structure, its own evidence requirements, and its "
+            "own marking criteria. A service staffed by generalist writers can handle one or "
+            "two types competently. A service staffed by nurses can handle all of them—because "
+            "nurses have written them all during their own training.</p>"
+            "<p>NurseMyGrade writers hold active nursing credentials at BSN, MSN, DNP, or PhD "
+            "level. They have written care plans in clinical placements, submitted research "
+            "papers for academic credit, defended capstone projects, and passed the same nursing "
+            "examinations their clients are preparing for. That shared experience means they "
+            "understand what faculty are looking for—not just the surface content, but the "
+            "clinical reasoning and evidence integration that separates a distinction from a pass.</p>"
+        ),
+        _hiw("How We Write Your Nursing Paper", [
+            STEP_SUBMIT,
+            (
+                "Writer Matching",
+                "<p>Your assignment is matched to a writer with relevant nursing credentials "
+                "and clinical background. Care plans go to practising nurses; research papers "
+                "to writers with research experience at your academic level. You are notified "
+                "when a writer accepts your order.</p>",
+            ),
+            (
+                "Writing and Quality Review",
+                "<p>Your paper is written to your brief, formatted in APA 7th edition (or your "
+                "required style), and reviewed for clinical accuracy before passing a Turnitin "
+                "scan. Papers with similarity above 5% are revised before delivery.</p>",
+            ),
+            STEP_DELIVER,
+        ]),
+        _fg("Nursing Paper Types We Cover", [
+            (
+                "Essays and Reflective Writing",
+                "Analytical nursing essays, reflective practice papers (Gibbs, Johns, Driscoll "
+                "models), position papers, and policy analysis essays — written to your faculty's "
+                "rubric and at your academic level.",
+            ),
+            (
+                "Research and Evidence-Based Papers",
+                "Literature reviews, research critiques, EBP papers, PICOT-based studies, "
+                "systematic review summaries, and research proposals grounded in peer-reviewed "
+                "nursing and health literature.",
+            ),
+            (
+                "Clinical Assignment Types",
+                "Care plans (NANDA, NIC, NOC), SOAP notes, concept maps, case studies, clinical "
+                "practicum reflection logs, and nursing assessment papers using validated clinical "
+                "frameworks and current clinical guidelines.",
+            ),
+            (
+                "Advanced and Postgraduate Papers",
+                "Capstone projects, dissertation chapters, scholarly papers for MSN and DNP "
+                "programmes, quality improvement proposals, and nursing leadership and "
+                "administration papers at graduate and doctoral level.",
+            ),
+        ]),
+        _h("Quality Assurance on Every Nursing Paper"),
+        _p(
+            "<p>Every paper submitted through NurseMyGrade passes a consistent quality process "
+            "before delivery. The writer completes the paper to the client's brief and rubric. "
+            "The document is formatted to the required citation style—APA 7th in most cases. "
+            "A Turnitin scan is run; if similarity exceeds 5%, the paper is revised before "
+            "being sent to the client. The Turnitin report is included in delivery, not "
+            "available on request.</p>"
+            "<p>Revision requests are handled by the original writer within the revision window. "
+            "Most revision requests are straightforward formatting or argument clarifications; "
+            "writers respond within a few hours. The grade guarantee means that if the completed "
+            "paper does not meet your stated requirements after revisions, you qualify for a "
+            "full refund—no questions about which requirements the paper failed to meet.</p>"
+        ),
+        _cl("NurseMyGrade Nursing Paper Quality Checklist", [
+            ("Paper written to your exact brief, word count, and rubric criteria", ""),
+            ("Writer holds relevant nursing credential at your academic level or above", ""),
+            ("APA 7th edition (or specified style) formatting applied throughout", ""),
+            ("In-text citations and reference list match; no orphaned references", ""),
+            ("Clinical content accurate and grounded in current evidence or guidelines", ""),
+            ("Turnitin similarity below 5%; report included in delivery", ""),
+            ("Title page, running head, and outline included where required", ""),
+            ("Grade guarantee applies if requirements are not met after revisions", ""),
+        ]),
+        _faq_heading(),
+        _faq("What types of nursing papers can you write?",
+             "<p>Essays, reflective writing, research papers, literature reviews, EBP papers, "
+             "care plans, SOAP notes, concept maps, case studies, capstone projects, dissertation "
+             "chapters, presentations, and any other nursing assignment type. If it appears on a "
+             "nursing programme syllabus, we have written it before.</p>"),
+        _faq("How fast can you deliver a nursing paper?",
+             "<p>Qualifying short assignments (1,000–2,000 words) from 2 hours. Standard nursing "
+             "papers (2,000–4,000 words) typically within 12–24 hours. Longer papers, research "
+             "papers, and capstone-level work require more time depending on complexity and "
+             "research depth. Share your deadline when ordering and we will confirm availability.</p>"),
+        _faq("Is the paper checked for plagiarism before delivery?",
+             "<p>Yes. Every paper is scanned with Turnitin before delivery. Similarity must be "
+             "below 5% before the paper is sent. The Turnitin report is included in delivery "
+             "automatically, at no extra charge.</p>"),
+        _faq("What citation style do you use?",
+             "<p>APA 7th edition as standard. AMA, Harvard, Chicago, and other styles are "
+             "available on request. Specify your required style in your brief.</p>"),
+        _faq("Can I request a writer with a specific nursing speciality?",
+             "<p>Yes. Specify your clinical area in your brief and we will match you to a writer "
+             "with relevant speciality background. Matching by speciality produces more clinically "
+             "grounded content than matching by subject area alone.</p>"),
+        _faq("What if my paper needs revisions?",
+             "<p>Request revisions through the order portal within the revision window. Revisions "
+             "are always completed by your original writer and are free of charge. The revision "
+             "window begins at delivery and is specified in your order confirmation.</p>"),
+        _faq("Do you write papers for DNP and PhD programmes?",
+             "<p>Yes. DNP-level papers (practice-focused, EBP-grounded, quality improvement) and "
+             "PhD-level papers (research-focused, theoretical, empirical) are both supported. "
+             "Writers are matched at or above your academic level.</p>"),
+        _faq("What is the grade guarantee?",
+             "<p>If the delivered paper does not meet your stated requirements after revisions, "
+             "you qualify for a full refund. The requirements must be those you specified in your "
+             "original brief. Share your rubric and marking criteria when ordering.</p>"),
+    ],
+
+    # ── 26. Nursing Thesis ───────────────────────────────────────────────────
+    "online-nursing-thesis-writing-helpers": [
+        _stats(
+            ("MSN + PhD", "academic levels"),
+            ("12 hrs", "fastest single chapter"),
+            ("Quant / Qual / Mixed", "research designs"),
+            ("BSN–PhD", "writer credentials"),
+        ),
+        _h("Why MSN and PhD Students Choose NurseMyGrade for Thesis Help"),
+        _p(
+            "<p>A nursing thesis is not a long essay. It is a structured academic document that "
+            "demonstrates original scholarly thinking at graduate or doctoral level: a defensible "
+            "research question, a literature base that justifies the question, a methodology "
+            "appropriate to the question, and findings or arguments that contribute to nursing "
+            "knowledge or practice. Each component must meet the standards of your institution's "
+            "thesis committee, and those standards are different from the standards applied to "
+            "undergraduate coursework.</p>"
+            "<p>NurseMyGrade thesis writers hold MSN, DNP, or PhD credentials and have navigated "
+            "their own thesis or dissertation processes at nursing graduate programmes. They know "
+            "the difference between a literature review that summarises what exists and one that "
+            "synthesises the evidence to identify a genuine gap. They know what a committee "
+            "chair looks for in a methodology chapter: not just the correct design choice, but "
+            "the rationale that demonstrates the student understands why that design is appropriate "
+            "for their specific research question. That level of methodological understanding is "
+            "what your writer brings.</p>"
+        ),
+        _hiw("How We Write Your Nursing Thesis", [
+            (
+                "Proposal and Research Question",
+                "<p>Share your programme requirements, your general topic area, and any committee "
+                "feedback you have received. Your writer helps develop or refine your thesis "
+                "proposal: problem statement, research question or PICOT, significance, and "
+                "preliminary theoretical framework.</p>",
+            ),
+            (
+                "Literature Review and Gap Analysis",
+                "<p>A systematic review of the nursing, health, and related research literature "
+                "is conducted. Evidence is synthesised—not just summarised—to establish what is "
+                "known, what is contested, and where the gap your research addresses lies. "
+                "The literature review is structured to lead logically to your research question.</p>",
+            ),
+            (
+                "Methodology and Chapter Writing",
+                "<p>Your methodology chapter articulates your chosen research design, sample, "
+                "data collection and analysis approach, and ethical considerations—with rationale "
+                "grounded in research methodology literature. Subsequent chapters (findings, "
+                "discussion, conclusion) are written to your committee's structural requirements.</p>",
+            ),
+            STEP_DELIVER,
+        ]),
+        _fg("Thesis Components We Support", [
+            (
+                "Thesis Proposal",
+                "Problem statement, clinical or scholarly significance, preliminary literature "
+                "overview, research question or PICOT, and proposed methodology — developed to "
+                "your institution's proposal format and committee expectations.",
+            ),
+            (
+                "Literature Review",
+                "Systematic synthesis of primary and secondary nursing literature. Thematic "
+                "organisation, evidence hierarchy, gap identification, and a structured argument "
+                "that justifies your research question. PRISMA reporting where applicable.",
+            ),
+            (
+                "Methodology Chapter",
+                "Research design selection and rationale. Sample and setting description. "
+                "Data collection instruments and procedures. Quantitative, qualitative, or "
+                "mixed methods — with the design justification your committee requires.",
+            ),
+            (
+                "Discussion and Conclusion",
+                "Findings interpreted in relation to the literature and theoretical framework. "
+                "Implications for nursing practice, education, or policy. Limitations acknowledged. "
+                "Recommendations for future research grounded in your findings.",
+            ),
+        ]),
+        _h("Research Designs and Nursing Theories We Support"),
+        _p(
+            "<p>Graduate nursing programmes use a wide range of research designs, and the "
+            "methodology chapter must demonstrate that the chosen design is appropriate—not "
+            "just named. NurseMyGrade thesis writers are experienced with quantitative designs "
+            "(randomised controlled trials, cohort studies, cross-sectional surveys, secondary "
+            "data analysis), qualitative designs (phenomenology, grounded theory, ethnography, "
+            "case study, narrative inquiry), and mixed methods designs that combine quantitative "
+            "and qualitative approaches in a single study.</p>"
+            "<p>Nursing theoretical frameworks used across programme levels include Orem's "
+            "Self-Care Deficit Theory, Roy's Adaptation Model, Watson's Theory of Human Caring, "
+            "Benner's Novice to Expert model, Peplau's Interpersonal Relations Theory, "
+            "Leininger's Transcultural Nursing, and the Health Belief Model, among others. "
+            "Specify the framework your programme or committee requires and your writer will "
+            "integrate it structurally, not superficially.</p>"
+        ),
+        _cl("NurseMyGrade Nursing Thesis Quality Checklist", [
+            ("Research question or PICOT clearly stated and defensible", ""),
+            ("Literature review synthesises evidence to identify a specific gap", ""),
+            ("Methodology chapter includes design rationale, not just design description", ""),
+            ("Theoretical or conceptual framework applied structurally throughout", ""),
+            ("APA 7th edition formatting applied to all citations and reference entries", ""),
+            ("Chapter structure matches your institution's thesis format requirements", ""),
+            ("Turnitin similarity below 5%; report included", ""),
+            ("Free revisions within scope until committee submission requirements are met", ""),
+        ]),
+        _faq_heading(),
+        _faq("Can you write just one chapter of my thesis?",
+             "<p>Yes. Chapter-by-chapter orders are common. Many students begin with the literature "
+             "review or methodology chapter and expand from there. Provide the chapter requirements "
+             "and any preceding chapters for context.</p>"),
+        _faq("Which research designs do your writers support?",
+             "<p>Quantitative (RCT, cohort, cross-sectional, secondary analysis), qualitative "
+             "(phenomenology, grounded theory, ethnography, case study, narrative inquiry), and "
+             "mixed methods. Specify your design and your writer is matched accordingly.</p>"),
+        _faq("Can you help with the thesis proposal before the full manuscript?",
+             "<p>Yes. Proposals are a common starting point. Your writer develops the problem "
+             "statement, research question or PICOT, significance, preliminary literature overview, "
+             "and proposed methodology to your institution's proposal format.</p>"),
+        _faq("What nursing theories do you work with?",
+             "<p>Orem, Roy, Watson, Benner, Peplau, Leininger, Nightingale, Health Belief Model, "
+             "Social Cognitive Theory, and others. Specify the framework your programme requires "
+             "and your writer applies it structurally throughout the thesis.</p>"),
+        _faq("Can you help with a DNP capstone project rather than a traditional thesis?",
+             "<p>Yes. DNP capstone projects (practice-focused, EBP-grounded, quality improvement "
+             "framed) are supported alongside traditional MSN and PhD theses. See also our "
+             "dedicated Nursing Capstone Project service for capstone-specific support.</p>"),
+        _faq("What is the turnaround for a full thesis?",
+             "<p>Full thesis turnaround depends on length and complexity. Individual chapters "
+             "(5,000–8,000 words) can be delivered in 48–72 hours. Full manuscripts are "
+             "delivered chapter-by-chapter to a schedule agreed at order placement.</p>"),
+        _faq("Can you help with committee revision requests after submission?",
+             "<p>Yes. If your committee returns your thesis with revision requests, share the "
+             "feedback and your writer addresses the specific points raised. Revisions after "
+             "committee review are handled as a separate order.</p>"),
+        _faq("Do you write systematic review chapters?",
+             "<p>Yes. PRISMA-compliant systematic reviews with documented search strategy, "
+             "inclusion/exclusion criteria, data extraction, quality appraisal, and thematic "
+             "synthesis are supported at both MSN and PhD level.</p>"),
+    ],
+
+    # ── 27. Nursing Assignment Help ──────────────────────────────────────────
+    "reliable-nursing-assignment-help": [
+        _stats(
+            ("All levels", "ADN through PhD"),
+            ("2 hrs", "fastest turnaround"),
+            ("Rubric-matched", "writing standard"),
+            ("4.98 / 5", "average rating"),
+        ),
+        _h("Why Nursing Students Choose NurseMyGrade for Assignment Help"),
+        _p(
+            "<p>Nursing assignments are not just academic exercises—they are assessments of "
+            "clinical knowledge and professional judgment. A care plan assignment tests whether "
+            "a student can apply the nursing process to a real patient scenario. A pharmacology "
+            "assignment tests whether a student understands drug mechanisms and nursing "
+            "implications, not just the drug name. Examiners look for clinical reasoning, "
+            "not just accurate recall of course material. That is why nursing assignments are "
+            "most effectively helped by nurses—who think clinically, not just academically.</p>"
+            "<p>NurseMyGrade assignment writers are credentialed nurses at BSN, MSN, DNP, or "
+            "PhD level who have completed the same assignments as part of their own nursing "
+            "education. When a client submits a care plan assignment with a complex patient "
+            "scenario, the writer assigned to the order has written care plans in clinical "
+            "placement, not just in simulation. That lived clinical experience is what produces "
+            "assignment content that reads as authentic nursing reasoning rather than "
+            "reproduced textbook content.</p>"
+        ),
+        _hiw("How We Complete Your Nursing Assignment", [
+            (
+                "Submit Your Brief and Rubric",
+                "<p>Share the assignment instructions, rubric, word count, academic level, and "
+                "deadline. Upload your course module guidelines if available. The more detail "
+                "you provide, the more precisely your writer can target every rubric criterion.</p>",
+            ),
+            (
+                "Writer Matching",
+                "<p>Your assignment is matched to a writer at your academic level with relevant "
+                "clinical or subject background. You are notified when a writer accepts and can "
+                "message them directly through the order portal with any clarifications.</p>",
+            ),
+            (
+                "Assignment Completion",
+                "<p>Your assignment is written to every rubric criterion, formatted in your "
+                "required citation style, and checked for clinical accuracy. A Turnitin scan "
+                "is completed before delivery. Similarity must be below 5% before the file "
+                "is released.</p>",
+            ),
+            STEP_DELIVER,
+        ]),
+        _fg("Assignment Types We Handle", [
+            (
+                "Weekly and Module Assignments",
+                "Short weekly assignments, module essays, reflective practice logs, discussion "
+                "board posts, and reading response papers — completed to your rubric and submitted "
+                "before your deadline.",
+            ),
+            (
+                "Clinical Assignment Types",
+                "Care plans (NANDA-based, problem-prioritised), SOAP notes, nursing assessments, "
+                "clinical case analyses, pharmacology assignments, and pathophysiology papers "
+                "grounded in current clinical guidelines.",
+            ),
+            (
+                "Take-Home Tests and Quizzes",
+                "Take-home test papers and extended response questions requiring clinical reasoning "
+                "and evidence integration. Written at your academic level and supported by "
+                "appropriate nursing literature.",
+            ),
+            (
+                "Research and EBP Assignments",
+                "Literature reviews, PICOT-based assignments, research critique papers, evidence "
+                "appraisal tasks, and EBP application assignments — including database search "
+                "documentation and evidence table production.",
+            ),
+        ]),
+        _h("Rubric-Matched Writing: Why It Matters"),
+        _p(
+            "<p>A nursing assignment can be clinically accurate and well-written but still score "
+            "poorly if it does not address every criterion the rubric identifies. Nursing faculty "
+            "mark against the rubric: if the rubric requires a specific theoretical framework "
+            "in the introduction and the assignment does not include one, marks are deducted "
+            "regardless of the quality of the rest of the document. If the rubric requires a "
+            "minimum number of peer-reviewed sources from a specific time window and the assignment "
+            "includes older sources, marks are deducted.</p>"
+            "<p>NurseMyGrade writers read rubrics before they begin writing, not after. Every "
+            "rubric criterion is treated as a checklist item that the assignment must satisfy "
+            "explicitly—not implicitly. If your rubric requires a specific heading structure, "
+            "your assignment uses it. If your rubric specifies a word count range, the assignment "
+            "lands in that range. If your rubric requires sources from a specific database or "
+            "published within a specific year range, those constraints are applied to every "
+            "reference. Upload your rubric with your order; your writer treats it as the "
+            "marking standard the assignment is written to, not as an optional guideline.</p>"
+        ),
+        _cl("NurseMyGrade Assignment Help Quality Checklist", [
+            ("Assignment written to every explicit rubric criterion", ""),
+            ("Word count within the required range", ""),
+            ("Writer credential matched to your academic level", ""),
+            ("Clinical content grounded in current evidence or clinical guidelines", ""),
+            ("APA 7th (or required style) applied to all citations and references", ""),
+            ("Sources from required databases and within required publication date range", ""),
+            ("Turnitin similarity below 5%; report included in delivery", ""),
+            ("Free revisions available until all rubric requirements are satisfied", ""),
+        ]),
+        _faq_heading(),
+        _faq("What kinds of nursing assignments can you help with?",
+             "<p>Any nursing assignment — weekly papers, module essays, care plans, SOAP notes, "
+             "pharmacology assignments, clinical case analyses, take-home tests, reflective "
+             "practice logs, research critiques, EBP papers, discussion posts, and more.</p>"),
+        _faq("How do I make sure the writer follows my rubric?",
+             "<p>Upload your rubric with your order. Your writer reads every criterion before "
+             "beginning and treats the rubric as the marking standard the assignment is written "
+             "to. Most clients also share their module guidelines and course syllabus for context.</p>"),
+        _faq("How fast can you complete a nursing assignment?",
+             "<p>Short assignments (500–1,000 words) from 2 hours. Standard module assignments "
+             "(1,500–3,000 words) typically within 12–24 hours. Longer or more complex assignments "
+             "require proportionally more time. Share your deadline when ordering.</p>"),
+        _faq("Can you help with multiple assignments at once?",
+             "<p>Yes. Place a separate order for each assignment and multiple writers can work "
+             "simultaneously on your different papers. Each order is managed independently "
+             "through the portal.</p>"),
+        _faq("How do I communicate with my writer?",
+             "<p>Through the order portal's direct messaging system, monitored 24/7. Most writers "
+             "respond within an hour during active work on your order. You can send additional "
+             "instructions, updated rubrics, or clarification questions at any point.</p>"),
+        _faq("What if my assignment is returned for revision after delivery?",
+             "<p>Request a revision through the portal within the revision window. Revisions are "
+             "always completed by your original writer, free of charge, until your stated "
+             "requirements are met.</p>"),
+        _faq("Do you help with online nursing class assignments?",
+             "<p>Yes. Ongoing module assignments, weekly discussion posts, and course-length "
+             "assignment support are all available. See also our Online Nursing Class Help "
+             "service for full-course management options.</p>"),
+        _faq("What is the grade guarantee?",
+             "<p>If the completed assignment does not meet your stated requirements after revisions, "
+             "you qualify for a full refund. Submit your rubric and requirements clearly when "
+             "ordering to ensure the guarantee applies to your specific criteria.</p>"),
+    ],
+
 }  # end BODY_BLOCKS
 
