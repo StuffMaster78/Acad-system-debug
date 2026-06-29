@@ -1693,24 +1693,167 @@ DEFAULT_TEMPLATES = {
     },
     'billing.invoice.issued': {
         NotificationChannel.EMAIL: {
-            'subject': 'Invoice {{invoice_reference}} issued — {{amount}} {{currency}}',
-            'body_html': 'notifications/emails/payment_reminder.html',
+            'subject': 'Invoice {{invoice_reference}} — {{invoice_amount}} {{invoice_currency}} due',
+            'body_html': 'notifications/emails/invoice_issued.html',
             'body_text': (
-                'Invoice {{invoice_reference}} for {{amount}} {{currency}} '
+                'Invoice {{invoice_reference}} for {{invoice_amount}} {{invoice_currency}} '
                 'has been issued and is due on {{invoice_due_at}}. '
-                'Log in to view and pay your invoice.'
+                '{% if pay_url %}Pay now: {{pay_url}}{% else %}Log in to view and pay.{% endif %}'
             ),
             'available_variables': [
                 'invoice_id', 'invoice_reference', 'invoice_title',
                 'invoice_amount', 'invoice_currency', 'invoice_due_at',
-                'payment_intent_reference', 'provider', 'user_name',
+                'pay_url', 'client_disclosure_text', 'statement_descriptor',
+                'payment_intent_reference', 'user_name', 'website_name',
             ],
         },
         NotificationChannel.IN_APP: {
             'title': 'Invoice issued — {{invoice_reference}}',
-            'message': 'Invoice {{invoice_reference}} for {{invoice_amount}} {{invoice_currency}} is due on {{invoice_due_at}}.',
+            'message': 'Invoice for {{invoice_amount}} {{invoice_currency}} due {{invoice_due_at}}. Tap to pay.',
             'available_variables': [
-                'invoice_id', 'invoice_reference', 'invoice_amount', 'invoice_due_at',
+                'invoice_id', 'invoice_reference', 'invoice_amount',
+                'invoice_currency', 'invoice_due_at', 'pay_url',
+            ],
+        },
+    },
+    'billing.invoice.reminder': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Payment reminder — Invoice {{invoice_reference}} due {{invoice_due_at}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'Friendly reminder: invoice {{invoice_reference}} for {{invoice_amount}} {{invoice_currency}} '
+                'is due on {{invoice_due_at}}. '
+                '{% if pay_url %}Pay now: {{pay_url}}{% else %}Log in to complete payment.{% endif %}'
+            ),
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'invoice_amount', 'invoice_currency',
+                'invoice_due_at', 'pay_url', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payment reminder — {{invoice_reference}}',
+            'message': '{{invoice_amount}} {{invoice_currency}} due {{invoice_due_at}}. Tap to pay.',
+            'available_variables': [
+                'invoice_reference', 'invoice_amount', 'invoice_currency', 'invoice_due_at',
+            ],
+        },
+    },
+    'billing.payment_request.issued': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Payment request — {{payment_request_amount}} {{payment_request_currency}} due',
+            'body_html': 'notifications/emails/payment_request_issued.html',
+            'body_text': (
+                'A payment request ({{payment_request_reference}}) for '
+                '{{payment_request_amount}} {{payment_request_currency}} '
+                'has been sent to you and is due on {{payment_request_due_at}}. '
+                '{% if pay_url %}Pay now: {{pay_url}}{% else %}Log in to complete payment.{% endif %}'
+            ),
+            'available_variables': [
+                'payment_request_id', 'payment_request_reference', 'payment_request_title',
+                'payment_request_amount', 'payment_request_currency', 'payment_request_due_at',
+                'pay_url', 'client_disclosure_text', 'statement_descriptor',
+                'payment_intent_reference', 'user_name', 'website_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payment request received — {{payment_request_reference}}',
+            'message': '{{payment_request_amount}} {{payment_request_currency}} requested. Due {{payment_request_due_at}}.',
+            'available_variables': [
+                'payment_request_id', 'payment_request_reference',
+                'payment_request_amount', 'payment_request_currency', 'payment_request_due_at',
+            ],
+        },
+    },
+    'billing.payment_request.settled': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Payment confirmed — {{payment_request_reference}}',
+            'body_html': 'notifications/emails/payment_received.html',
+            'body_text': (
+                'Your payment of {{settled_amount}} {{payment_request_currency}} '
+                'for payment request {{payment_request_reference}} has been received.'
+            ),
+            'available_variables': [
+                'payment_request_id', 'payment_request_reference',
+                'payment_request_amount', 'payment_request_currency',
+                'settled_amount', 'fully_settled', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payment received — {{payment_request_reference}}',
+            'message': '{{settled_amount}} {{payment_request_currency}} received.',
+            'available_variables': [
+                'payment_request_reference', 'settled_amount', 'payment_request_currency',
+            ],
+        },
+    },
+    'billing.payment_request.reminder': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Payment reminder — {{payment_request_reference}} due {{payment_request_due_at}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'Friendly reminder: payment request {{payment_request_reference}} for '
+                '{{payment_request_amount}} {{payment_request_currency}} '
+                'is due on {{payment_request_due_at}}. '
+                '{% if pay_url %}Pay now: {{pay_url}}{% else %}Log in to complete payment.{% endif %}'
+            ),
+            'available_variables': [
+                'payment_request_id', 'payment_request_reference',
+                'payment_request_amount', 'payment_request_currency',
+                'payment_request_due_at', 'pay_url', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Payment reminder — {{payment_request_reference}}',
+            'message': '{{payment_request_amount}} {{payment_request_currency}} due {{payment_request_due_at}}.',
+            'available_variables': [
+                'payment_request_reference', 'payment_request_amount',
+                'payment_request_currency', 'payment_request_due_at',
+            ],
+        },
+    },
+    'billing.receipt.issued': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Your receipt — {{receipt_amount}} {{receipt_currency}} received',
+            'body_html': 'notifications/emails/receipt.html',
+            'body_text': (
+                'Your payment of {{receipt_amount}} {{receipt_currency}} has been received. '
+                'Receipt reference: {{receipt_reference}}.'
+            ),
+            'available_variables': [
+                'receipt_id', 'receipt_reference', 'receipt_amount', 'receipt_currency',
+                'issued_at', 'title', 'recipient_name', 'user_name',
+                'company_name', 'website_name', 'support_email',
+                'payment_intent_reference', 'client_disclosure_text',
+                'processor_display_name', 'statement_descriptor_snapshot',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Receipt — {{receipt_amount}} {{receipt_currency}} paid',
+            'message': 'Payment of {{receipt_amount}} {{receipt_currency}} confirmed. Ref: {{receipt_reference}}.',
+            'available_variables': [
+                'receipt_reference', 'receipt_amount', 'receipt_currency', 'issued_at',
+            ],
+        },
+    },
+    'billing.installment.overdue': {
+        NotificationChannel.EMAIL: {
+            'subject': 'Overdue installment — {{invoice_reference}}',
+            'body_html': 'notifications/emails/payment_reminder.html',
+            'body_text': (
+                'Instalment {{installment_sequence}} of {{invoice_reference}} '
+                '({{amount}} {{currency}}) was due on {{due_at}} and is now overdue. '
+                'Please complete your payment as soon as possible.'
+            ),
+            'available_variables': [
+                'invoice_id', 'invoice_reference', 'installment_id',
+                'installment_sequence', 'amount', 'currency', 'due_at', 'user_name',
+            ],
+        },
+        NotificationChannel.IN_APP: {
+            'title': 'Overdue payment — {{invoice_reference}}',
+            'message': 'Instalment {{installment_sequence}} of {{amount}} is overdue (was due {{due_at}}).',
+            'available_variables': [
+                'invoice_reference', 'installment_sequence', 'amount', 'due_at',
             ],
         },
     },

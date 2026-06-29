@@ -603,6 +603,11 @@ class InvoiceOrchestrationService:
             )
 
         if send_notification and result.invoice.client:
+            _token = result.invoice.payment_token or ""
+            _site = result.invoice.website
+            _site_url = getattr(_site, "root_url", "").rstrip("/") if _site else ""
+            _pay_url = f"{_site_url}/pay/invoice/{_token}" if _token and _site_url else ""
+            _branding = getattr(_site, "branding", None)
             NotificationService.notify(
                 event_key="billing.invoice.issued",
                 recipient=result.invoice.client,
@@ -614,12 +619,21 @@ class InvoiceOrchestrationService:
                     "invoice_title": result.invoice.title,
                     "invoice_amount": str(result.invoice.amount),
                     "invoice_currency": result.invoice.currency,
-                    "invoice_due_at": result.invoice.due_at.isoformat(),
-                    "payment_token": result.invoice.payment_token,
-                    "payment_intent_reference": (
-                        result.payment_intent.reference
+                    "invoice_due_at": (
+                        result.invoice.due_at.strftime("%-d %B %Y")
+                        if result.invoice.due_at else ""
                     ),
+                    "pay_url": _pay_url,
+                    "payment_token": _token,
+                    "payment_intent_reference": result.payment_intent.reference,
                     "provider": provider,
+                    "website_name": getattr(_site, "name", ""),
+                    "client_disclosure_text": (
+                        getattr(_branding, "client_disclosure_text", "") if _branding else ""
+                    ),
+                    "statement_descriptor": (
+                        getattr(_branding, "payment_statement_descriptor", "") if _branding else ""
+                    ),
                 },
             )
 

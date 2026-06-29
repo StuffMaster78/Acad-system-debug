@@ -126,31 +126,57 @@ class ReminderOrchestrationService:
                 Reminder notification context.
         """
         if invoice is not None:
+            _token = getattr(invoice, "payment_token", "") or ""
+            _site = invoice.website
+            _site_url = getattr(_site, "root_url", "").rstrip("/") if _site else ""
             return {
                 "invoice_id": invoice.pk,
                 "invoice_reference": invoice.reference,
                 "invoice_title": invoice.title,
+                "invoice_amount": str(invoice.amount),
+                "invoice_currency": invoice.currency,
+                "invoice_due_at": (
+                    invoice.due_at.strftime("%-d %B %Y")
+                    if invoice.due_at is not None else ""
+                ),
+                # legacy aliases kept for backward compat with older templates
                 "amount": str(invoice.amount),
                 "currency": invoice.currency,
                 "due_at": (
                     invoice.due_at.isoformat()
-                    if invoice.due_at is not None
-                    else ""
+                    if invoice.due_at is not None else ""
+                ),
+                "pay_url": (
+                    f"{_site_url}/pay/invoice/{_token}"
+                    if _token and _site_url else ""
                 ),
             }
 
         assert payment_request is not None
 
+        _token = getattr(payment_request, "payment_token", "") or ""
+        _site = payment_request.website
+        _site_url = getattr(_site, "root_url", "").rstrip("/") if _site else ""
         return {
             "payment_request_id": payment_request.pk,
             "payment_request_reference": payment_request.reference,
             "payment_request_title": payment_request.title,
+            "payment_request_amount": str(payment_request.amount),
+            "payment_request_currency": payment_request.currency,
+            "payment_request_due_at": (
+                payment_request.due_at.strftime("%-d %B %Y")
+                if payment_request.due_at is not None else ""
+            ),
+            # legacy aliases
             "amount": str(payment_request.amount),
             "currency": payment_request.currency,
             "due_at": (
                 payment_request.due_at.isoformat()
-                if payment_request.due_at is not None
-                else ""
+                if payment_request.due_at is not None else ""
+            ),
+            "pay_url": (
+                f"{_site_url}/pay/payment-request/{_token}"
+                if _token and _site_url else ""
             ),
         }
 

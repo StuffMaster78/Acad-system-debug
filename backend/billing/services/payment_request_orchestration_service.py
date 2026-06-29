@@ -469,32 +469,38 @@ class PaymentRequestOrchestrationService:
             )
 
         if send_notification and result.payment_request.client:
+            _pr = result.payment_request
+            _token = getattr(_pr, "payment_token", "") or ""
+            _site = _pr.website
+            _site_url = getattr(_site, "root_url", "").rstrip("/") if _site else ""
+            _pay_url = f"{_site_url}/pay/payment-request/{_token}" if _token and _site_url else ""
+            _branding = getattr(_site, "branding", None)
             NotificationService.notify(
                 event_key="billing.payment_request.issued",
-                recipient=result.payment_request.client,
-                website=result.payment_request.website,
+                recipient=_pr.client,
+                website=_site,
                 triggered_by=triggered_by,
                 context={
-                    "payment_request_id": result.payment_request.pk,
-                    "payment_request_reference": (
-                        result.payment_request.reference
-                    ),
-                    "payment_request_title": result.payment_request.title,
-                    "payment_request_amount": str(
-                        result.payment_request.amount
-                    ),
-                    "payment_request_currency": (
-                        result.payment_request.currency
-                    ),
+                    "payment_request_id": _pr.pk,
+                    "payment_request_reference": _pr.reference,
+                    "payment_request_title": _pr.title,
+                    "payment_request_amount": str(_pr.amount),
+                    "payment_request_currency": _pr.currency,
                     "payment_request_due_at": (
-                        result.payment_request.due_at.isoformat()
-                        if result.payment_request.due_at is not None
-                        else ""
+                        _pr.due_at.strftime("%-d %B %Y")
+                        if _pr.due_at is not None else ""
                     ),
-                    "payment_intent_reference": (
-                        result.payment_intent.reference
-                    ),
+                    "pay_url": _pay_url,
+                    "payment_token": _token,
+                    "payment_intent_reference": result.payment_intent.reference,
                     "provider": provider,
+                    "website_name": getattr(_site, "name", ""),
+                    "client_disclosure_text": (
+                        getattr(_branding, "client_disclosure_text", "") if _branding else ""
+                    ),
+                    "statement_descriptor": (
+                        getattr(_branding, "payment_statement_descriptor", "") if _branding else ""
+                    ),
                 },
             )
 

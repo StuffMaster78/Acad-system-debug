@@ -75,11 +75,20 @@ class NotificationEvent(TextChoices):
     ORDER_ASSIGNMENT_ACCEPTED = "order.assignment_accepted", _("Assignment Accepted")
     ORDER_ASSIGNMENT_REJECTED = "order.assignment_rejected", _("Assignment Rejected")
 
-    # Billing — installment lifecycle events
-    BILLING_INSTALLMENT_DUE = "billing.installment.due", _("Installment Due")
-    BILLING_INSTALLMENT_UPCOMING = "billing.installment.upcoming", _("Installment Upcoming")
-    BILLING_INVOICE_SETTLED = "billing.invoice.settled", _("Invoice Settled")
-    BILLING_INVOICE_ISSUED = "billing.invoice.issued", _("Invoice Issued")
+    # Billing — invoice lifecycle
+    BILLING_INVOICE_ISSUED           = "billing.invoice.issued",           _("Invoice Issued")
+    BILLING_INVOICE_SETTLED          = "billing.invoice.settled",          _("Invoice Settled")
+    BILLING_INVOICE_REMINDER         = "billing.invoice.reminder",         _("Invoice Payment Reminder")
+    # Billing — payment request lifecycle
+    BILLING_PAYMENT_REQUEST_ISSUED   = "billing.payment_request.issued",   _("Payment Request Issued")
+    BILLING_PAYMENT_REQUEST_SETTLED  = "billing.payment_request.settled",  _("Payment Request Settled")
+    BILLING_PAYMENT_REQUEST_REMINDER = "billing.payment_request.reminder", _("Payment Request Reminder")
+    # Billing — receipt
+    BILLING_RECEIPT_ISSUED           = "billing.receipt.issued",           _("Receipt Issued")
+    # Billing — installment lifecycle
+    BILLING_INSTALLMENT_DUE          = "billing.installment.due",          _("Installment Due")
+    BILLING_INSTALLMENT_UPCOMING     = "billing.installment.upcoming",     _("Installment Upcoming")
+    BILLING_INSTALLMENT_OVERDUE      = "billing.installment.overdue",      _("Installment Overdue")
 
     # Preferred writer invitation workflow
     ORDER_PREFERRED_WRITER_PENDING_REMINDER = "order.preferred_writer.pending_reminder", _("Preferred Writer Pending Reminder")
