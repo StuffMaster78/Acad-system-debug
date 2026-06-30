@@ -30,11 +30,10 @@ const loading    = ref(false)
 const hasCms     = ref(false)
 
 async function loadPage(p: number) {
-  if (!apiBase) return
   loading.value = true
   try {
     const res = await $fetch<{ meta: { total_count: number }; items: CmsPost[] }>(
-      `${apiBase}/api/v2/pages/`,
+      '/wagtail/api/v2/pages/',
       {
         params: {
           type: 'cms_blog.BlogPostPage',

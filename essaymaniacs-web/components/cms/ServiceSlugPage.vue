@@ -11,7 +11,7 @@ const svcFields = [
   'title', 'slug', 'hero_headline', 'hero_sub',
   'pricing_from', 'pricing_to', 'turnaround_hours_fastest', 'turnaround_hours_standard',
   'includes_items', 'delivers_items', 'who_for',
-  'primary_cta_text', 'primary_cta_url', 'reviewer', 'last_substantive_update', 'hero_image', 'thumbnail', 'body',
+  'primary_cta_text', 'primary_cta_url', 'reviewer', 'last_substantive_update', 'body',
 ].join(',')
 
 const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(

@@ -33,7 +33,6 @@ interface CmsArticle {
 const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
   `nmg-blog-${slug}`,
   async () => {
-    if (!apiBase) return null
     try {
       const res = await $fetch<{ items: CmsArticle[] }>(
         `${wagtailBase}/api/v2/pages/`,
@@ -48,7 +47,7 @@ const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
 const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[]>(
   `nmg-blog-related-${slug}`,
   async () => {
-    if (!apiBase || !cmsArticle.value) return []
+    if (!cmsArticle.value) return []
     try {
       const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
         `${wagtailBase}/api/v2/pages/`,

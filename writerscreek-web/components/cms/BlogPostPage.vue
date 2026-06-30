@@ -34,10 +34,9 @@ interface CmsPost {
 const { data: post } = await useAsyncData<CmsPost | null>(
   `wc-blog-${slug}`,
   async () => {
-    if (!apiBase) return null
     try {
       const res = await $fetch<{ items: CmsPost[] }>(
-        `${apiBase}/api/v2/pages/`,
+        '/wagtail/api/v2/pages/',
         { params: { type: 'cms_blog.BlogPostPage', slug, fields: '*' } },
       )
       const item = res.items?.[0] ?? null
@@ -54,10 +53,10 @@ if (!post.value) {
 const { data: relatedPosts } = await useAsyncData<CmsPost[]>(
   `wc-blog-related-${slug}`,
   async () => {
-    if (!apiBase || !post.value) return []
+    if (!post.value) return []
     try {
       const res = await $fetch<{ items: CmsPost[] }>(
-        `${apiBase}/api/v2/pages/`,
+        '/wagtail/api/v2/pages/',
         {
           params: {
             type: 'cms_blog.BlogPostPage',

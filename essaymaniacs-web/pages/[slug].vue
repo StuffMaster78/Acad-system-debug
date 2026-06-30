@@ -38,8 +38,8 @@ const isServicePage = svcCheck.value === true
 <template>
   <div>
     <!-- Service page content -->
-    <CmsServiceSlugPage v-if="isServicePage" :slug="slug" />
+    <ServiceSlugPage v-if="isServicePage" :slug="slug" />
     <!-- Blog post content -->
-    <CmsBlogPostPage v-else :slug="slug" />
+    <BlogPostPage v-else :slug="slug" />
   </div>
 </template>

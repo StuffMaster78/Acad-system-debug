@@ -78,6 +78,7 @@ export default defineNuxtConfig({
     { path: '~/components/marketing', prefix: '' },
     { path: '~/components/ui', prefix: '' },
     { path: '~/components/privacy', prefix: '' },
+    { path: '~/components/cms', prefix: '' },
     { path: '~/components', prefix: '' },
   ],
 

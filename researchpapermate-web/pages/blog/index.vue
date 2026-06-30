@@ -118,7 +118,15 @@ const rest = computed(() => {
 const staticTotalPages = computed(() => 1 + Math.ceil(Math.max(filtered.value.length - 1, 0) / STATIC_PER_PAGE))
 
 function setCategory(cat: string) { activeCategory.value = cat; currentPage.value = 1; cmsPage.value = 1 }
-function goPage(p: number) { if (usingCms.value) loadCmsPage(p); else { currentPage.value = p; if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' }) } }
+function goPage(p: number) {
+  if (usingCms.value) {
+    loadCmsPage(p)
+    if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    currentPage.value = p
+    if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
 
 const totalPages = computed(() => usingCms.value ? cmsTotalPages.value : staticTotalPages.value)
 const activePage = computed(() => usingCms.value ? cmsPage.value : currentPage.value)

@@ -49,7 +49,6 @@ const cmsError   = ref(false)
 const usingCms   = ref(false)
 
 async function loadCmsPage(p: number) {
-  if (!apiBase) return
   cmsLoading.value = true; cmsError.value = false
   try {
     const res = await $fetch<{ meta: { total_count: number }; items: CmsPost[] }>(
