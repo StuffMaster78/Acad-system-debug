@@ -1,39 +1,23 @@
 <script setup lang="ts">
-const props = defineProps<{ slug: string }>()
+import type { CmsServicePage } from '~/composables/useServiceCms'
+
+// CMS data is fetched by the parent page (pages/[slug].vue) and passed as a
+// prop — avoids child async-setup SSR issues and wrong-site API calls.
+const props = defineProps({
+  slug:    { type: String,  required: true as const },
+  cmsPage: { type: Object,  default: null },
+})
 
 const config = useRuntimeConfig()
 const { getBySlug, getRelated } = useServices()
 
-const apiBase = import.meta.server
-  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
-  : (config.public.apiBase || '')
-const svcFields = [
-  'title', 'slug', 'pricing_from', 'pricing_to',
-  'turnaround_hours_fastest', 'turnaround_hours_standard',
-  'primary_cta_text', 'primary_cta_url',
-  'reviewer', 'last_substantive_update', 'hero_image', 'thumbnail', 'body',
-].join(',')
-
-const { data: _cmsRaw } = await useAsyncData<{ items: unknown[] } | null>(
-  `svc-rpm-${props.slug}`,
-  () => $fetch<{ items: unknown[] }>(`${apiBase}/api/v2/pages/`, {
-    params: { type: 'cms_service_pages.ServicePage', slug: props.slug, fields: svcFields },
-    headers: import.meta.server
-      ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
-      : undefined,
-  }).catch(() => null),
-)
-
-import type { CmsServicePage } from '~/composables/useServiceCms'
-const cmsPage = computed<CmsServicePage | null>(
-  () => ((_cmsRaw.value as { items?: CmsServicePage[] } | null)?.items?.[0]) ?? null,
-)
+const cmsPage = computed<CmsServicePage | null>(() => props.cmsPage as CmsServicePage | null)
 // Keep useServiceCms active for client-side navigation refreshes
 const { hasContent: hasCmsContent, loading: cmsLoading } = useServiceCms(props.slug)
 const service = getBySlug(props.slug)
 
 if (!service && !cmsPage.value) {
-  throw createError({ statusCode: 404, message: 'Service not found' })
+  throw createError({ statusCode: 404, fatal: true, message: 'Service not found' })
 }
 
 const displayTitle = computed(() => service?.title ?? cmsPage.value?.title ?? '')

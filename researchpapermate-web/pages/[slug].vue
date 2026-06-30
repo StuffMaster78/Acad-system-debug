@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { CmsServicePage } from '~/composables/useServiceCms'
+
 const route = useRoute()
-const slug = route.params.slug as string
+const slug  = route.params.slug as string
 
 const { getBySlug } = useServices()
 
@@ -8,7 +10,6 @@ const { getBySlug } = useServices()
 const staticService = getBySlug(slug)
 
 // ── Step 2: check CMS for a ServicePage ───────────────────────────────────
-// Use public apiBase → Nitro devProxy/nginx applies Host: researchpapermate.com
 const config  = useRuntimeConfig()
 const apiBase = config.public.apiBase || ''
 
@@ -28,11 +29,30 @@ const { data: svcCheck } = await useAsyncData<boolean>(
 
 const isServicePage = svcCheck.value === true
 
-// ── Step 3: fetch blog post at page level so SSR awaits it correctly ───────
-// Use the /wagtail Nitro server route (server/routes/wagtail/[...path].ts) —
-// it proxies to Django using apiBaseInternal and hard-codes Host: researchpapermate.com,
-// so both dev and production correctly scope responses to this site.
-// Relative URL → resolved by Nitro internally with no network round-trip.
+// ── Step 3a: fetch CMS service page at page level (when it's a service) ───
+// Same /wagtail proxy pattern — sets Host: researchpapermate.com internally.
+const svcFields = [
+  'title', 'slug', 'pricing_from', 'pricing_to',
+  'turnaround_hours_fastest', 'turnaround_hours_standard',
+  'primary_cta_text', 'primary_cta_url',
+  'reviewer', 'last_substantive_update', 'hero_image', 'thumbnail', 'body',
+].join(',')
+
+const { data: cmsServicePage } = await useAsyncData<CmsServicePage | null>(
+  `svc-rpm-${slug}`,
+  async () => {
+    if (!isServicePage) return null
+    try {
+      const res = await $fetch<{ items: CmsServicePage[] }>(
+        '/wagtail/api/v2/pages/',
+        { params: { type: 'cms_service_pages.ServicePage', slug, fields: svcFields } },
+      )
+      return res.items?.[0] ?? null
+    } catch { return null }
+  },
+)
+
+// ── Step 3b: fetch blog post at page level (when it's a blog post) ────────
 interface CmsArticle {
   id: number
   meta: { slug: string; first_published_at: string; seo_title: string; search_description: string }
@@ -58,7 +78,7 @@ const { data: blogArticle } = await useAsyncData<CmsArticle | null>(
   },
 )
 
-// 404 if neither a service page nor a known blog post (static or CMS)
+// ── 404 guard ─────────────────────────────────────────────────────────────
 const { getBySlug: getBlogBySlug } = useBlog()
 const staticPost = isServicePage ? null : (blogArticle.value ? null : getBlogBySlug(slug))
 if (!isServicePage && !blogArticle.value && !staticPost) {
@@ -68,9 +88,9 @@ if (!isServicePage && !blogArticle.value && !staticPost) {
 
 <template>
   <div>
-    <!-- Service page content -->
-    <CmsServiceSlugPage v-if="isServicePage" :slug="slug" />
-    <!-- Blog post: article fetched at page level, passed as prop to avoid child async-setup SSR issues -->
+    <!-- Service page: CMS data fetched at page level, passed as prop -->
+    <ServiceSlugPage v-if="isServicePage" :slug="slug" :cms-page="cmsServicePage ?? null" />
+    <!-- Blog post: article fetched at page level, passed as prop -->
     <BlogPostPage v-else :slug="slug" :article="blogArticle ?? null" />
   </div>
 </template>
