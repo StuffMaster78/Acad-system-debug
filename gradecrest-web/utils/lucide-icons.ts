@@ -256,3 +256,13 @@ export const Layers = createIcon('Layers', [
   ['path', { d: 'M2 17l10 5 10-5' }],
   ['path', { d: 'M2 12l10 5 10-5' }],
 ])
+
+export const Calculator = createIcon('Calculator', [
+  ['rect', { x: '2', y: '2', width: '20', height: '20', rx: '2' }],
+  ['path', { d: 'M8 6h8' }],
+  ['path', { d: 'M8 10h8' }],
+  ['path', { d: 'M8 14h2' }],
+  ['path', { d: 'M8 18h2' }],
+  ['path', { d: 'M14 14h2' }],
+  ['path', { d: 'M14 18h2' }],
+])
