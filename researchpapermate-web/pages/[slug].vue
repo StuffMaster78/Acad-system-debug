@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { CmsServicePage } from '~/composables/useServiceCms'
 
+// Force a fresh component mount on every slug change so setup re-runs and
+// useAsyncData keys pick up the new slug (Nuxt reuses the same component
+// instance when navigating between /{slug1} → /{slug2} without this).
+definePageMeta({ key: (route) => route.fullPath })
+
 const route = useRoute()
 const slug  = route.params.slug as string
 
