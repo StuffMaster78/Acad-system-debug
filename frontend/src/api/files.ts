@@ -157,6 +157,16 @@ export interface AuditDownloadLogEntry {
   downloaded_at: string;
 }
 
+export interface FileVersion {
+  id: number;
+  version_number: number;
+  replaced_file_id: number | null;
+  replaced_file_name: string | null;
+  created_by_email: string | null;
+  created_at: string | null;
+  notes: string | null;
+}
+
 const PURPOSE_ENDPOINT: Record<string, string> = {
   order_instruction:    "instructions",
   order_reference:      "references",
@@ -282,4 +292,7 @@ export const filesApi = {
 
   auditDownloadLog: (params?: Record<string, unknown>) =>
     api.get<AuditDownloadLogEntry[]>(apiPath("/files/admin/audit/download-log/"), { params }),
+
+  fileVersions: (fileId: number | string) =>
+    api.get<FileVersion[]>(apiPath(`/files/admin/files/${fileId}/versions/`)),
 };

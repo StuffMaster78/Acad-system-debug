@@ -74,6 +74,8 @@ class WebhookProcessingService:
     FAILED_STATUSES = {
         "failed",
         "error",
+    }
+    CANCELED_STATUSES = {
         "cancelled",
         "canceled",
     }
@@ -431,6 +433,9 @@ class WebhookProcessingService:
         if raw_status in cls.FAILED_STATUSES:
             return PaymentTransactionStatus.FAILED
 
+        if raw_status in cls.CANCELED_STATUSES:
+            return PaymentTransactionStatus.FAILED
+
         if raw_status == "disputed":
             return PaymentTransactionStatus.DISPUTED
 
@@ -454,6 +459,9 @@ class WebhookProcessingService:
 
         if raw_status in cls.FAILED_STATUSES:
             return PaymentIntentStatus.FAILED
+
+        if raw_status in cls.CANCELED_STATUSES:
+            return PaymentIntentStatus.CANCELED
 
         if raw_status in cls.PENDING_STATUSES:
             if current_status == PaymentIntentStatus.REQUIRES_ACTION:

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from rest_framework import generics
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.utils.request_context import get_request_website
 from ledger.api.permissions.permissions import CanViewLedger
@@ -97,3 +100,20 @@ class ReconciliationRecordDetailView(generics.RetrieveAPIView):
         )
 
         return cast(Any, queryset)
+
+
+class ReconciliationResolveView(APIView):
+    """
+    Mark a mismatched reconciliation record as manually resolved.
+    Staff supply an optional note explaining the resolution.
+    """
+
+    permission_classes = [IsAuthenticated, CanViewLedger]
+
+    def post(self, request: Request, id: str) -> Response:
+        website = get_request_website(request)
+        record = get_object_or_404(ReconciliationRecord, id=id, website=website)
+        if record.is_resolved:
+            return Response({"detail": "Already resolved."}, status=status.HTTP_400_BAD_REQUEST)
+        record.mark_resolved(resolved_by=request.user)
+        return Response(ReconciliationSerializer(record).data)

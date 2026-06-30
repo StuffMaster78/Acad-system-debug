@@ -109,4 +109,6 @@ export const ledgerApi = {
     api.get<JournalEntry>(apiPath(`/ledger/journal-entries/${id}/`)),
   reconciliations: (params?: Record<string, unknown>) =>
     api.get<PageResponse<ReconciliationRecord>>(apiPath("/ledger/reconciliations/"), { params }),
+  resolveReconciliation: (id: string) =>
+    api.post<ReconciliationRecord>(apiPath(`/ledger/reconciliations/${id}/resolve/`), {}),
 };

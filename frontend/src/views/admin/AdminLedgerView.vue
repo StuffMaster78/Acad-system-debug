@@ -4,6 +4,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   BookOpen,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Loader2,
@@ -20,6 +21,23 @@ import {
 } from "@/api/ledger";
 
 const activeTab = ref<"accounts" | "journal" | "reconciliations">("accounts");
+
+// Reconciliation resolve
+const resolvingId = ref<string | null>(null);
+const resolveError = ref("");
+async function resolveReconciliation(id: string) {
+  resolvingId.value = id;
+  resolveError.value = "";
+  try {
+    const { data } = await ledgerApi.resolveReconciliation(id);
+    const idx = reconciliations.value.findIndex(r => r.id === id);
+    if (idx !== -1) reconciliations.value[idx] = data;
+  } catch (err: unknown) {
+    resolveError.value = (err as any)?.response?.data?.detail ?? "Failed to resolve.";
+  } finally {
+    resolvingId.value = null;
+  }
+}
 
 // Accounts
 const accounts = ref<LedgerAccount[]>([]);
@@ -357,6 +375,7 @@ onMounted(refresh);
       </div>
 
       <p v-if="reconError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ reconError }}</p>
+      <p v-if="resolveError" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-berry">{{ resolveError }}</p>
 
       <div v-if="reconLoading" class="space-y-2">
         <div v-for="n in 4" :key="n" class="animate-pulse rounded-lg border border-slate-200 bg-white p-4">
@@ -378,6 +397,7 @@ onMounted(refresh);
               <th class="px-3 py-2 text-right">Variance</th>
               <th class="px-3 py-2">Reference</th>
               <th class="px-3 py-2">Date</th>
+              <th class="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -396,6 +416,19 @@ onMounted(refresh);
               </td>
               <td class="px-3 py-2 font-mono text-xs text-graphite">{{ rec.reference ?? rec.external_reference ?? "—" }}</td>
               <td class="px-3 py-2 text-graphite">{{ shortDate(rec.resolved_at ?? rec.created_at) }}</td>
+              <td class="px-3 py-2">
+                <button
+                  v-if="!rec.is_resolved && !rec.is_matched"
+                  class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-xs font-semibold text-ink hover:border-signal hover:text-signal disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  :disabled="resolvingId === rec.id"
+                  @click="resolveReconciliation(rec.id)"
+                >
+                  <Loader2 v-if="resolvingId === rec.id" class="h-3 w-3 animate-spin" />
+                  <CheckCircle2 v-else class="h-3 w-3" />
+                  Resolve
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>

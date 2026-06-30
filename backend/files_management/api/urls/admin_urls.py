@@ -17,6 +17,7 @@ from files_management.api.views.audit_views import (
     FileAccessLogListView,
     FileDownloadLogListView,
 )
+from files_management.api.views.version_views import FileVersionListView
 from files_management.api.views.admin_extra_views import (
     AdminExternalLinkListCreateView,
     AdminFileListView,
@@ -109,5 +110,10 @@ urlpatterns = [
         "audit/download-log/",
         FileDownloadLogListView.as_view(),
         name="admin-file-download-log",
+    ),
+    path(
+        "files/<int:file_id>/versions/",
+        FileVersionListView.as_view(),
+        name="admin-file-versions",
     ),
 ]

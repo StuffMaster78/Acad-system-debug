@@ -3,6 +3,7 @@ from .ledger_account_views import LedgerAccountDetailView, LedgerAccountListView
 from .reconciliation_views import (
     ReconciliationRecordDetailView,
     ReconciliationRecordListView,
+    ReconciliationResolveView,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "LedgerAccountListView",
     "ReconciliationRecordDetailView",
     "ReconciliationRecordListView",
+    "ReconciliationResolveView",
 ]

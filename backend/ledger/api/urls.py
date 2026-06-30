@@ -7,6 +7,7 @@ from ledger.api.views import (
     LedgerAccountListView,
     ReconciliationRecordDetailView,
     ReconciliationRecordListView,
+    ReconciliationResolveView,
 )
 
 app_name = "ledger"
@@ -41,5 +42,10 @@ urlpatterns = [
         "reconciliations/<uuid:id>/",
         ReconciliationRecordDetailView.as_view(),
         name="reconciliation-record-detail",
+    ),
+    path(
+        "reconciliations/<uuid:id>/resolve/",
+        ReconciliationResolveView.as_view(),
+        name="reconciliation-record-resolve",
     ),
 ]

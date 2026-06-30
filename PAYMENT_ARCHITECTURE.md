@@ -19,20 +19,20 @@ panel without touching code or environment variables.
 
 ## Completion by subsystem
 
-| Subsystem | % | Status |
-|---|---|---|
-| Payment disclosure | **100%** | All three touchpoints done, audit trail in place |
-| Client wallet + top-up | **100%** | Complete including receipt view |
-| Invoice / PaymentRequest / Receipt lifecycle | **100%** | Public pay page, full invoice pay, PR pay, void receipt all done |
-| Stripe payment collection + webhooks | **95%** | Dispute webhook auto-writes to DB; `payment_intent.canceled` not yet handled |
-| Admin financial management | **95%** | Void receipt done; installment schedule UI already existed |
-| Per-website gateway config | **100%** | Model, CRUD API, and admin UI complete |
-| Payment notification email forwarding | **100%** | Configured from admin, copies fire after every billing.* email |
-| Client billing frontend | **100%** | All 5 missing flows now complete |
-| Writer earnings + settlement engine | **75%** | Engine complete; automated disbursement deferred by design |
-| Writer payout execution (automated) | **10%** | Structure only — no outbound rail (intentional) |
-| Double-entry ledger | **70%** | Journaling works; reconciliation UI is read-only |
-| Marketing site pricing / order intake | **90%** | Calculator done; flat URLs done across all 5 sites |
+| Subsystem                                    | %        | Status                                                                       |
+| -------------------------------------------- | -------- | ---------------------------------------------------------------------------- |
+| Payment disclosure                           | **100%** | All three touchpoints done, audit trail in place                             |
+| Client wallet + top-up                       | **100%** | Complete including receipt view                                              |
+| Invoice / PaymentRequest / Receipt lifecycle | **100%** | Public pay page, full invoice pay, PR pay, void receipt all done             |
+| Stripe payment collection + webhooks         | **95%**  | Dispute webhook auto-writes to DB; `payment_intent.canceled` not yet handled |
+| Admin financial management                   | **95%**  | Void receipt done; installment schedule UI already existed                   |
+| Per-website gateway config                   | **100%** | Model, CRUD API, and admin UI complete                                       |
+| Payment notification email forwarding        | **100%** | Configured from admin, copies fire after every billing.\* email              |
+| Client billing frontend                      | **100%** | All 5 missing flows now complete                                             |
+| Writer earnings + settlement engine          | **75%**  | Engine complete; automated disbursement deferred by design                   |
+| Writer payout execution (automated)          | **10%**  | Structure only — no outbound rail (intentional)                              |
+| Double-entry ledger                          | **70%**  | Journaling works; reconciliation UI is read-only                             |
+| Marketing site pricing / order intake        | **90%**  | Calculator done; flat URLs done across all 5 sites                           |
 
 **Overall: ~91%** — the core money-in path, all client-facing billing flows, and the
 gateway management layer are production-ready. The only intentional open area is
@@ -217,11 +217,11 @@ Pause/resume per address without deleting.
 
 ## Merchant model
 
-| Who | Role |
-|---|---|
-| OrderBridge | Stripe account holder — receives funds |
-| GC / EM / NMG / RPM | Branded portals — clients interact here |
-| Django backend | Creates sessions, verifies webhooks, fulfils orders |
+| Who                 | Role                                                |
+| ------------------- | --------------------------------------------------- |
+| OrderBridge         | Stripe account holder — receives funds              |
+| GC / EM / NMG / RPM | Branded portals — clients interact here             |
+| Django backend      | Creates sessions, verifies webhooks, fulfils orders |
 
 **Disclosure requirement:** Before the Pay button, `PaymentDisclosureBanner` (variant="pre")
 shows the intermediary name and statement descriptor. On post-payment, variant="post"
@@ -256,18 +256,18 @@ POST https://api.[site].com/api/payments/webhooks/stripe/
 
 Subscribe to:
 
-| Event | Handler |
-|---|---|
-| `checkout.session.completed` | Payment succeeded |
-| `payment_intent.succeeded` | Payment succeeded |
-| `payment_intent.payment_failed` | Payment failed |
-| `charge.failed` | Charge-level failure |
-| `checkout.session.expired` | Session expired |
-| `charge.dispute.created` | Creates `PaymentDispute` row |
-| `charge.dispute.updated` | Updates `PaymentDispute.status` |
-| `charge.dispute.closed` | Closes dispute, sets `resolved_at` |
-| `charge.dispute.funds_reinstated` | Dispute won |
-| `charge.dispute.funds_withdrawn` | Dispute lost |
+| Event                             | Handler                            |
+| --------------------------------- | ---------------------------------- |
+| `checkout.session.completed`      | Payment succeeded                  |
+| `payment_intent.succeeded`        | Payment succeeded                  |
+| `payment_intent.payment_failed`   | Payment failed                     |
+| `charge.failed`                   | Charge-level failure               |
+| `checkout.session.expired`        | Session expired                    |
+| `charge.dispute.created`          | Creates `PaymentDispute` row       |
+| `charge.dispute.updated`          | Updates `PaymentDispute.status`    |
+| `charge.dispute.closed`           | Closes dispute, sets `resolved_at` |
+| `charge.dispute.funds_reinstated` | Dispute won                        |
+| `charge.dispute.funds_withdrawn`  | Dispute lost                       |
 
 ---
 
@@ -299,48 +299,48 @@ POST /api/payments/webhooks/stripe/
 
 ## Key models
 
-### `PaymentGatewayConfig` *(new)*
+### `PaymentGatewayConfig` _(new)_
 
-| Field | Purpose |
-|---|---|
-| `website` | OneToOneField — one config per site |
-| `gateway` | Provider name (`"stripe"`) |
-| `webhook_endpoint` | Path registered in Stripe dashboard |
-| `callback_base_url` | Base URL for success/cancel redirects |
-| `mode` | `live` or `test` |
-| `is_active` | Inactive → falls back to platform default |
+| Field               | Purpose                                   |
+| ------------------- | ----------------------------------------- |
+| `website`           | OneToOneField — one config per site       |
+| `gateway`           | Provider name (`"stripe"`)                |
+| `webhook_endpoint`  | Path registered in Stripe dashboard       |
+| `callback_base_url` | Base URL for success/cancel redirects     |
+| `mode`              | `live` or `test`                          |
+| `is_active`         | Inactive → falls back to platform default |
 
-### `PaymentNotificationEmail` *(new)*
+### `PaymentNotificationEmail` _(new)_
 
-| Field | Purpose |
-|---|---|
-| `website` | ForeignKey — multiple rows per site allowed |
-| `email` | Forwarding address |
-| `label` | Optional label (e.g. "Finance team") |
-| `is_active` | Pause/resume without deleting |
+| Field       | Purpose                                     |
+| ----------- | ------------------------------------------- |
+| `website`   | ForeignKey — multiple rows per site allowed |
+| `email`     | Forwarding address                          |
+| `label`     | Optional label (e.g. "Finance team")        |
+| `is_active` | Pause/resume without deleting               |
 
 ### `PaymentIntent`
 
-| Field | Purpose |
-|---|---|
-| `website` | Which branded site |
-| `client` | The paying user |
-| `reference` | Unique ID passed as `client_reference_id` to Stripe |
-| `purpose` | `order`, `wallet_top_up`, `invoice`, `billing_payment_request`, etc. |
-| `status` | `created → pending → succeeded / failed / expired` |
-| `application_status` | `not_applied → applying → applied / application_failed` |
-| `payable` | GenericFK — Order, Invoice, PaymentRequest, etc. |
+| Field                | Purpose                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| `website`            | Which branded site                                                   |
+| `client`             | The paying user                                                      |
+| `reference`          | Unique ID passed as `client_reference_id` to Stripe                  |
+| `purpose`            | `order`, `wallet_top_up`, `invoice`, `billing_payment_request`, etc. |
+| `status`             | `created → pending → succeeded / failed / expired`                   |
+| `application_status` | `not_applied → applying → applied / application_failed`              |
+| `payable`            | GenericFK — Order, Invoice, PaymentRequest, etc.                     |
 
 ### `PaymentDispute`
 
-| Field | Purpose |
-|---|---|
-| `payment_intent` | FK to the disputed intent |
-| `provider_dispute_id` | Stripe dispute ID (`dp_...`) |
-| `status` | `open / under_review / won / lost / closed` |
-| `amount` / `currency` | Disputed amount |
-| `opened_at` / `resolved_at` | Timeline |
-| `raw_payload` | Full Stripe event stored for audit |
+| Field                       | Purpose                                     |
+| --------------------------- | ------------------------------------------- |
+| `payment_intent`            | FK to the disputed intent                   |
+| `provider_dispute_id`       | Stripe dispute ID (`dp_...`)                |
+| `status`                    | `open / under_review / won / lost / closed` |
+| `amount` / `currency`       | Disputed amount                             |
+| `opened_at` / `resolved_at` | Timeline                                    |
+| `raw_payload`               | Full Stripe event stored for audit          |
 
 ### `Invoice` / `PaymentRequest`
 
@@ -370,31 +370,31 @@ Use `seed_templates --update` to push template changes after editing `seed_templ
 
 Billing events now registered and templated:
 
-| Event key | Email template |
-|---|---|
-| `billing.invoice.issued` | `invoice_issued.html` (with "Pay Now" link) |
-| `billing.invoice.settled` | `payment_received.html` |
-| `billing.invoice.reminder` | `payment_reminder.html` |
-| `billing.payment_request.issued` | `payment_request_issued.html` (with "Pay Now" link) |
-| `billing.payment_request.settled` | `payment_received.html` |
-| `billing.payment_request.reminder` | `payment_reminder.html` |
-| `billing.receipt.issued` | `receipt.html` (with disclosure block) |
-| `billing.installment.upcoming` | `payment_reminder.html` |
-| `billing.installment.due` | `payment_reminder.html` |
-| `billing.installment.overdue` | `payment_reminder.html` |
+| Event key                          | Email template                                      |
+| ---------------------------------- | --------------------------------------------------- |
+| `billing.invoice.issued`           | `invoice_issued.html` (with "Pay Now" link)         |
+| `billing.invoice.settled`          | `payment_received.html`                             |
+| `billing.invoice.reminder`         | `payment_reminder.html`                             |
+| `billing.payment_request.issued`   | `payment_request_issued.html` (with "Pay Now" link) |
+| `billing.payment_request.settled`  | `payment_received.html`                             |
+| `billing.payment_request.reminder` | `payment_reminder.html`                             |
+| `billing.receipt.issued`           | `receipt.html` (with disclosure block)              |
+| `billing.installment.upcoming`     | `payment_reminder.html`                             |
+| `billing.installment.due`          | `payment_reminder.html`                             |
+| `billing.installment.overdue`      | `payment_reminder.html`                             |
 
 ---
 
 ## Frontend routes
 
-| Route | View | Auth |
-|---|---|---|
-| `/payment/complete` | `PaymentCompleteView.vue` | Public |
-| `/pay/invoice/:token` | `PublicPayView.vue` | Public (token-gated, 72h) |
-| `/pay/payment-request/:token` | `PublicPayView.vue` | Public (token-gated, 72h) |
-| `/client/billing` | `ClientBillingView.vue` | Client |
-| `/admin/payment-gateway` | `AdminPaymentGatewayView.vue` | Admin + Superadmin |
-| `/superadmin/payment-gateway` | `AdminPaymentGatewayView.vue` | Superadmin |
+| Route                         | View                          | Auth                      |
+| ----------------------------- | ----------------------------- | ------------------------- |
+| `/payment/complete`           | `PaymentCompleteView.vue`     | Public                    |
+| `/pay/invoice/:token`         | `PublicPayView.vue`           | Public (token-gated, 72h) |
+| `/pay/payment-request/:token` | `PublicPayView.vue`           | Public (token-gated, 72h) |
+| `/client/billing`             | `ClientBillingView.vue`       | Client                    |
+| `/admin/payment-gateway`      | `AdminPaymentGatewayView.vue` | Admin + Superadmin        |
+| `/superadmin/payment-gateway` | `AdminPaymentGatewayView.vue` | Superadmin                |
 
 `ClientBillingView` tabs: **Invoices** (installment pay + full invoice pay), **Payment Requests** (Pay now button for issued status), **Receipts** (read-only with disclosure details).
 
@@ -436,19 +436,19 @@ Refund state tracked on `PaymentRefund`, reconciled via `PaymentReconciliationSe
 
 ## Decisions log
 
-| Decision | Reason |
-|---|---|
-| Single Stripe account (OrderBridge) for all 4 sites | Simpler compliance, one merchant entity, easier reconciliation |
-| Stripe Checkout Sessions (hosted page) | PCI compliance out-of-the-box; no card data touches our servers |
-| `client_reference_id` + `metadata.reference` both set | Two lookup paths in webhook — safety net if one field is absent |
-| Webhook deduplication via `ProviderWebhookEvent` unique constraint | Prevents double-fulfilment without locks; Stripe retries on non-2xx |
-| Fulfilment via Celery async (not inline in webhook handler) | Webhook must return 200 fast; downstream logic can be slow and retried |
-| `/payment/complete` dedicated return page | Handles all payment types (order, invoice, wallet, tip); clean separation from billing management |
-| Public `/pay/:type/:token` (no login required) | Clients receiving invoice emails often aren't logged in; forcing login causes drop-off |
-| Token expiry 72h | Long enough to act on an invoice email; short enough to limit exposure |
-| `billing.receipt.issued` fires unconditionally | Receipt is a regulatory artifact — must fire regardless of notification preferences |
-| Dispute webhooks written to DB automatically | Admin visibility without polling Stripe dashboard |
-| `PaymentGatewayConfig` per website | Each site can swap provider, endpoint, or callback URL from the admin panel without code changes |
-| `PaymentNotificationEmail` per website | Finance teams receive forwarded copies without needing portal accounts |
-| `website.root_url` drives Stripe callback URLs | Each site's return URL is automatically correct; `INFOQ_PAYMENT_BASE_URL` is now dev-only |
-| Writer payouts: manual ops, no automated rail | Volume doesn't justify Wise/Stripe Connect yet; `PayoutRecord` model is ready to attach a rail when needed |
+| Decision                                                           | Reason                                                                                                     |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Single Stripe account (OrderBridge) for all 4 sites                | Simpler compliance, one merchant entity, easier reconciliation                                             |
+| Stripe Checkout Sessions (hosted page)                             | PCI compliance out-of-the-box; no card data touches our servers                                            |
+| `client_reference_id` + `metadata.reference` both set              | Two lookup paths in webhook — safety net if one field is absent                                            |
+| Webhook deduplication via `ProviderWebhookEvent` unique constraint | Prevents double-fulfilment without locks; Stripe retries on non-2xx                                        |
+| Fulfilment via Celery async (not inline in webhook handler)        | Webhook must return 200 fast; downstream logic can be slow and retried                                     |
+| `/payment/complete` dedicated return page                          | Handles all payment types (order, invoice, wallet, tip); clean separation from billing management          |
+| Public `/pay/:type/:token` (no login required)                     | Clients receiving invoice emails often aren't logged in; forcing login causes drop-off                     |
+| Token expiry 72h                                                   | Long enough to act on an invoice email; short enough to limit exposure                                     |
+| `billing.receipt.issued` fires unconditionally                     | Receipt is a regulatory artifact — must fire regardless of notification preferences                        |
+| Dispute webhooks written to DB automatically                       | Admin visibility without polling Stripe dashboard                                                          |
+| `PaymentGatewayConfig` per website                                 | Each site can swap provider, endpoint, or callback URL from the admin panel without code changes           |
+| `PaymentNotificationEmail` per website                             | Finance teams receive forwarded copies without needing portal accounts                                     |
+| `website.root_url` drives Stripe callback URLs                     | Each site's return URL is automatically correct; `INFOQ_PAYMENT_BASE_URL` is now dev-only                  |
+| Writer payouts: manual ops, no automated rail                      | Volume doesn't justify Wise/Stripe Connect yet; `PayoutRecord` model is ready to attach a rail when needed |

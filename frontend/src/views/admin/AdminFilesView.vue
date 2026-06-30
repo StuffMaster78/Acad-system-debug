@@ -1,10 +1,35 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { FileWarning, Link2, RefreshCw, ShieldCheck, Trash2 } from "@lucide/vue";
+import { onMounted, ref } from "vue";
+import { FileWarning, History, Link2, RefreshCw, ShieldCheck, Trash2 } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useAdminFilesStore } from "@/stores/adminFiles";
+import { filesApi, type FileVersion } from "@/api/files";
 
 const files = useAdminFilesStore();
+
+const expandedFileId = ref<number | null>(null);
+const versions = ref<FileVersion[]>([]);
+const versionsLoading = ref(false);
+const versionsError = ref("");
+
+async function toggleVersions(fileId: number) {
+  if (expandedFileId.value === fileId) {
+    expandedFileId.value = null;
+    return;
+  }
+  expandedFileId.value = fileId;
+  versionsLoading.value = true;
+  versionsError.value = "";
+  versions.value = [];
+  try {
+    const { data } = await filesApi.fileVersions(fileId);
+    versions.value = data;
+  } catch {
+    versionsError.value = "Could not load version history.";
+  } finally {
+    versionsLoading.value = false;
+  }
+}
 
 function bytesLabel(value?: number) {
   if (!value) return "0 B";
@@ -101,40 +126,84 @@ onMounted(() => {
       </div>
 
       <div class="mt-5 overflow-hidden rounded-md border border-slate-200">
-        <div class="grid grid-cols-[1fr_120px_120px_120px_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div class="grid grid-cols-[1fr_120px_120px_120px_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <span>File</span>
           <span>Size</span>
           <span>Scan</span>
           <span>Status</span>
           <span class="text-right">Action</span>
+          <span class="text-right">History</span>
         </div>
         <div v-if="files.isLoading" class="px-4 py-6 text-sm text-graphite">Loading files...</div>
         <div v-else-if="!files.files.length" class="px-4 py-6 text-sm text-graphite">No files found.</div>
-        <div
-          v-for="file in files.files"
-          v-else
-          :key="String(file.id ?? file.uuid ?? fileName(file))"
-          class="grid grid-cols-[1fr_120px_120px_120px_auto] items-center gap-3 border-t border-slate-100 px-4 py-3 text-sm"
-        >
-          <div>
-            <p class="font-semibold text-ink">{{ fileName(file) }}</p>
-            <p class="mt-1 text-xs text-graphite">{{ file.mime_type || file.file_kind || "unknown" }}</p>
-          </div>
-          <span class="text-graphite">{{ bytesLabel(file.file_size_bytes) }}</span>
-          <StatusPill :label="file.scan_status ?? 'unknown'" />
-          <StatusPill :label="file.lifecycle_status ?? 'unknown'" />
-          <button
-            v-if="file.lifecycle_status === 'quarantined' && file.id"
-            class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
-            type="button"
-            :disabled="files.isMutating"
-            @click="files.releaseQuarantine(file.id)"
+        <template v-else>
+          <div
+            v-for="file in files.files"
+            :key="String(file.id ?? file.uuid ?? fileName(file))"
           >
-            <ShieldCheck class="h-3.5 w-3.5" />
-            Release
-          </button>
-          <span v-else class="text-right text-xs text-slate-400">No action</span>
-        </div>
+            <div class="grid grid-cols-[1fr_120px_120px_120px_auto_auto] items-center gap-3 border-t border-slate-100 px-4 py-3 text-sm">
+              <div>
+                <p class="font-semibold text-ink">{{ fileName(file) }}</p>
+                <p class="mt-1 text-xs text-graphite">{{ file.mime_type || file.file_kind || "unknown" }}</p>
+              </div>
+              <span class="text-graphite">{{ bytesLabel(file.file_size_bytes) }}</span>
+              <StatusPill :label="file.scan_status ?? 'unknown'" />
+              <StatusPill :label="file.lifecycle_status ?? 'unknown'" />
+              <button
+                v-if="file.lifecycle_status === 'quarantined' && file.id"
+                class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                :disabled="files.isMutating"
+                @click="files.releaseQuarantine(file.id)"
+              >
+                <ShieldCheck class="h-3.5 w-3.5" />
+                Release
+              </button>
+              <span v-else />
+              <button
+                v-if="file.id"
+                class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-graphite hover:border-ink hover:text-ink"
+                :class="expandedFileId === file.id ? 'border-ink text-ink' : ''"
+                type="button"
+                @click="toggleVersions(file.id!)"
+              >
+                <History class="h-3.5 w-3.5" />
+                Versions
+              </button>
+              <span v-else />
+            </div>
+
+            <div
+              v-if="expandedFileId === file.id"
+              class="border-t border-dashed border-slate-100 bg-slate-50/60 px-5 py-4"
+            >
+              <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-graphite">Version history</p>
+              <div v-if="versionsLoading" class="text-sm text-graphite">Loading versions…</div>
+              <div v-else-if="versionsError" class="text-sm text-berry">{{ versionsError }}</div>
+              <div v-else-if="!versions.length" class="text-sm text-graphite">No version history recorded.</div>
+              <table v-else class="min-w-full text-xs">
+                <thead class="text-left text-graphite">
+                  <tr>
+                    <th class="pb-2 pr-4 font-semibold uppercase">#</th>
+                    <th class="pb-2 pr-4 font-semibold uppercase">Replaced file</th>
+                    <th class="pb-2 pr-4 font-semibold uppercase">Uploaded by</th>
+                    <th class="pb-2 pr-4 font-semibold uppercase">Date</th>
+                    <th class="pb-2 font-semibold uppercase">Notes</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr v-for="v in versions" :key="v.id">
+                    <td class="py-2 pr-4 font-mono font-semibold text-ink">v{{ v.version_number }}</td>
+                    <td class="py-2 pr-4 text-graphite">{{ v.replaced_file_name ?? "—" }}</td>
+                    <td class="py-2 pr-4 text-graphite">{{ v.created_by_email ?? "—" }}</td>
+                    <td class="py-2 pr-4 text-graphite">{{ dateLabel(v.created_at ?? undefined) }}</td>
+                    <td class="py-2 text-graphite">{{ v.notes ?? "—" }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
       </div>
     </section>
 
