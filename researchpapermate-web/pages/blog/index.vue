@@ -35,11 +35,8 @@ interface CmsPost {
   author_name: string
 }
 
-const config      = useRuntimeConfig()
-const apiBase = import.meta.server
-  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
-  : (config.public.apiBase || '')
-const PAGE_SIZE   = 12
+const config    = useRuntimeConfig()
+const PAGE_SIZE = 12
 
 const cmsPosts   = ref<CmsPost[]>([])
 const cmsTotal   = ref(0)
@@ -49,17 +46,13 @@ const cmsError   = ref(false)
 const usingCms   = ref(false)
 
 async function loadCmsPage(p: number) {
-  if (!apiBase) return
   cmsLoading.value = true; cmsError.value = false
   try {
+    // /wagtail proxy (server/routes/wagtail/[...path].ts) sets Host: researchpapermate.com
+    // internally, so both SSR and client-side pagination hit the correct site.
     const res = await $fetch<{ meta: { total_count: number }; items: CmsPost[] }>(
-      `${apiBase}/api/v2/pages/`,
-      {
-        params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE },
-        headers: import.meta.server
-          ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
-          : undefined,
-      },
+      '/wagtail/api/v2/pages/',
+      { params: { type: 'cms_blog.BlogPostPage', fields: 'title,excerpt,reading_time_minutes,category_name,thumbnail,author_name', order: '-first_published_at', limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE } },
     )
     cmsTotal.value = res?.meta?.total_count ?? 0
     cmsPosts.value = res.items ?? []
@@ -77,7 +70,11 @@ const staticPosts = usingCms.value ? [] : getAll()
 
 // ── Normalise ──────────────────────────────────────────────────────────────
 function normCms(p: CmsPost): Post {
-  return { slug: p.meta.slug, title: p.title, excerpt: p.excerpt, category: p.category_name || '', readingTime: p.reading_time_minutes || 1, publishedAt: p.meta.first_published_at, thumbnail: p.thumbnail?.url ?? null, fromCms: true }
+  const thumbUrl = p.thumbnail?.url ?? null
+  // Make relative /media/... URLs absolute so NuxtImg can serve them
+  const siteUrl = config.public.siteUrl || 'https://researchpapermate.com'
+  const thumbnail = thumbUrl ? (thumbUrl.startsWith('http') ? thumbUrl : `${siteUrl}${thumbUrl}`) : null
+  return { slug: p.meta.slug, title: p.title, excerpt: p.excerpt, category: p.category_name || '', readingTime: p.reading_time_minutes || 1, publishedAt: p.meta.first_published_at, thumbnail, fromCms: true }
 }
 function normStatic(p: ReturnType<typeof getAll>[0]): Post {
   return {
