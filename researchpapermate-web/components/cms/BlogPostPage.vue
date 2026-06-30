@@ -4,8 +4,9 @@ import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 const props = defineProps<{ slug: string }>()
 
 const config  = useRuntimeConfig()
-const apiBase     = config.public.apiBase || ''
-const wagtailBase = `${apiBase}/wagtail`
+const apiBase = import.meta.server
+  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
+  : (config.public.apiBase || '')
 
 // ── CMS types ─────────────────────────────────────────────────────────────
 interface Block { type: string; value: unknown }
@@ -32,11 +33,16 @@ interface CmsArticle {
 const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
   `rpm-blog-${props.slug}`,
   async () => {
-    if (!wagtailBase) return null
+    if (!apiBase) return null
     try {
       const res = await $fetch<{ items: CmsArticle[] }>(
-        `${wagtailBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', slug: props.slug, fields: '*' } },
+        `${apiBase}/api/v2/pages/`,
+        {
+          params: { type: 'cms_blog.BlogPostPage', slug: props.slug, fields: '*' },
+          headers: import.meta.server
+            ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
+            : undefined,
+        },
       )
       return res.items?.[0] ?? null
     } catch { return null }
@@ -47,11 +53,16 @@ const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
 const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[]>(
   `rpm-blog-related-${props.slug}`,
   async () => {
-    if (!wagtailBase || !cmsArticle.value) return []
+    if (!apiBase || !cmsArticle.value) return []
     try {
       const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
-        `${wagtailBase}/api/v2/pages/`,
-        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 } },
+        `${apiBase}/api/v2/pages/`,
+        {
+          params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 },
+          headers: import.meta.server
+            ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
+            : undefined,
+        },
       )
       return (res.items ?? []).filter(p => p.meta?.slug !== props.slug).slice(0, 3)
     } catch { return [] }
