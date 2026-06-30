@@ -74,7 +74,7 @@ const { getBySlug, getAll, getByAuthor } = useBlog()
 const staticPost = cmsArticle.value ? null : getBySlug(props.slug)
 
 if (!cmsArticle.value && !staticPost) {
-  throw createError({ statusCode: 404, message: 'Post not found' })
+  throw createError({ statusCode: 404, fatal: true, message: 'Post not found' })
 }
 
 // ── Static-only data ───────────────────────────────────────────────────────
