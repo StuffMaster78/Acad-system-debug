@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import BlockRenderer from '~/components/cms/BlockRenderer.vue'
 
-const props = defineProps<{ slug: string }>()
-
-const config  = useRuntimeConfig()
-const apiBase = import.meta.server
-  ? ((config as Record<string, unknown>).apiBaseInternal as string || 'http://localhost:8000')
-  : (config.public.apiBase || '')
-
 // ── CMS types ─────────────────────────────────────────────────────────────
 interface Block { type: string; value: unknown }
 interface CmsArticle {
@@ -29,40 +22,27 @@ interface CmsArticle {
   lead_magnet: { slug: string; title: string; description: string } | null
 }
 
-// ── Try CMS first ──────────────────────────────────────────────────────────
-const { data: cmsArticle } = await useAsyncData<CmsArticle | null>(
-  `rpm-blog-${props.slug}`,
-  async () => {
-    if (!apiBase) return null
-    try {
-      const res = await $fetch<{ items: CmsArticle[] }>(
-        `${apiBase}/api/v2/pages/`,
-        {
-          params: { type: 'cms_blog.BlogPostPage', slug: props.slug, fields: '*' },
-          headers: import.meta.server
-            ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
-            : undefined,
-        },
-      )
-      return res.items?.[0] ?? null
-    } catch { return null }
-  },
-)
+// Article is fetched by the parent page (pages/[slug].vue) and passed as a
+// prop so we never need async data fetching in this child component.
+const props = defineProps({
+  slug:    { type: String,  required: true as const },
+  article: { type: Object,  default: null },
+})
 
-// ── CMS related posts ──────────────────────────────────────────────────────
-const { data: cmsRelated } = await useAsyncData<{ meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[]>(
+const config = useRuntimeConfig()
+
+// Wrap the prop in a computed so all downstream references stay reactive
+const cmsArticle = computed(() => props.article as CmsArticle | null)
+
+// ── CMS related posts (non-critical, loads async) ────────────────
+const { data: cmsRelated } = useAsyncData<{ meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[]>(
   `rpm-blog-related-${props.slug}`,
   async () => {
-    if (!apiBase || !cmsArticle.value) return []
+    if (!cmsArticle.value) return []
     try {
       const res = await $fetch<{ items: { meta: { slug: string }; title: string; reading_time_minutes: number; category_name: string; thumbnail: { url: string } | null }[] }>(
-        `${apiBase}/api/v2/pages/`,
-        {
-          params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 },
-          headers: import.meta.server
-            ? { Host: (config as Record<string, unknown>).siteHostname as string || 'researchpapermate.com' }
-            : undefined,
-        },
+        '/wagtail/api/v2/pages/',
+        { params: { type: 'cms_blog.BlogPostPage', fields: 'title,reading_time_minutes,category_name,thumbnail', order: '-first_published_at', limit: 4 } },
       )
       return (res.items ?? []).filter(p => p.meta?.slug !== props.slug).slice(0, 3)
     } catch { return [] }
