@@ -18,8 +18,8 @@ from privacy.models import CookieConsentRecord, WebsiteCookieConfig
 
 CONSENT_COOKIE_NAME = "writing_system.cookie_consent_id"
 # Fallback versions used when no per-tenant WebsiteCookieConfig row exists.
-_DEFAULT__DEFAULT_CONSENT_VERSION = "2026-06-15"
-_DEFAULT__DEFAULT_POLICY_VERSION  = "2026-06-15"
+_DEFAULT_CONSENT_VERSION = "2026-06-15"
+_DEFAULT_POLICY_VERSION  = "2026-06-15"
 CONSENT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 
