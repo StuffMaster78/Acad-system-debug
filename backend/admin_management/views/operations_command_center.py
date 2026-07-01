@@ -571,13 +571,13 @@ class OperationsCommandCenterViewSet(ViewSet):
         return items
 
     def _writer_review_items(self, website: Website | None) -> list[CommandItem]:
-        qs = (
-            WriterTestAttempt.objects.filter(status=AttemptStatus.PENDING_REVIEW)
-            .select_related("quiz", "quiz__website", "writer", "writer__account_profile")
-            .order_by("submitted_at", "started_at")[:25]
-        )
+        qs = WriterTestAttempt.objects.filter(status=AttemptStatus.PENDING_REVIEW)
         if website is not None:
             qs = qs.filter(quiz__website=website)
+        qs = (
+            qs.select_related("quiz", "quiz__website", "writer", "writer__account_profile")
+            .order_by("submitted_at", "started_at")[:25]
+        )
         items = []
         for attempt in qs:
             submitted = attempt.submitted_at or attempt.started_at

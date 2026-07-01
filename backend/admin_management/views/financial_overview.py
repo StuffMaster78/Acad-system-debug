@@ -14,11 +14,13 @@ from orders.models.orders import Order
 from special_orders.constants import PaymentApplicationStatus
 from special_orders.models import SpecialOrderPaymentApplication
 from class_management.models import ClassBundle, ClassInstallment
+from class_management.constants import ClassInstallmentStatus
 from payments_processor.models import PaymentIntent
 from payments_processor.enums import PaymentIntentPurpose
 from writer_compensation.enums.compensation_enums import PayoutRecordStatus
 from writer_compensation.models import PayoutRecord
-from writer_management.models.tipping import Tip
+from tips.models.tip import Tip
+from tips.enums.tip_status import TipStatus
 from wallets.constants import WalletEntryType
 from wallets.models import WalletEntry
 
@@ -83,7 +85,7 @@ class FinancialOverviewViewSet(ViewSet):
         )['total'] or Decimal('0.00')
 
         # Class Bundles - sum from installments that are paid
-        paid_installments = ClassInstallment.objects.filter(is_paid=True)
+        paid_installments = ClassInstallment.objects.filter(status=ClassInstallmentStatus.PAID)
         if website_id:
             paid_installments = paid_installments.filter(class_bundle__website_id=website_id)
         if date_from:
@@ -99,21 +101,20 @@ class FinancialOverviewViewSet(ViewSet):
 
         # Calculate Expenses (Writer Payments)
         total_writer_payments = writer_payments_qs.aggregate(
-            total=Sum('amount')
+            total=Sum('total_amount')
         )['total'] or Decimal('0.00')
 
         # Calculate Tips (these are expenses as they're paid to writers)
-        tips_qs = Tip.objects.filter(payment_status='completed')
-        if website_id:
-            tips_qs = tips_qs.filter(website_id=website_id)
+        tips_qs = Tip.objects.filter(status=TipStatus.SUCCEEDED)
         if date_from:
-            tips_qs = tips_qs.filter(sent_at__gte=date_from)
+            tips_qs = tips_qs.filter(paid_at__gte=date_from)
         if date_to:
-            tips_qs = tips_qs.filter(sent_at__lte=date_to)
+            tips_qs = tips_qs.filter(paid_at__lte=date_to)
 
-        total_tips_paid = tips_qs.aggregate(
-            total=Sum('writer_earning')
-        )['total'] or Decimal('0.00')
+        total_tips_paid_cents = tips_qs.aggregate(
+            total=Sum('writer_share_cents')
+        )['total'] or 0
+        total_tips_paid = Decimal(total_tips_paid_cents) / 100
 
         # Total Expenses
         total_expenses = total_writer_payments + total_tips_paid
@@ -160,7 +161,7 @@ class FinancialOverviewViewSet(ViewSet):
                 )
 
             month_classes = ClassInstallment.objects.filter(
-                is_paid=True,
+                status=ClassInstallmentStatus.PAID,
                 paid_at__gte=month_start,
                 paid_at__lte=month_end
             )
@@ -266,19 +267,17 @@ class FinancialOverviewViewSet(ViewSet):
             fines_total = Decimal('0.00')
 
             try:
-                from writer_management.models.tipping import Tip
-
                 if payment.batch:
                     window = payment.batch.payment_window
                     period_start = window.start_date
                     period_end = window.end_date
                     tips = Tip.objects.filter(
-                        writer=writer_user,
-                        website=payment.website,
-                        sent_at__gte=period_start,
-                        sent_at__lt=period_end
+                        receiver=writer_user,
+                        status=TipStatus.SUCCEEDED,
+                        paid_at__gte=period_start,
+                        paid_at__lt=period_end,
                     )
-                    tips_total = sum(tip.writer_earning for tip in tips)
+                    tips_total = Decimal(sum(tip.writer_share_cents for tip in tips)) / 100
 
                     fines_entries = WalletEntry.objects.filter(
                         wallet__owner_user=writer_user,

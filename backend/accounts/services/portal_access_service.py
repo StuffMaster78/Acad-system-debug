@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from rest_framework.exceptions import PermissionDenied
+
 from accounts.models.portal_definition import PortalDefinition
 from accounts.models.portal_access import PortalAccess
 
@@ -38,7 +40,7 @@ class PortalAccessService:
             user=user,
             portal_code=portal_code,
         ):
-            raise PermissionError(
+            raise PermissionDenied(
                 f"User has no access to portal: {portal_code}"
             )
 
