@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, Star, X } from "@lucide/vue";
+import { AlertTriangle, Calendar, Calculator, CheckCircle2, Clock, FileText, Loader2, Paperclip, RefreshCw, Send, Star, X } from "@lucide/vue";
 import ConfigSelect from "@/components/forms/ConfigSelect.vue";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector.vue";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
@@ -158,6 +158,43 @@ const providerFor: Record<PaymentMethod, { payment_provider?: string; payment_me
 function defaultDeadline() {
   return new Date(Date.now() + 72 * 3600 * 1000).toISOString().slice(0, 16);
 }
+
+// ── Split deadline: separate date + time refs ─────────────────────────────
+// Date pre-fills to 3 days from now; time starts EMPTY so the client must set it.
+const _defaultDt = new Date(Date.now() + 72 * 3600 * 1000);
+const deadlineDate = ref(_defaultDt.toISOString().slice(0, 10));
+const deadlineTime = ref(""); // intentionally empty — client must pick a time
+
+// Min date: today in local timezone
+const minDate = computed(() => new Date().toLocaleDateString("en-CA")); // YYYY-MM-DD
+
+// Combine date + time → update form.client_deadline whenever both are set
+watch([deadlineDate, deadlineTime], ([date, time]) => {
+  if (date && time) {
+    form.client_deadline = `${date}T${time}`;
+  } else if (date && !time) {
+    // Date chosen but no time yet — keep previous deadline so urgency still shows,
+    // but don't submit until time is filled.
+    form.client_deadline = `${date}T00:00`;
+  }
+});
+
+// Human-readable summary shown under the pickers
+const deadlineSummary = computed(() => {
+  if (!deadlineDate.value || !deadlineTime.value) return null;
+  const dt = new Date(`${deadlineDate.value}T${deadlineTime.value}`);
+  return dt.toLocaleString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+});
+
+// Whether the time has been explicitly set by the user
+const deadlineTimeSet = computed(() => Boolean(deadlineTime.value));
 
 // ── Service mode ─────────────────────────────────────────────────────────────
 type ServiceMode = "paper" | "design" | "diagram" | "combo_paper_design" | "combo_paper_diagram";
@@ -443,7 +480,10 @@ function applyUrlParams() {
   // Accept either a shorthand key ('14d', '24h') or numeric hours ('336', '24').
   const hours = DEADLINE_HOURS[deadlineRaw] ?? (parseInt(deadlineRaw, 10) || 0);
   if (hours > 0) {
-    form.client_deadline = new Date(Date.now() + hours * 3600 * 1000).toISOString().slice(0, 16);
+    const dt = new Date(Date.now() + hours * 3600 * 1000);
+    form.client_deadline = dt.toISOString().slice(0, 16);
+    deadlineDate.value = dt.toISOString().slice(0, 10);
+    deadlineTime.value = dt.toISOString().slice(11, 16);
   }
 
   // ── Add-on codes ────────────────────────────────────────────────────────
@@ -481,7 +521,8 @@ const readinessItems = computed(() => [
   { label: "Topic added", done: !topicError.value },
   { label: "Instructions are clear", done: !instructionsError.value },
   { label: "Order category selected", done: !configSelectionError.value },
-  { label: "Deadline set", done: Boolean(form.client_deadline) },
+  { label: "Deadline date set", done: Boolean(deadlineDate.value) },
+  { label: "Deadline time set", done: deadlineTimeSet.value },
 ]);
 
 function quotePayload(): PaperQuotePayload {
@@ -593,6 +634,14 @@ async function submit() {
   if (topicError.value || instructionsError.value) return;
   // Paper fields only required for paper-based modes
   if (isPaperMode.value && (!form.paper_type_id || !form.academic_level_id || !form.type_of_work_id)) return;
+  if (!deadlineDate.value) {
+    error.value = "Please select a deadline date.";
+    return;
+  }
+  if (!deadlineTimeSet.value) {
+    error.value = "Please also set a deadline time — we need to know exactly when you need this completed.";
+    return;
+  }
   if (!paymentDisclosureAccepted.value) {
     error.value = "Please acknowledge the billing statement notice before placing your order.";
     return;
@@ -1157,17 +1206,67 @@ const summaryPages = computed(() => {
               </span>
             </label>
 
-            <label class="block">
-              <span class="text-sm font-medium text-graphite">Deadline</span>
-              <input
-                v-model="form.client_deadline"
-                class="focus-ring mt-1 h-11 w-full rounded-md border border-slate-200 px-3 text-sm"
-                type="datetime-local"
-              />
-              <span class="mt-1 block text-xs" :class="deadlineHours <= 24 ? 'text-berry font-semibold' : 'text-graphite'">
-                {{ deadlineLabel }} from now{{ deadlineHours <= 24 ? " — urgent" : "" }}
-              </span>
-            </label>
+            <!-- Deadline — split date + time to ensure clients set both -->
+            <div class="space-y-3 rounded-xl border-2 p-4 transition-colors"
+              :class="!deadlineTimeSet && deadlineDate ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'">
+
+              <!-- Header -->
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-semibold text-ink">
+                  Deadline <span class="text-berry">*</span>
+                </p>
+                <span v-if="deadlineHours <= 24 && deadlineTimeSet" class="rounded-full bg-berry/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-berry">Urgent</span>
+              </div>
+
+              <!-- Date row -->
+              <div>
+                <label class="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-graphite" for="dl-date">
+                  <Calendar class="h-3.5 w-3.5 text-signal" /> Date
+                </label>
+                <input
+                  id="dl-date"
+                  v-model="deadlineDate"
+                  type="date"
+                  :min="minDate"
+                  class="focus-ring h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  required
+                />
+              </div>
+
+              <!-- Time row — visually emphasised -->
+              <div>
+                <label class="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide" :class="!deadlineTimeSet && deadlineDate ? 'text-amber-700' : 'text-graphite'" for="dl-time">
+                  <Clock class="h-3.5 w-3.5" :class="!deadlineTimeSet && deadlineDate ? 'text-amber-500' : 'text-signal'" />
+                  Time <span class="ml-1 normal-case font-normal" :class="!deadlineTimeSet && deadlineDate ? 'text-amber-600' : 'text-graphite/60'">(required — don't skip)</span>
+                </label>
+                <input
+                  id="dl-time"
+                  v-model="deadlineTime"
+                  type="time"
+                  class="focus-ring h-10 w-full rounded-lg border px-3 text-sm transition-colors"
+                  :class="!deadlineTimeSet && deadlineDate
+                    ? 'border-amber-400 bg-amber-50 text-amber-900 placeholder:text-amber-400'
+                    : 'border-slate-200 bg-white'"
+                  required
+                />
+                <!-- Time-not-set nudge -->
+                <div v-if="!deadlineTimeSet && deadlineDate" class="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700">
+                  <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  <span>What time do you need this? Writers plan around your exact time.</span>
+                </div>
+              </div>
+
+              <!-- Summary when both are set -->
+              <div v-if="deadlineSummary" class="rounded-lg px-3 py-2.5 text-xs"
+                :class="deadlineHours <= 24 ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'">
+                <p class="font-semibold" :class="deadlineHours <= 24 ? 'text-rose-700' : 'text-emerald-800'">
+                  {{ deadlineSummary }}
+                </p>
+                <p class="mt-0.5" :class="deadlineHours <= 24 ? 'text-rose-600' : 'text-emerald-600'">
+                  {{ deadlineLabel }} from now{{ deadlineHours <= 24 ? ' — urgent order' : '' }}
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
