@@ -1,6 +1,6 @@
 from django.urls import path
 
-from payments_processor.api.views.checkout_views import CancelPrewarmView, PaymentCheckoutView
+from payments_processor.api.views.checkout_views import CancelPrewarmView, MockPaymentConfirmView, PaymentCheckoutView
 from payments_processor.api.views.gateway_config_views import (
     PaymentGatewayConfigCreateView,
     PaymentGatewayConfigDetailView,
@@ -25,6 +25,11 @@ urlpatterns = [
         "checkout/cancel-prewarm/",
         CancelPrewarmView.as_view(),
         name="cancel-prewarm",
+    ),
+    path(
+        "checkout/mock-confirm/",
+        MockPaymentConfirmView.as_view(),
+        name="mock-confirm",
     ),
     path(
         "webhooks/<str:provider>/",

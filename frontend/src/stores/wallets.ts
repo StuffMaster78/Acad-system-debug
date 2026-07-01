@@ -136,6 +136,14 @@ export const useWalletStore = defineStore("wallets", () => {
         return { status: "success" };
       }
       const { data } = await walletsApi.initiateTopup(payload);
+      const reference = data.payment_intent?.reference as string | undefined;
+
+      if (payload.provider === "mock" && reference) {
+        await walletsApi.mockConfirm(reference);
+        await fetchWallet();
+        return { status: "success" };
+      }
+
       const checkoutUrl = data.provider_data?.checkout_url as string | undefined;
       if (checkoutUrl) {
         window.location.href = checkoutUrl;

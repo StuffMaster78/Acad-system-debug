@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from decimal import Decimal
 from typing import Any, cast
 
@@ -15,7 +16,9 @@ from payments_processor.api.serializers.payment_intent_serializer import (
     PaymentIntentSerializer,
 )
 from payments_processor.services.payment_intent_service import PaymentIntentService
+from payments_processor.services.payment_application_service import PaymentApplicationService
 from payments_processor.enums import PaymentIntentStatus
+from payments_processor.models import PaymentIntent
 
 
 class PaymentCheckoutView(APIView):
@@ -49,7 +52,7 @@ class PaymentCheckoutView(APIView):
         return Response(
             {
                 "payment_intent": PaymentIntentSerializer(payment_intent).data,
-                "provider_data": provider_data,
+                "provider_data": dataclasses.asdict(provider_data),
             },
             status=status.HTTP_201_CREATED,
         )
@@ -84,3 +87,48 @@ class CancelPrewarmView(APIView):
 
         PaymentIntentService.cancel_intent(payment_intent=intent)
         return Response({"cancelled": True}, status=status.HTTP_200_OK)
+
+
+class MockPaymentConfirmView(APIView):
+    """
+    Dev/test only: instantly confirm a mock PaymentIntent.
+
+    POSTing the reference of a pending mock intent marks it as succeeded
+    and runs the same application logic that a real webhook would trigger
+    (e.g. credits the wallet for wallet_top_up intents).
+
+    Only works for intents where provider == "mock" and the intent belongs
+    to the requesting user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from django.db import transaction
+
+        reference = str(request.data.get("reference", "")).strip()
+        if not reference:
+            return Response({"detail": "reference required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            intent = PaymentIntent.objects.select_for_update().get(
+                reference=reference,
+                client=request.user,
+                provider="mock",
+                status=PaymentIntentStatus.PENDING,
+            )
+        except PaymentIntent.DoesNotExist:
+            return Response(
+                {"detail": "Mock intent not found or already processed."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        with transaction.atomic():
+            intent.status = PaymentIntentStatus.SUCCEEDED
+            intent.save(update_fields=["status", "updated_at"])
+
+            result = PaymentApplicationService.apply_payment(
+                payment_intent=intent,
+                total_amount=intent.amount,
+            )
+
+        return Response({"confirmed": True, "result": result}, status=status.HTTP_200_OK)

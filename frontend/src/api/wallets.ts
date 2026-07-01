@@ -55,4 +55,6 @@ export const walletsApi = {
         metadata: payload.metadata ?? {},
       },
     ),
+  mockConfirm: (reference: string) =>
+    api.post<{ confirmed: boolean }>(apiPath("/payments/checkout/mock-confirm/"), { reference }),
 };

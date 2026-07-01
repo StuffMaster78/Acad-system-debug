@@ -72,10 +72,11 @@ async function checkout() {
   try {
     await wallets.initiateTopup({ amount, provider: topup.provider });
 
-    if (auth.isPreviewSession) {
+    if (auth.isPreviewSession || topup.provider === "mock") {
       previewSuccess.value = true;
       topup.preset = null;
       topup.custom = "";
+      paymentDisclosureAccepted.value = false;
     }
   } catch {
     topupError.value = "Checkout failed. Please try again.";
