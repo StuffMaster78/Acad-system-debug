@@ -91,15 +91,25 @@ class WebhookProcessingService:
         provider_key: str,
         payload: dict[str, Any],
         headers: dict[str, Any],
+        website: Any = None,
     ) -> dict[str, Any]:
         """
         Process a webhook from a provider and enqueue internal payment
         application on success.
+
+        Pass ``website`` when the incoming request URL identifies the site
+        (e.g. /api/payments/webhooks/stripe/<site-slug>/) so that the
+        per-site Stripe webhook secret is used for signature verification.
         """
         validate_webhook_provider(provider_key)
         validate_webhook_payload(payload)
 
-        provider = get_provider(provider_key)
+        from payments_processor.providers.registry import get_provider_for_website
+        provider = (
+            get_provider_for_website(website)
+            if website is not None
+            else get_provider(provider_key)
+        )
 
         verification_result = provider.verify_webhook(payload, headers)
         validate_signature_verified(verification_result.is_verified)

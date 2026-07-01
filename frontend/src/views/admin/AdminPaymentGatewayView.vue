@@ -50,7 +50,7 @@ async function fetchConfigs() {
 
 // Edit gateway config
 const editingConfig = ref<GatewayConfig | null>(null);
-const editForm = ref({ gateway: "", webhook_endpoint: "", callback_base_url: "", mode: "live" as "live"|"test", is_active: true });
+const editForm = ref({ gateway: "", webhook_endpoint: "", callback_base_url: "", mode: "live" as "live"|"test", is_active: true, statement_descriptor: "", secret_key_env_var: "", webhook_secret_env_var: "" });
 const editSaving = ref(false);
 const editError = ref("");
 
@@ -62,6 +62,9 @@ function openEdit(cfg: GatewayConfig) {
     callback_base_url: cfg.callback_base_url,
     mode: cfg.mode,
     is_active: cfg.is_active,
+    statement_descriptor: cfg.statement_descriptor || "",
+    secret_key_env_var: cfg.secret_key_env_var || "",
+    webhook_secret_env_var: cfg.webhook_secret_env_var || "",
   };
   editError.value = "";
 }
@@ -459,6 +462,75 @@ onMounted(() => {
             <input v-model="editForm.is_active" type="checkbox" id="cfg-active" class="accent-signal" />
             <label for="cfg-active" class="text-sm text-ink cursor-pointer">Gateway active</label>
           </div>
+
+          <!-- Per-site credentials -->
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <p class="text-xs font-semibold text-ink">Per-site Stripe credentials</p>
+            <p class="text-xs text-graphite leading-5">
+              Store the Stripe secret key and webhook secret in environment variables on the server,
+              then enter the <em>variable name</em> here (never the value itself).
+              Leave blank to inherit the platform default.
+            </p>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">
+                Secret key env var
+                <span class="font-normal text-slate-400">e.g. STRIPE_SECRET_KEY_NURSEMYGRADE</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model="editForm.secret_key_env_var"
+                  class="focus-ring flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm font-mono"
+                  placeholder="STRIPE_SECRET_KEY_SITENAME"
+                />
+                <span
+                  :class="editingConfig?.secret_key_configured ? 'text-emerald-600' : 'text-slate-400'"
+                  class="text-xs font-semibold whitespace-nowrap"
+                >
+                  {{ editingConfig?.secret_key_configured ? '✓ Configured' : 'Not set' }}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">
+                Webhook secret env var
+                <span class="font-normal text-slate-400">e.g. STRIPE_WEBHOOK_SECRET_NURSEMYGRADE</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model="editForm.webhook_secret_env_var"
+                  class="focus-ring flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm font-mono"
+                  placeholder="STRIPE_WEBHOOK_SECRET_SITENAME"
+                />
+                <span
+                  :class="editingConfig?.webhook_secret_configured ? 'text-emerald-600' : 'text-slate-400'"
+                  class="text-xs font-semibold whitespace-nowrap"
+                >
+                  {{ editingConfig?.webhook_secret_configured ? '✓ Configured' : 'Not set' }}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-graphite mb-1">
+                Statement descriptor
+                <span class="font-normal text-slate-400">max 22 chars — appears on the cardholder's bank statement</span>
+              </label>
+              <input
+                v-model="editForm.statement_descriptor"
+                class="focus-ring w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                maxlength="22"
+                placeholder="YOURSITE"
+              />
+              <p class="mt-1 text-xs text-graphite">{{ editForm.statement_descriptor.length }}/22 · Latin chars only, no &lt; &gt; \ ' " *</p>
+            </div>
+            <div v-if="editingConfig?.website_slug" class="rounded-md border border-slate-200 bg-white px-3 py-2">
+              <p class="text-xs font-semibold text-graphite">Per-site webhook URL</p>
+              <p class="mt-0.5 font-mono text-xs text-ink break-all">
+                /api/payments/webhooks/{{ editForm.gateway || 'stripe' }}/{{ editingConfig.website_slug }}/
+              </p>
+              <p class="mt-1 text-xs text-slate-400">Register this path in your Stripe dashboard for this site's account.</p>
+            </div>
+          </div>
+
           <p v-if="editError" class="text-xs text-rose-600">{{ editError }}</p>
         </div>
         <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">

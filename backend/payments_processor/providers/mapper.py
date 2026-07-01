@@ -57,6 +57,12 @@ class ProviderRequestAssembler:
             infoq_base = (site_url or getattr(settings, "INFOQ_PAYMENT_BASE_URL", "")).rstrip("/")
         ref = payment_intent.reference
 
+        statement_descriptor = (
+            gateway_cfg.statement_descriptor.strip()
+            if gateway_cfg and gateway_cfg.is_active and gateway_cfg.statement_descriptor
+            else ""
+        )
+
         return ProviderPaymentRequest(
             merchant_reference=ref,
             amount=payment_intent.amount,
@@ -71,6 +77,7 @@ class ProviderRequestAssembler:
                 merchant_reference=ref,
                 environment=getattr(settings, "ENVIRONMENT", "production"),
             ),
+            statement_descriptor=statement_descriptor,
         )
 
     @classmethod

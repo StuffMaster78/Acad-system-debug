@@ -5,12 +5,18 @@ export interface GatewayConfig {
   website: number;
   website_name: string;
   website_domain: string;
+  website_slug: string;
   gateway: string;
   webhook_endpoint: string;
   callback_base_url: string;
   effective_callback_base_url: string;
   mode: "live" | "test";
   is_active: boolean;
+  statement_descriptor: string;
+  secret_key_env_var: string;
+  webhook_secret_env_var: string;
+  secret_key_configured: boolean;
+  webhook_secret_configured: boolean;
   updated_at: string;
 }
 
@@ -21,6 +27,9 @@ export interface GatewayConfigPayload {
   callback_base_url?: string;
   mode?: "live" | "test";
   is_active?: boolean;
+  statement_descriptor?: string;
+  secret_key_env_var?: string;
+  webhook_secret_env_var?: string;
 }
 
 export interface NotificationEmail {

@@ -31,6 +31,15 @@ urlpatterns = [
         PaymentWebhookView.as_view(),
         name="webhook",
     ),
+    # Per-site webhook endpoint — register this URL in Stripe for each
+    # website that has its own Stripe account. The site_slug identifies
+    # which PaymentGatewayConfig (and therefore which webhook secret) to
+    # use for signature verification.
+    path(
+        "webhooks/<str:provider>/<str:site_slug>/",
+        PaymentWebhookView.as_view(),
+        name="webhook-site",
+    ),
     path(
         "refunds/",
         InitiateRefundView.as_view(),

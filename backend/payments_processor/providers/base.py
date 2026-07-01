@@ -47,6 +47,7 @@ class ProviderPaymentRequest:
     cancel_url: str
     customer_email: str
     metadata: ProviderMetadata = field(default_factory=lambda: ProviderMetadata(merchant_reference="", environment=""))
+    statement_descriptor: str = ""
 
 
 @dataclass(slots=True, frozen=True)

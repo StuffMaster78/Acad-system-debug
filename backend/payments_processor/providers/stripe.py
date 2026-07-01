@@ -37,9 +37,8 @@ _FAILED_EVENTS = {
 }
 
 
-def _stripe():
+def _stripe_module():
     import stripe as _s  # noqa: PLC0415
-    _s.api_key = getattr(settings, "STRIPE_SECRET_KEY", "")
     return _s
 
 
@@ -66,13 +65,27 @@ class StripePaymentProvider(BasePaymentProvider):
     Receives immutable ProviderPaymentRequest / ProviderRefundRequest /
     ProviderVerificationRequest DTOs. Never accesses domain model objects.
 
-    Settings required:
+    Instantiate with per-site credentials or leave both None to fall back
+    to the platform-wide Django settings:
         STRIPE_SECRET_KEY          sk_live_... or sk_test_...
-        STRIPE_WEBHOOK_SECRET      whsec_... (webhook verification)
-        INFOQ_PAYMENT_BASE_URL     https://pay.infoq.com
+        STRIPE_WEBHOOK_SECRET      whsec_...
     """
 
     provider_name = "stripe"
+
+    def __init__(
+        self,
+        secret_key: str | None = None,
+        webhook_secret: str | None = None,
+    ) -> None:
+        self._secret_key = secret_key
+        self._webhook_secret = webhook_secret
+
+    def _get_secret_key(self) -> str:
+        return self._secret_key or getattr(settings, "STRIPE_SECRET_KEY", "")
+
+    def _get_webhook_secret(self) -> str:
+        return self._webhook_secret or getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
     # ------------------------------------------------------------------
     # create_payment
@@ -82,30 +95,35 @@ class StripePaymentProvider(BasePaymentProvider):
         self,
         request: ProviderPaymentRequest,
     ) -> ProviderCheckoutResult:
-        stripe = _stripe()
+        stripe = _stripe_module()
+        secret_key = self._get_secret_key()
+
+        create_kwargs: dict = dict(
+            mode="payment",
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": request.currency.lower(),
+                        "unit_amount": _to_cents(request.amount),
+                        "product_data": {"name": request.product_name},
+                    },
+                    "quantity": 1,
+                }
+            ],
+            client_reference_id=request.merchant_reference,
+            customer_email=request.customer_email or None,
+            metadata=request.metadata.to_dict(),
+            success_url=request.success_url,
+            cancel_url=request.cancel_url,
+        )
+        if request.statement_descriptor:
+            create_kwargs["payment_intent_data"] = {
+                "statement_descriptor": request.statement_descriptor[:22],
+            }
 
         try:
-            session = stripe.checkout.Session.create(
-                mode="payment",
-                payment_method_types=["card"],
-                line_items=[
-                    {
-                        "price_data": {
-                            "currency": request.currency.lower(),
-                            "unit_amount": _to_cents(request.amount),
-                            "product_data": {
-                                "name": request.product_name,
-                            },
-                        },
-                        "quantity": 1,
-                    }
-                ],
-                client_reference_id=request.merchant_reference,
-                customer_email=request.customer_email or None,
-                metadata=request.metadata.to_dict(),
-                success_url=request.success_url,
-                cancel_url=request.cancel_url,
-            )
+            session = stripe.checkout.Session.create(**create_kwargs, api_key=secret_key)
         except stripe.error.StripeError as exc:
             log.exception(
                 "Stripe checkout.Session.create failed ref=%s: %s",
@@ -138,8 +156,8 @@ class StripePaymentProvider(BasePaymentProvider):
         payload: dict[str, Any],
         headers: dict[str, Any],
     ) -> ProviderWebhookVerificationResult:
-        stripe = _stripe()
-        webhook_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
+        stripe = _stripe_module()
+        webhook_secret = self._get_webhook_secret()
 
         if not webhook_secret:
             log.error(
@@ -243,7 +261,8 @@ class StripePaymentProvider(BasePaymentProvider):
         self,
         request: ProviderRefundRequest,
     ) -> ProviderRefundResult:
-        stripe = _stripe()
+        stripe = _stripe_module()
+        secret_key = self._get_secret_key()
 
         if request.amount <= Decimal("0.00"):
             raise PaymentProviderRefundError("Refund amount must be positive.")
@@ -259,19 +278,20 @@ class StripePaymentProvider(BasePaymentProvider):
 
         try:
             if lookup_id.startswith("cs_"):
-                session = stripe.checkout.Session.retrieve(lookup_id)
+                session = stripe.checkout.Session.retrieve(lookup_id, api_key=secret_key)
                 pi_id = session.payment_intent
             elif lookup_id.startswith("pi_"):
                 pi_id = lookup_id
             else:
                 pi_id = lookup_id
 
-            pi = stripe.PaymentIntent.retrieve(pi_id)
+            pi = stripe.PaymentIntent.retrieve(pi_id, api_key=secret_key)
             charge_id = pi.latest_charge
 
             refund = stripe.Refund.create(
                 charge=charge_id,
                 amount=_to_cents(request.amount),
+                api_key=secret_key,
             )
         except stripe.error.StripeError as exc:
             log.exception(
@@ -301,7 +321,8 @@ class StripePaymentProvider(BasePaymentProvider):
         self,
         request: ProviderVerificationRequest,
     ) -> ProviderPaymentVerificationResult:
-        stripe = _stripe()
+        stripe = _stripe_module()
+        secret_key = self._get_secret_key()
 
         lookup_id = request.provider_checkout_id or request.provider_payment_id
 
@@ -312,14 +333,14 @@ class StripePaymentProvider(BasePaymentProvider):
 
         try:
             if lookup_id.startswith("cs_"):
-                obj = stripe.checkout.Session.retrieve(lookup_id)
+                obj = stripe.checkout.Session.retrieve(lookup_id, api_key=secret_key)
                 payment_status = obj.payment_status
                 amount_total = obj.amount_total
                 raw_currency = str(obj.currency or "USD").upper()
                 pi_id = obj.payment_intent or ""
                 status = "success" if payment_status == "paid" else "pending"
             else:
-                obj = stripe.PaymentIntent.retrieve(lookup_id)
+                obj = stripe.PaymentIntent.retrieve(lookup_id, api_key=secret_key)
                 pi_id = obj.id
                 amount_total = obj.amount
                 raw_currency = str(obj.currency or "USD").upper()

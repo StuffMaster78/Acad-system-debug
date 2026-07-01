@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+
+from django.conf import settings
 from django.db import models
 
 
@@ -17,8 +20,13 @@ class PaymentGatewayConfig(models.Model):
     redirects clients to after checkout, and whether the gateway is in
     live or test mode.
 
-    Keys (sk_live_..., whsec_...) are never stored here — they live in
-    environment variables. This model controls routing and behaviour.
+    Secrets are never stored in the database. Instead, set the *name* of
+    the environment variable that holds each secret:
+        secret_key_env_var      → e.g. "STRIPE_SECRET_KEY_NURSEMYGRADE"
+        webhook_secret_env_var  → e.g. "STRIPE_WEBHOOK_SECRET_NURSEMYGRADE"
+
+    Leave either field blank to inherit the platform default
+    (STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET from Django settings).
     """
 
     website = models.OneToOneField(
@@ -35,8 +43,8 @@ class PaymentGatewayConfig(models.Model):
         max_length=255,
         default="/api/payments/webhooks/stripe/",
         help_text=(
-            "Full path registered in the Stripe dashboard for this site, "
-            "e.g. /api/payments/webhooks/stripe/"
+            "Full path registered in the Stripe dashboard for this site. "
+            "For per-site routing use /api/payments/webhooks/stripe/<site-slug>/."
         ),
     )
     callback_base_url = models.URLField(
@@ -58,6 +66,40 @@ class PaymentGatewayConfig(models.Model):
         default=True,
         help_text="Inactive gateways fall back to the platform default.",
     )
+
+    # ── Per-site credential routing ──────────────────────────────────────────
+    secret_key_env_var = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+        help_text=(
+            "Name of the environment variable that holds this site's Stripe secret key "
+            "(e.g. STRIPE_SECRET_KEY_NURSEMYGRADE). "
+            "Leave blank to use the platform default STRIPE_SECRET_KEY."
+        ),
+    )
+    webhook_secret_env_var = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+        help_text=(
+            "Name of the environment variable that holds this site's Stripe webhook "
+            "signing secret (e.g. STRIPE_WEBHOOK_SECRET_NURSEMYGRADE). "
+            "Leave blank to use the platform default STRIPE_WEBHOOK_SECRET."
+        ),
+    )
+    statement_descriptor = models.CharField(
+        max_length=22,
+        blank=True,
+        default="",
+        help_text=(
+            "Statement descriptor sent to Stripe for every payment on this site — "
+            "what appears on the cardholder's bank statement. Max 22 chars, "
+            "Latin characters only, no < > \\ ' \" * characters. "
+            "Leave blank to use the Stripe account default."
+        ),
+    )
+
     updated_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
@@ -81,6 +123,24 @@ class PaymentGatewayConfig(models.Model):
             self.callback_base_url.rstrip("/")
             or getattr(self.website, "root_url", "").rstrip("/")
         )
+
+    @property
+    def effective_secret_key(self) -> str:
+        """Resolve the Stripe secret key for this site, or fall back to platform default."""
+        if self.secret_key_env_var:
+            val = os.environ.get(self.secret_key_env_var, "")
+            if val:
+                return val
+        return getattr(settings, "STRIPE_SECRET_KEY", "")
+
+    @property
+    def effective_webhook_secret(self) -> str:
+        """Resolve the Stripe webhook secret for this site, or fall back to platform default."""
+        if self.webhook_secret_env_var:
+            val = os.environ.get(self.webhook_secret_env_var, "")
+            if val:
+                return val
+        return getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
 
 class PaymentNotificationEmail(models.Model):

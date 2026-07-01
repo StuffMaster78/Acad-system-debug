@@ -24,20 +24,28 @@ class PaymentWebhookView(APIView):
     """
     Receive and process payment provider webhooks.
 
-    URL pattern: POST /api/payments/webhooks/<provider>/
-    where <provider> is the registered provider key (e.g. "stripe").
+    Two URL patterns are registered:
 
-    No authentication — provider identity is verified via signature.
-    Returns 200 for all processed events (including ignored ones) to
+        POST /api/payments/webhooks/<provider>/
+            Platform-wide endpoint — uses the global STRIPE_WEBHOOK_SECRET.
+
+        POST /api/payments/webhooks/<provider>/<site_slug>/
+            Per-site endpoint — looks up the Website by slug and uses that
+            site's configured webhook secret (from its PaymentGatewayConfig).
+            Register this URL in the Stripe dashboard for each site's separate
+            Stripe account so that signature verification uses the right secret.
+
+    No authentication — provider identity is verified via HMAC signature.
+    Returns 200 for all processed events (including duplicates and skips) to
     prevent the provider from retrying on business-logic errors.
-    Returns 400 only for malformed payloads or unregistered providers.
+    Returns 400 for malformed payloads, unknown providers, or unknown site slugs.
     Returns 500 on transient errors so the provider retries.
     """
 
     permission_classes = [AllowAny]
     authentication_classes = []
 
-    def post(self, request, provider: str, *args, **kwargs):
+    def post(self, request, provider: str, site_slug: str = "", *args, **kwargs):
         provider_key = provider.lower().strip()
 
         try:
@@ -47,25 +55,43 @@ class PaymentWebhookView(APIView):
                 payload = json.loads(request.body or "{}")
         except (json.JSONDecodeError, ValueError) as exc:
             log.warning(
-                "Webhook payload parse error provider=%s: %s", provider_key, exc
+                "Webhook payload parse error provider=%s site=%s: %s",
+                provider_key, site_slug or "global", exc,
             )
             return Response(
                 {"error": "Invalid payload format."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        headers = {
-            k: v for k, v in request.META.items() if k.startswith("HTTP_")
-        }
-        # Attach raw body so providers that need byte-level signature
-        # verification (Stripe) can access it without re-reading the stream.
+        headers = {k: v for k, v in request.META.items() if k.startswith("HTTP_")}
         headers["_raw_body"] = request.body
+
+        # Resolve the website when a slug is present in the URL
+        website = None
+        if site_slug:
+            from websites.models.websites import Website
+            try:
+                website = (
+                    Website.objects
+                    .select_related("payment_gateway_config")
+                    .get(slug=site_slug.lower().strip())
+                )
+            except Website.DoesNotExist:
+                log.warning(
+                    "Webhook: unknown site_slug=%s provider=%s",
+                    site_slug, provider_key,
+                )
+                return Response(
+                    {"error": f"Unknown site: {site_slug!r}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         try:
             result = WebhookProcessingService.process_webhook(
                 provider_key=provider_key,
                 payload=payload,
                 headers=headers,
+                website=website,
             )
             return Response(
                 {"received": True, **result}, status=status.HTTP_200_OK
@@ -79,7 +105,8 @@ class PaymentWebhookView(APIView):
 
         except PaymentIntentNotFoundError as exc:
             log.warning(
-                "Webhook: intent not found provider=%s: %s", provider_key, exc
+                "Webhook: intent not found provider=%s site=%s: %s",
+                provider_key, site_slug or "global", exc,
             )
             return Response(
                 {"received": True, "skipped": True}, status=status.HTTP_200_OK
@@ -87,9 +114,8 @@ class PaymentWebhookView(APIView):
 
         except PaymentVerificationError as exc:
             log.warning(
-                "Webhook signature verification failed provider=%s: %s",
-                provider_key,
-                exc,
+                "Webhook signature verification failed provider=%s site=%s: %s",
+                provider_key, site_slug or "global", exc,
             )
             return Response(
                 {"error": "Signature verification failed."},
@@ -98,7 +124,8 @@ class PaymentWebhookView(APIView):
 
         except ValueError as exc:
             log.warning(
-                "Webhook validation error provider=%s: %s", provider_key, exc
+                "Webhook validation error provider=%s site=%s: %s",
+                provider_key, site_slug or "global", exc,
             )
             return Response(
                 {"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST
@@ -106,7 +133,8 @@ class PaymentWebhookView(APIView):
 
         except Exception as exc:
             log.exception(
-                "Webhook processing error provider=%s: %s", provider_key, exc
+                "Webhook processing error provider=%s site=%s: %s",
+                provider_key, site_slug or "global", exc,
             )
             return Response(
                 {"error": "Internal processing error."},

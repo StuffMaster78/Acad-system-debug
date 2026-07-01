@@ -12,7 +12,7 @@ from payments_processor.providers.base import (
     ProviderWebhookVerificationResult,
 )
 from payments_processor.providers.mapper import ProviderRequestAssembler
-from payments_processor.providers.registry import get_provider
+from payments_processor.providers.registry import get_provider, get_provider_for_website
 
 
 class PaymentProviderService:
@@ -20,11 +20,16 @@ class PaymentProviderService:
     Facade over payment providers.
 
     Accepts concrete PaymentIntent instances, builds provider request DTOs
-    via ProviderRequestAssembler, and delegates to the selected provider.
+    via ProviderRequestAssembler, and delegates to the per-site provider
+    (resolved from PaymentGatewayConfig) with the correct credentials.
     """
 
     @staticmethod
     def get_provider_for_intent(payment_intent: PaymentIntent):
+        website = getattr(payment_intent, "website", None)
+        if website is not None:
+            return get_provider_for_website(website)
+        # Fallback — should not occur in normal operation
         provider_name = str(payment_intent.provider or "").strip()
         if not provider_name:
             raise ValueError("Payment intent is missing provider.")
@@ -57,8 +62,12 @@ class PaymentProviderService:
         provider_name: str,
         payload: dict[str, Any],
         headers: dict[str, Any],
+        website: Any = None,
     ) -> ProviderWebhookVerificationResult:
-        provider = get_provider(provider_name)
+        if website is not None:
+            provider = get_provider_for_website(website)
+        else:
+            provider = get_provider(provider_name)
         return provider.verify_webhook(payload, headers)
 
     @staticmethod
@@ -66,6 +75,10 @@ class PaymentProviderService:
         *,
         provider_name: str,
         payload: dict[str, Any],
+        website: Any = None,
     ) -> ProviderWebhookEvent:
-        provider = get_provider(provider_name)
+        if website is not None:
+            provider = get_provider_for_website(website)
+        else:
+            provider = get_provider(provider_name)
         return provider.parse_webhook(payload)

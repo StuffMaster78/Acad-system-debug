@@ -39,29 +39,60 @@ class PaymentGatewayStatusView(APIView):
         publishable_key: str = getattr(settings, "STRIPE_PUBLISHABLE_KEY", "") or ""
         webhook_secret: str = getattr(settings, "STRIPE_WEBHOOK_SECRET", "") or ""
 
-        return Response(
-            {
-                "provider": "stripe",
-                "mode": _key_mode(secret_key),
-                "secret_key": {
-                    "configured": bool(secret_key),
-                    "masked": _mask(secret_key) if secret_key else None,
-                },
-                "publishable_key": {
-                    "configured": bool(publishable_key),
-                    "masked": _mask(publishable_key) if publishable_key else None,
-                },
-                "webhook_secret": {
-                    "configured": bool(webhook_secret),
-                    "masked": _mask(webhook_secret, 6) if webhook_secret else None,
-                },
-                "note": (
-                    "Keys are loaded from environment variables. "
-                    "Update STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / "
-                    "STRIPE_WEBHOOK_SECRET and restart the application to apply changes."
-                ),
-            }
-        )
+        platform_status = {
+            "provider": "stripe",
+            "scope": "platform_default",
+            "mode": _key_mode(secret_key),
+            "secret_key": {
+                "configured": bool(secret_key),
+                "masked": _mask(secret_key) if secret_key else None,
+            },
+            "publishable_key": {
+                "configured": bool(publishable_key),
+                "masked": _mask(publishable_key) if publishable_key else None,
+            },
+            "webhook_secret": {
+                "configured": bool(webhook_secret),
+                "masked": _mask(webhook_secret, 6) if webhook_secret else None,
+            },
+            "note": (
+                "Keys are loaded from environment variables. "
+                "Update STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / "
+                "STRIPE_WEBHOOK_SECRET and restart the application to apply changes."
+            ),
+        }
+
+        # Per-site config summary (superadmin only)
+        per_site: list[dict] = []
+        if getattr(request.user, "role", None) == "superadmin":
+            from payments_processor.models.gateway_config import PaymentGatewayConfig
+            for cfg in PaymentGatewayConfig.objects.select_related("website").order_by("website__name"):
+                site_key = cfg.effective_secret_key
+                site_whsec = cfg.effective_webhook_secret
+                per_site.append({
+                    "website": cfg.website.name,
+                    "slug": cfg.website.slug,
+                    "gateway": cfg.gateway,
+                    "mode": cfg.mode,
+                    "is_active": cfg.is_active,
+                    "statement_descriptor": cfg.statement_descriptor or None,
+                    "secret_key_env_var": cfg.secret_key_env_var or None,
+                    "webhook_secret_env_var": cfg.webhook_secret_env_var or None,
+                    "secret_key": {
+                        "configured": bool(site_key),
+                        "masked": _mask(site_key) if site_key else None,
+                        "using_site_specific": bool(cfg.secret_key_env_var),
+                    },
+                    "webhook_secret": {
+                        "configured": bool(site_whsec),
+                        "masked": _mask(site_whsec, 6) if site_whsec else None,
+                        "using_site_specific": bool(cfg.webhook_secret_env_var),
+                    },
+                    "webhook_url": f"/api/payments/webhooks/{cfg.gateway}/{cfg.website.slug}/",
+                })
+            platform_status["per_site"] = per_site
+
+        return Response(platform_status)
 
     def post(self, request: Request) -> Response:
         """Test Stripe connectivity by listing payment methods (1 call, no charge)."""
