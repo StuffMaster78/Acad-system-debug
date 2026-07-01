@@ -2,7 +2,7 @@ import { api, apiPath } from "./client";
 
 type PageResponse<T> = { count: number; next: string | null; previous: string | null; results: T[] } | T[];
 
-const base = (path: string) => apiPath(`/writer-compensation/api${path}`);
+const base = (path: string) => apiPath(`/writer-compensation${path}`);
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 

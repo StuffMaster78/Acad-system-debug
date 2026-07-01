@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { CheckCircle2, Clock, Loader2, RefreshCw, Star, TrendingUp, Wallet } from "@lucide/vue";
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, Info, Loader2, RefreshCw, Star, TrendingUp, Wallet } from "@lucide/vue";
+
+const showGuide = ref(false);
 import { api, apiPath } from "@/api/client";
 
 interface LoyaltySummary {
@@ -170,17 +172,60 @@ onMounted(() => {
         <h1 class="mt-2 text-3xl font-semibold text-ink">Loyalty & Rewards</h1>
         <p class="mt-2 max-w-2xl text-sm text-graphite">Your points balance, tier, and available rewards.</p>
       </div>
-      <button
-        class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
-        type="button"
-        :disabled="loyaltyLoading"
-        @click="fetchLoyalty"
-      >
-        <Loader2 v-if="loyaltyLoading" class="h-4 w-4 animate-spin" />
-        <RefreshCw v-else class="h-4 w-4" />
-        Refresh
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold"
+          type="button"
+          @click="showGuide = !showGuide"
+        >
+          <Info class="h-4 w-4" />
+          How points work
+          <ChevronUp v-if="showGuide" class="h-3.5 w-3.5" />
+          <ChevronDown v-else class="h-3.5 w-3.5" />
+        </button>
+        <button
+          class="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+          type="button"
+          :disabled="loyaltyLoading"
+          @click="fetchLoyalty"
+        >
+          <Loader2 v-if="loyaltyLoading" class="h-4 w-4 animate-spin" />
+          <RefreshCw v-else class="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
     </section>
+
+    <!-- In-portal guide -->
+    <div v-if="showGuide" class="rounded-xl border border-amber-100 bg-amber-50 p-5 space-y-4 text-sm">
+      <h2 class="font-semibold text-amber-900 flex items-center gap-2"><Info class="size-4" /> How Loyalty Points Work</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-1">
+          <p class="font-semibold text-amber-800">⭐ Earning Points</p>
+          <p class="text-amber-700">You earn points every time you place a paid order. The amount depends on your current loyalty tier — higher tiers earn more points per dollar spent.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-amber-800">🏷 Your Tier</p>
+          <p class="text-amber-700">Tiers unlock automatically as your cumulative points grow. Higher tiers get bonus multipliers, exclusive rewards, and priority processing on orders.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-amber-800">💱 Converting Points</p>
+          <p class="text-amber-700">Convert your points into wallet credit (e.g., 100 pts = $1.00). Wallet credit can be used on any future order at checkout. Go to the "Convert" tab to redeem.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-amber-800">🎁 Redeeming Rewards</p>
+          <p class="text-amber-700">The "Redeem" tab lists special reward items (gift vouchers, priority slots, etc.). Submit a redemption request — our team will process it within 24 hours.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-amber-800">🏁 Milestones</p>
+          <p class="text-amber-700">Complete milestones (e.g., first order, 10th order) to earn bonus points automatically. Milestone rewards appear in your transaction history.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-amber-800">📋 Transaction History</p>
+          <p class="text-amber-700">Every point earned, spent, or adjusted is logged. Check the "History" tab for a full breakdown of your points activity.</p>
+        </div>
+      </div>
+    </div>
 
     <div v-if="loyaltyLoading && !loyalty" class="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-graphite">
       Loading loyalty data…

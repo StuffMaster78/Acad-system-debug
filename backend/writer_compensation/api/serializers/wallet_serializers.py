@@ -7,6 +7,18 @@ from wallets.models.wallet_entry import WalletEntry
 
 
 class WalletSerializer(serializers.ModelSerializer):
+    owner = serializers.IntegerField(source="owner_user_id", read_only=True)
+    locked_balance = serializers.DecimalField(
+        source="pending_balance", max_digits=14, decimal_places=2, read_only=True
+    )
+    total_inflow = serializers.DecimalField(
+        source="total_credited", max_digits=14, decimal_places=2, read_only=True
+    )
+    total_outflow = serializers.DecimalField(
+        source="total_debited", max_digits=14, decimal_places=2, read_only=True
+    )
+    is_active = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Wallet
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 
 from django.db import transaction
@@ -10,6 +11,7 @@ from writer_compensation.enums.compensation_enums import (
     EventStatus,
     EventType,
     WindowStatus,
+    WindowType,
 )
 from writer_compensation.exceptions.exceptions import (
     InvalidPayoutItemTransitionError,
@@ -24,6 +26,9 @@ from writer_compensation.models.compensation_event import (
 )
 from writer_compensation.models.payment_window import (
     PaymentWindow,
+)
+from writer_compensation.models.writer_payout_preference import (
+    WriterPayoutPreference,
 )
 
 
@@ -74,12 +79,23 @@ class EventIntakeService:
         if amount == Decimal("0.00"):
             raise ZeroAmountError("Compensation event amount cannot be zero.")
 
+        # Ensure the writer has a payout preference (bi-weekly by default).
+        # This is idempotent — runs at most once per writer per website.
+        WriterPayoutPreference.objects.get_or_create(
+            website=website,
+            writer=writer,
+            defaults={"cycle_type": WindowType.BIWEEKLY},
+        )
+
         open_window = (
             PaymentWindow.objects
             .filter(website=website, status=WindowStatus.OPEN)
             .order_by("-start_date")
             .first()
         )
+        if open_window is None:
+            open_window = EventIntakeService._auto_create_biweekly_window(website)
+
         if open_window is None:
             raise NoOpenWindowError(
                 f"No open compensation window for website {website.pk}."
@@ -122,6 +138,44 @@ class EventIntakeService:
             created = True
 
         return event, created
+
+    @staticmethod
+    def _auto_create_biweekly_window(website) -> "PaymentWindow | None":
+        """
+        Create the current bi-weekly payment window if none exists.
+
+        Periods are anchored to the calendar:
+          - 1st–14th of each month  (first half)
+          - 15th–last day of month  (second half)
+
+        Returns the window if successfully created/found as OPEN,
+        or None if the current period window already exists but is closed
+        (the caller will raise NoOpenWindowError in that case).
+        """
+        import calendar as _cal
+
+        today = datetime.date.today()
+        if today.day <= 14:
+            start = today.replace(day=1)
+            end = today.replace(day=14)
+        else:
+            start = today.replace(day=15)
+            last_day = _cal.monthrange(today.year, today.month)[1]
+            end = today.replace(day=last_day)
+
+        label = f"Bi-weekly {start.strftime('%b %d')}–{end.strftime('%d, %Y')}"
+
+        window, _ = PaymentWindow.objects.get_or_create(
+            website=website,
+            cycle_type=WindowType.BIWEEKLY,
+            start_date=start,
+            defaults={
+                "end_date": end,
+                "status": WindowStatus.OPEN,
+                "title": label,
+            },
+        )
+        return window if window.status == WindowStatus.OPEN else None
 
     @staticmethod
     @transaction.atomic

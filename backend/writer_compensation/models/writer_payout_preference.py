@@ -34,6 +34,7 @@ class WriterPayoutPreference(models.Model):
     cycle_type = models.CharField(
         max_length=16,
         choices=WindowType.choices,
+        default=WindowType.BIWEEKLY,
     )
     locked = models.BooleanField(
         default=False,

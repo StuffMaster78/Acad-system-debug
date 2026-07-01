@@ -45,6 +45,7 @@ from discounts.api.admin_spend_tier_views import (
     AdminSpendTierDetailAPIView,
     AdminSpendTierListCreateAPIView,
 )
+from discounts.api.client_spend_tier_views import ClientSpendTierProgressView
 
 app_name = "discounts"
 
@@ -153,6 +154,11 @@ urlpatterns = [
         "client/available/",
         AvailableDiscountListAPIView.as_view(),
         name="client-available",
+    ),
+    path(
+        "client/spend-tier-progress/",
+        ClientSpendTierProgressView.as_view(),
+        name="client-spend-tier-progress",
     ),
     path(
         "admin/spend-tiers/",

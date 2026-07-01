@@ -1,5 +1,6 @@
 from django.urls import path
 
+from ledger.api.views.profit_views import PlatformProfitSummaryView
 from ledger.api.views import (
     JournalEntryDetailView,
     JournalEntryListView,
@@ -47,5 +48,10 @@ urlpatterns = [
         "reconciliations/<uuid:id>/resolve/",
         ReconciliationResolveView.as_view(),
         name="reconciliation-record-resolve",
+    ),
+    path(
+        "profit-summary/",
+        PlatformProfitSummaryView.as_view(),
+        name="profit-summary",
     ),
 ]

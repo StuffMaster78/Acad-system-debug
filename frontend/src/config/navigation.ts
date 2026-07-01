@@ -119,6 +119,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Reputation", to: "/superadmin/reputation", icon: ShieldCheck },
     { label: "Fin. Center", to: "/superadmin/financials", icon: Activity },
     { label: "Fin. Events", to: "/superadmin/financial-events", icon: Activity },
+    { label: "P&L Summary", to: "/superadmin/profit", icon: TrendingUp },
     { label: "Discounts", to: "/superadmin/discounts", icon: Percent },
     { label: "Holidays", to: "/superadmin/holidays", icon: CalendarDays },
     { label: "Publishing", to: "/superadmin/publishing", icon: Newspaper },
@@ -183,6 +184,7 @@ export const navigationByRole: Record<UserRole, NavItem[]> = {
     { label: "Event System", to: "/admin/event-system", icon: Radio },
     { label: "Fin. Center", to: "/admin/financials", icon: Activity },
     { label: "Fin. Events", to: "/admin/financial-events", icon: Activity },
+    { label: "P&L Summary", to: "/admin/profit", icon: TrendingUp },
     { label: "Discounts", to: "/admin/discounts", icon: Percent },
     { label: "Holidays", to: "/admin/holidays", icon: CalendarDays },
     { label: "Publishing", to: "/admin/publishing", icon: Newspaper },
@@ -322,6 +324,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Ledger", to: "/superadmin/ledger", icon: Scale },
       { label: "Fin. Center", to: "/superadmin/financials", icon: Activity },
       { label: "Fin. Events", to: "/superadmin/financial-events", icon: Activity },
+      { label: "P&L Summary", to: "/superadmin/profit", icon: TrendingUp },
     ]},
     { label: "Growth", items: [
       { label: "Growth", to: "/superadmin/growth", icon: Percent },
@@ -395,6 +398,7 @@ export const groupedNavigationByRole: Record<UserRole, NavGroup[]> = {
       { label: "Ledger", to: "/admin/ledger", icon: Scale },
       { label: "Fin. Center", to: "/admin/financials", icon: Activity },
       { label: "Fin. Events", to: "/admin/financial-events", icon: Activity },
+      { label: "P&L Summary", to: "/admin/profit", icon: TrendingUp },
     ]},
     { label: "Communications", items: [
       { label: "Comms", to: "/admin/communications", icon: Megaphone },

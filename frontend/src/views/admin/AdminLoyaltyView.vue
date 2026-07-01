@@ -5,7 +5,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Gift,
+  Info,
   Loader2,
   Minus,
   Plus,
@@ -18,6 +20,8 @@ import {
   XCircle,
   Zap,
 } from "@lucide/vue";
+
+const showGuide = ref(false);
 import StatusPill from "@/components/ui/StatusPill.vue";
 import WebsiteSelectorBar from "@/components/ui/WebsiteSelectorBar.vue";
 import { adminLoyaltyApi } from "@/api/adminLoyalty";
@@ -431,13 +435,56 @@ onMounted(async () => {
         <h1 class="text-xl font-semibold text-neutral-900">Loyalty Management</h1>
         <p class="text-sm text-neutral-500 mt-0.5">Redemption queue, point operations, tier rules, and conversion config</p>
       </div>
-      <button
-        class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
-        @click="reloadAll()"
-      >
-        <RefreshCw class="size-4" />
-        Refresh
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+          @click="showGuide = !showGuide"
+        >
+          <Info class="size-4" />
+          How it works
+          <ChevronUp v-if="showGuide" class="size-3.5" />
+          <ChevronDown v-else class="size-3.5" />
+        </button>
+        <button
+          class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+          @click="reloadAll()"
+        >
+          <RefreshCw class="size-4" />
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- In-portal guide -->
+    <div v-if="showGuide" class="rounded-xl border border-emerald-100 bg-emerald-50 p-5 space-y-4 text-sm">
+      <h2 class="font-semibold text-emerald-900 flex items-center gap-2"><Info class="size-4" /> Loyalty Management Guide</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="space-y-1">
+          <p class="font-semibold text-emerald-800">🎁 Redemption Queue</p>
+          <p class="text-emerald-700">Clients submit redemption requests to convert loyalty points into discounts or wallet credits. Approve or reject each request here. Rejected requests return points to the client.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-emerald-800">⚡ Point Operations</p>
+          <p class="text-emerald-700">Manually award or deduct points for a client. Use for goodwill gestures, corrections, or campaign rewards. Every operation is logged with a reason.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-emerald-800">🏷 Tiers & Catalog</p>
+          <p class="text-emerald-700">Tiers (Bronze → Gold → Platinum) unlock at cumulative point thresholds. Clients in higher tiers earn bonus multipliers and get access to exclusive redemption items.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-emerald-800">💱 Conversion Rate</p>
+          <p class="text-emerald-700">Set how many points equal $1 in wallet credit. Example: 100 pts = $1.00. Rate can be configured per website. Clients see this rate on their loyalty dashboard.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-emerald-800">🏁 Milestones</p>
+          <p class="text-emerald-700">One-time achievements that award bonus points when a client reaches a spend or order count target. Great for onboarding incentives (e.g., "Complete 3 orders → earn 500 pts").</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-emerald-800">📊 Analytics</p>
+          <p class="text-emerald-700">Track total points issued, redeemed, and outstanding. See top earners and most-redeemed items. Analytics refresh daily but the queue and operations update in real-time.</p>
+        </div>
+      </div>
+      <p class="text-xs text-emerald-700 border-t border-emerald-200 pt-3">Points expire after the inactivity period set in Config (default: never). Expired points are logged but cannot be reactivated — issue a manual award if needed.</p>
     </div>
 
     <!-- Website selector — filters all sections -->

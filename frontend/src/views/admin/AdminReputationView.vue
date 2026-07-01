@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { RefreshCw, Search, X, Trophy, Star, ShieldCheck, Users } from "@lucide/vue";
+import { RefreshCw, Search, X, Trophy, Star, ShieldCheck, Users, ChevronDown, ChevronUp, Info } from "@lucide/vue";
+
+const showGuide = ref(false);
 import { useReputationStore } from "@/stores/reputation";
 
 const store = useReputationStore();
@@ -53,6 +55,15 @@ function rankMedal(rank: number) {
         <p class="text-sm text-graphite mt-0.5">Live snapshot of writer ratings, trust scores, and global rankings.</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
+        <button
+          @click="showGuide = !showGuide"
+          class="focus-ring flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-graphite hover:text-ink transition-colors"
+        >
+          <Info class="size-4" />
+          How it works
+          <ChevronUp v-if="showGuide" class="size-3.5" />
+          <ChevronDown v-else class="size-3.5" />
+        </button>
         <select
           v-model.number="limit"
           @change="refresh"
@@ -72,6 +83,38 @@ function rankMedal(rank: number) {
           Refresh
         </button>
       </div>
+    </div>
+
+    <!-- In-portal guide -->
+    <div v-if="showGuide" class="rounded-xl border border-indigo-100 bg-indigo-50 p-5 space-y-4 text-sm">
+      <h2 class="font-semibold text-indigo-900 flex items-center gap-2"><Info class="size-4" /> Writer Reputation System Guide</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="space-y-1">
+          <p class="font-semibold text-indigo-800">⭐ Rating</p>
+          <p class="text-indigo-700">Weighted average of all client reviews (1–5 stars). Verified reviews from returning clients carry more weight. Drops when orders receive poor scores.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-indigo-800">🛡 Trust Score (0–100)</p>
+          <p class="text-indigo-700">Composite metric: on-time delivery, dispute rate, revision rate, and cancellation rate. Score above 80 = Elite; 60–79 = Trusted; below 40 = At-risk.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-indigo-800">🏆 Global Rank</p>
+          <p class="text-indigo-700">Writers are ranked by a blended score: 50% rating + 30% trust score + 20% order volume. Top 3 earn gold/silver/bronze medals.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-indigo-800">📊 Percentile</p>
+          <p class="text-indigo-700">Shows where a writer stands relative to all ranked writers. 95th percentile means better than 95% of active writers.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-indigo-800">🔄 When it updates</p>
+          <p class="text-indigo-700">Snapshots run nightly. Leaderboard reflects the last completed snapshot. Use "Refresh" to reload from the latest snapshot run.</p>
+        </div>
+        <div class="space-y-1">
+          <p class="font-semibold text-indigo-800">🔍 Writer Lookup</p>
+          <p class="text-indigo-700">Paste a writer's UUID to see their full reputation snapshot and global rank without searching the leaderboard. Useful for individual performance reviews.</p>
+        </div>
+      </div>
+      <p class="text-xs text-indigo-600 border-t border-indigo-200 pt-3">Admin actions: Writers below trust score 40 can be flagged for review. Scores do not update in real-time — a snapshot must be triggered via the Reputation snapshot job.</p>
     </div>
 
     <!-- Stat chips -->

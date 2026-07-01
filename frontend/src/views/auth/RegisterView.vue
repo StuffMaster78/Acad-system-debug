@@ -8,6 +8,20 @@ import { usePortalContextStore } from "@/stores/portalContext";
 import { getStoredUtm, clearStoredUtm } from "@/composables/useUtm";
 import { useAnalytics } from "@/composables/useAnalytics";
 
+// ─── Writer cosmos: stars ────────────────────────────────────────────────────
+function hashRng(seed: number) {
+  const s = Math.sin(seed) * 43758.5453123;
+  return s - Math.floor(s);
+}
+const STARS = Array.from({ length: 140 }, (_, i) => ({
+  x: hashRng(i * 127.1) * 100,
+  y: hashRng(i * 311.7) * 100,
+  r: [1, 1, 1, 1, 1.5, 2][Math.floor(hashRng(i * 52.7) * 6)],
+  op: 0.3 + hashRng(i * 231.3) * 0.65,
+  dur: `${3 + hashRng(i * 79.3) * 5}s`,
+  del: `${hashRng(i * 193.1) * 8}s`,
+}));
+
 const router  = useRouter();
 const auth    = useAuthStore();
 const portal  = usePortalContextStore();
@@ -141,7 +155,102 @@ async function resendCode() {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-slate-50">
+  <!-- ═══════════════════════════════════════════════════════════════
+       WRITER SURFACE — Cosmos theme (invitation-only gate)
+  ═══════════════════════════════════════════════════════════════ -->
+  <div v-if="isWriterSurface" class="writer-cosmos relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-[#04060f] font-sans px-5 py-16">
+
+    <!-- Starfield -->
+    <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="absolute inset-0">
+        <circle
+          v-for="(s, i) in STARS" :key="i"
+          :cx="`${s.x}%`" :cy="`${s.y}%`" :r="s.r"
+          fill="white" :fill-opacity="s.op"
+          :style="{ animation: `wink ${s.dur} ${s.del} ease-in-out infinite` }"
+        />
+      </svg>
+    </div>
+
+    <!-- Ambient glows -->
+    <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+      <div class="absolute -left-32 -top-20 h-96 w-96 rounded-full bg-[#7c3aed]/18 blur-[120px]" />
+      <div class="absolute -right-20 top-1/3 h-80 w-80 rounded-full bg-[#06b6d4]/12 blur-[100px]" />
+      <div class="absolute bottom-0 left-1/2 h-72 w-[600px] -translate-x-1/2 rounded-full bg-[#8b5cf6]/10 blur-[120px]" />
+    </div>
+
+    <!-- Grid overlay -->
+    <div
+      class="pointer-events-none absolute inset-0 z-0 opacity-[0.025]"
+      style="background-image:linear-gradient(rgba(139,92,246,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,0.5) 1px,transparent 1px);background-size:48px 48px;"
+      aria-hidden="true"
+    />
+
+    <!-- Content -->
+    <div class="relative z-10 w-full max-w-md space-y-6 text-center">
+
+      <!-- Logo mark -->
+      <div class="flex items-center justify-center gap-2.5">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7c3aed]/20 ring-1 ring-[#7c3aed]/30">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="font-mono text-sm font-semibold tracking-widest text-white/60 uppercase">{{ brand }}</span>
+      </div>
+
+      <!-- Headline -->
+      <div class="space-y-3">
+        <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-[#06b6d4]">// access control</p>
+        <h1 class="text-4xl font-black leading-tight text-white">
+          Writer access is<br/>
+          <span class="bg-gradient-to-r from-[#8b5cf6] via-[#06b6d4] to-white bg-clip-text text-transparent">by invitation.</span>
+        </h1>
+        <p class="text-base text-white/45 max-w-sm mx-auto leading-relaxed">
+          Writer accounts are provisioned by our team. If you've been invited, your credentials were sent by email.
+        </p>
+      </div>
+
+      <!-- Glass card -->
+      <div class="rounded-2xl border border-white/10 bg-[#0c1225]/70 p-6 shadow-2xl shadow-black/50 backdrop-blur-xl space-y-4 text-left">
+        <div class="flex items-start gap-3.5 text-sm">
+          <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#7c3aed]/20">
+            <Shield class="size-3.5 text-[#a78bfa]" />
+          </div>
+          <p class="text-white/55">Accounts are created by administrators. Self-registration is not available on the writer portal.</p>
+        </div>
+        <div class="flex items-start gap-3.5 text-sm">
+          <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#06b6d4]/20">
+            <Mail class="size-3.5 text-[#06b6d4]" />
+          </div>
+          <p class="text-white/55">Check your email for login credentials. If you haven't received them, contact our admin team.</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="space-y-3">
+        <RouterLink
+          to="/auth/login"
+          class="cosmos-btn inline-flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-all"
+        >
+          <LogIn class="size-4" />
+          Sign in to your workspace
+        </RouterLink>
+        <RouterLink
+          to="/apply"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/60 hover:border-[#7c3aed]/40 hover:text-white/80 transition-all backdrop-blur-sm"
+        >
+          <ArrowRight class="size-4" />
+          Apply to join the writer team
+        </RouterLink>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CLIENT / ALL OTHER SURFACES — clean minimal design
+  ═══════════════════════════════════════════════════════════════ -->
+  <div v-else class="flex min-h-screen flex-col bg-slate-50">
 
     <!-- Header -->
     <header class="flex h-16 items-center px-6 border-b border-slate-200 bg-white">
@@ -157,42 +266,11 @@ async function resendCode() {
     <main class="flex flex-1 items-start justify-center px-4 py-12">
       <div class="w-full max-w-md space-y-6">
 
-        <!-- ── WRITER SURFACE: invitation-only gate ──────────────────────── -->
-        <template v-if="isWriterSurface">
-          <div class="text-center space-y-2">
-            <h1 class="text-2xl font-bold text-ink">Access by invitation</h1>
-            <p class="text-sm text-graphite">Writer accounts are created by our team. If you've been invited, check your email for login credentials.</p>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm space-y-4 text-sm text-graphite">
-            <div class="flex items-start gap-3">
-              <Shield class="size-4 shrink-0 mt-0.5 text-slate-400" />
-              <p>Accounts are provisioned by an administrator. Self-registration is not available on this platform.</p>
-            </div>
-            <div class="flex items-start gap-3">
-              <Mail class="size-4 shrink-0 mt-0.5 text-slate-400" />
-              <p>If you were recently invited, you'll have received an email with your credentials. Use those to sign in below.</p>
-            </div>
-          </div>
-          <RouterLink
-            to="/auth/login"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"
-          >
-            <LogIn class="size-4" /> Sign in to your account
-          </RouterLink>
-        </template>
-
         <!-- ── REGISTRATION FORM ─────────────────────────────────────────── -->
-        <template v-else>
         <template v-if="step === 'form'">
           <div class="text-center">
-            <h1 class="text-2xl font-bold text-ink">
-              {{ isWriterSurface ? 'Join our writing team' : 'Create your account' }}
-            </h1>
-            <p class="mt-1.5 text-sm text-graphite">
-              {{ isWriterSurface
-                ? 'Create your writer account to access jobs, submit work, and track your earnings.'
-                : 'Place orders, track progress, download completed work.' }}
-            </p>
+            <h1 class="text-2xl font-bold text-ink">Create your account</h1>
+            <p class="mt-1.5 text-sm text-graphite">Place orders, track progress, download completed work.</p>
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm space-y-5">
@@ -359,9 +437,32 @@ async function resendCode() {
           </div>
         </template>
 
-        </template><!-- end v-else (non-writer surface) -->
-
       </div>
     </main>
   </div>
 </template>
+
+<style scoped>
+@keyframes wink {
+  0%, 100% { opacity: var(--op, 0.6); }
+  50%       { opacity: calc(var(--op, 0.6) * 0.2); }
+}
+
+.cosmos-btn {
+  background: linear-gradient(135deg, #7c3aed 0%, #2563c8 60%, #06b6d4 100%);
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.35), 0 4px 12px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.cosmos-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+.cosmos-btn:hover {
+  box-shadow: 0 0 36px rgba(124, 58, 237, 0.5), 0 6px 20px rgba(0,0,0,0.5);
+  filter: brightness(1.08);
+}
+</style>

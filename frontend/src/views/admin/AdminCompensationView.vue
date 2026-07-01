@@ -345,7 +345,7 @@
           <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
             <div><label class="block text-xs font-medium text-graphite mb-1">Cycle type</label>
               <select v-model="newWindow.cycle_type" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <option value="weekly">Weekly</option><option value="biweekly">Bi-Weekly</option><option value="monthly">Monthly</option>
+                <option value="BIWEEKLY">Bi-Weekly (default)</option><option value="MONTHLY">Monthly</option>
               </select></div>
             <div><label class="block text-xs font-medium text-graphite mb-1">Start date</label>
               <input v-model="newWindow.start_date" type="date" class="focus-ring w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
@@ -567,7 +567,7 @@ const showCreateWindow = ref(false);
 const showRunSettlement = ref(false);
 const runSettlementWindowId = ref<number | null>(null);
 
-const newWindow = reactive({ cycle_type: "weekly", start_date: "", end_date: "" });
+const newWindow = reactive({ cycle_type: "BIWEEKLY", start_date: "", end_date: "" });
 
 const holdDialog = reactive({ open: false, recordId: 0, writerName: "", reason: "" });
 const markPaidDialog = reactive({ open: false, recordId: 0, writerName: "", amount: "", method: "", external_reference: "", notes: "" });
@@ -749,7 +749,7 @@ async function doCreateWindow() {
   try {
     await adminCompensationApi.createWindow(newWindow);
     showCreateWindow.value = false;
-    Object.assign(newWindow, { cycle_type: "weekly", start_date: "", end_date: "" });
+    Object.assign(newWindow, { cycle_type: "BIWEEKLY", start_date: "", end_date: "" });
     await loadWindows();
     showToast("Window created");
   } catch {

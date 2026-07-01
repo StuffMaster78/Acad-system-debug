@@ -5,50 +5,33 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from authentication.api.serializers.mfa_serializers import (
-    MFAChallengeRequestSerializer,
-    MFAVerifySerializer,
-)
-from authentication.services.mfa_orchestration_service import (
-    MFAOrchestrationService,
-)
 from authentication.api.permissions.impersonation_permissions import (
     NotImpersonatingPermission,
 )
-from typing import Any, cast
-
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
 from authentication.api.serializers.mfa_serializers import (
-    MFAChallengeRequestSerializer,
-    MFAChallengeResponseSerializer,
-    MFADeviceListItemSerializer,
-    MFAStateResponseSerializer,
-    MFAVerifyResponseSerializer,
-    MFAVerifySerializer,
     BackupCodeGenerateRequestSerializer,
     BackupCodeGenerateResponseSerializer,
     BackupCodeUseSerializer,
+    MFAChallengeRequestSerializer,
+    MFAChallengeResponseSerializer,
     MFADeviceListItemSerializer,
     MFARegisterDeviceSerializer,
     MFASetPrimaryDeviceSerializer,
+    MFAStateResponseSerializer,
     MFAToggleDeviceSerializer,
     MFAVerifyDeviceResponseSerializer,
     MFAVerifyDeviceSerializer,
-)
-from authentication.services.mfa_orchestration_service import (
-    MFAOrchestrationService,
+    MFAVerifyResponseSerializer,
+    MFAVerifySerializer,
 )
 from authentication.models.mfa_device import MFADevice
 from authentication.services.backup_code_service import BackupCodeService
 from authentication.services.mfa_device_service import MFADeviceService
+from authentication.services.mfa_orchestration_service import MFAOrchestrationService
 from authentication.throttles.mfa_throttles import (
-    MFAVerifyThrottle,
     BackupCodeGenerateThrottle,
     MFAChallengeThrottle,
+    MFAVerifyThrottle,
 )
 
 class MFAStateView(APIView):
@@ -441,7 +424,7 @@ class BackupCodeGenerateView(APIView):
 
         validated_data = cast(dict[str, Any], serializer.validated_data)
 
-        website = getattr(request, "website", None)
+        website = getattr(request, "website", None) or getattr(request.user, "website", None)
         if website is None:
             return Response(
                 {"detail": "Website context is required."},

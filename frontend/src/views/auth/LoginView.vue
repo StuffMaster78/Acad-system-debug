@@ -14,7 +14,10 @@ const route = useRoute();
 const router = useRouter();
 
 const isBranded = computed(() => !!(portalCtx.portal || portalCtx.website));
-const isWriterSurface = computed(() => portalCtx.surface === "writer");
+// In dev, ?surface=writer in the URL previews the writer cosmos theme
+const isWriterSurface = computed(
+  () => portalCtx.surface === "writer" || (isDev && route.query.surface === "writer"),
+);
 const brandName = computed(() => portalCtx.branding?.brand_name || "");
 const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
 

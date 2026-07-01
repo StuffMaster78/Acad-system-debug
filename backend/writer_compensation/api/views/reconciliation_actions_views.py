@@ -16,6 +16,7 @@ from writer_compensation.models.payout_batch import PayoutBatch
 from writer_compensation.models.payout_reconciliation_report import (
     PayoutReconciliationReport,
 )
+from authentication.permissions import IsAdminOrSuperAdmin
 from writer_compensation.permissions.payout_permissions import (
     CanReconcilePayouts,
 )
@@ -35,7 +36,7 @@ class ReconciliationReportListView(generics.ListAPIView):
     """
 
     serializer_class = ReconciliationReportSerializer
-    permission_classes = [CanReconcilePayouts]
+    permission_classes = [IsAdminOrSuperAdmin]
 
 
     def get_queryset( # pyright: ignore[reportIncompatibleMethodOverride]
