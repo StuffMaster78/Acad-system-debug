@@ -123,6 +123,10 @@ LOGGING = {
     },
 }
 
+# Relax login throttle so e2e test suites don't exhaust the 10/min limit
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["login"] = "200/minute"  # noqa: F405
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["login_sustained"] = "5000/day"  # noqa: F405
+
 SILENCED_SYSTEM_CHECKS = [
     *SILENCED_SYSTEM_CHECKS, # noqa: F405
     "notifications_system.W001",

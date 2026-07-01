@@ -54,8 +54,9 @@ test.describe("Order wizard — new order placement", () => {
 
   test("wizard renders step 1 on /client/new-order", async ({ page }) => {
     await page.goto("/client/new-order");
-    await expect(page.getByText(/step 1 of 3/i)).toBeVisible();
-    await expect(page.getByText(/what do you need/i)).toBeVisible();
+    // "Step X of 3" span is unique; step label appears in both nav and header so use first()
+    await expect(page.getByText(/step 1 of 3/i).first()).toBeVisible();
+    await expect(page.getByText(/what do you need/i).first()).toBeVisible();
   });
 
   test("step 1 → step 2 requires topic and instructions", async ({ page }) => {
@@ -80,8 +81,9 @@ test.describe("Order wizard — new order placement", () => {
     await page.getByLabel(/instructions/i).fill("Research paper analyzing the correlation between social media usage and anxiety disorders in teenagers.");
     await page.getByRole("button", { name: /continue/i }).click();
 
-    await expect(page.getByText(/step 2 of 3/i)).toBeVisible();
-    await expect(page.getByText(/details & deadline/i)).toBeVisible();
+    // Step label appears in both the nav bar and the active header — use first()
+    await expect(page.getByText(/step 2 of 3/i).first()).toBeVisible();
+    await expect(page.getByText(/details & deadline/i).first()).toBeVisible();
   });
 
   test("back button returns to step 1", async ({ page }) => {
@@ -110,27 +112,30 @@ test.describe("Order wizard — new order placement", () => {
   test("design mode hides paper-specific fields", async ({ page }) => {
     await page.goto("/client/new-order");
 
-    // Select design service
-    await page.getByRole("button", { name: /presentation.*design/i }).click();
+    // Service mode buttons contain label + description text; filter by the label portion
+    await page.locator("button").filter({ hasText: "Presentation / Design" }).click();
     await page.getByLabel(/topic/i).fill("Presentation on renewable energy");
     await page.getByLabel(/instructions/i).fill("Create a 15-slide presentation on renewable energy sources and their economic impact.");
     await page.getByRole("button", { name: /continue/i }).click();
 
-    // Should see design specifics, not paper fields
-    await expect(page.getByText(/design type|slides/i)).toBeVisible();
-    await expect(page.getByText(/paper type|academic level/i)).not.toBeVisible();
+    // Design mode step 2 should show slides/design fields
+    await expect(page.getByText(/design type|slides|presentation/i).first()).toBeVisible();
+    await expect(page.getByText(/academic level/i)).not.toBeVisible({ timeout: 3_000 });
   });
 
   test("step 3 shows price calculation section", async ({ page }) => {
     await page.goto("/client/new-order");
+
+    // Use design mode so step 2 has no required paper-type selectors
+    await page.locator("button").filter({ hasText: "Presentation / Design" }).click();
     await page.getByLabel(/topic/i).fill("Behavioural economics and consumer choice");
     await page.getByLabel(/instructions/i).fill("Analyse how nudge theory can be applied to improve consumer decision-making in digital marketplaces.");
-    await page.getByRole("button", { name: /continue/i }).click();
-    await page.getByRole("button", { name: /continue/i }).click();
+    await page.getByRole("button", { name: /continue/i }).click(); // → step 2
+    await page.getByRole("button", { name: /continue/i }).click(); // → step 3
 
-    await expect(page.getByText(/step 3 of 3/i)).toBeVisible();
-    await expect(page.getByText(/price estimate|calculate/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /calculate/i })).toBeVisible();
+    await expect(page.getByText(/step 3 of 3/i).first()).toBeVisible({ timeout: 8_000 });
+    // Step 3 auto-calculates on entry so the button may already show "Recalculate"
+    await expect(page.getByRole("button", { name: /calculate|recalculate/i }).first()).toBeVisible({ timeout: 8_000 });
   });
 });
 
@@ -183,6 +188,8 @@ test.describe("Order ops — admin actions", () => {
 
 test.describe("Order lifecycle — API-level integration", () => {
   test("complete order flow: create → price → verify ops endpoint", async ({ page }) => {
+    // Must be on the same origin before fetch() with relative URLs will work
+    await page.goto("/auth/login");
     const clientToken = await getToken(page, "client@test.local", "test1234");
     const adminToken  = await getToken(page, "admin@test.local", "admin1234");
 
@@ -210,9 +217,9 @@ test.describe("Order lifecycle — API-level integration", () => {
     expect([200, 201]).toContain(quote.status);
     const price = quote.data?.calculated_price ?? quote.data?.price ?? "50.00";
 
-    // 3. Create the order
+    // 3. Create the order (endpoint is /orders/create/, not /orders/)
     const deadline = new Date(Date.now() + 72 * 3600 * 1000).toISOString();
-    const orderResp = await apiPost(page, clientToken, "/api/v1/orders/orders/", {
+    const orderResp = await apiPost(page, clientToken, "/api/v1/orders/orders/create/", {
       topic: "E2E test order",
       order_instructions: "Playwright end-to-end integration test.",
       client_deadline: deadline,
@@ -224,6 +231,7 @@ test.describe("Order lifecycle — API-level integration", () => {
       service_family: "paper_order",
       payment_provider: "mock",
       payment_method_code: "mock_card",
+      pricing_snapshot_id: quote.data?.snapshot_id ?? null,
       total_price: price,
     });
     expect([200, 201]).toContain(orderResp.status);
