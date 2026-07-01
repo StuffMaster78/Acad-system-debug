@@ -2,6 +2,9 @@
 # Writing System Platform — .gitignore
 # =============================================================================
 
+# ── Local dev runbook (contains credentials — never commit) ───────────────────
+DEV_RUNBOOK.md
+
 # ── Environment & secrets ─────────────────────────────────────────────────────
 .env
 .env.*
