@@ -225,7 +225,16 @@ class WriterProfileDetailSerializer(serializers.ModelSerializer):
         try:
             return obj.capacity
         except Exception:
-            return None
+            # Capacity row missing — create it with safe defaults so the writer
+            # doesn't appear "Paused" just because the row was never seeded.
+            # The post_save signal on WriterProfile normally prevents this;
+            # this path heals writers created before that signal existed.
+            try:
+                from writer_management.models.writer_capacity import WriterCapacity
+                cap, _ = WriterCapacity.objects.get_or_create(writer=obj)
+                return cap
+            except Exception:
+                return None
 
     def _discipline(self, obj):
         try:

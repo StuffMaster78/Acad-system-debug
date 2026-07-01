@@ -37,6 +37,26 @@ User = get_user_model()
 
 
 @receiver(post_save, sender=WriterProfile)
+def ensure_writer_capacity(sender, instance, created, **kwargs):
+    """
+    Guarantee every WriterProfile has a companion WriterCapacity row.
+
+    WriterCapacity is never auto-created by the profile creation path in
+    users/signals.py, so writers log in and see 'Paused' because the
+    serializer's _capacity() returns None and get_is_accepting_orders()
+    falls back to False.
+
+    Running on every post_save (not just created=True) is safe — the
+    get_or_create is a single cheap SELECT that short-circuits on hit.
+    """
+    from writer_management.models.writer_capacity import WriterCapacity
+    try:
+        WriterCapacity.objects.get_or_create(writer=instance)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=WriterProfile)
 def log_writer_action(sender, instance, created, **kwargs):
     """
     Log writer profile updates as actions.
