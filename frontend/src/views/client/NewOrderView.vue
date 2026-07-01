@@ -769,26 +769,103 @@ onUnmounted(() => {
   if (ref) paymentsApi.cancelPrewarm(ref).catch(() => undefined);
 });
 watch(() => form.service_code, loadAddons);
+
+// ── Wizard step state (UI only — all existing logic unchanged) ─────────────
+const currentStep = ref(1);
+const STEPS = [
+  { n: 1, label: "What do you need?" },
+  { n: 2, label: "Details & deadline" },
+  { n: 3, label: "Price & payment" },
+];
+
+const step1Valid = computed(
+  () => form.topic.trim().length > 2 && form.order_instructions.trim().length > 10,
+);
+const step2Valid = computed(
+  () => !isPaperMode.value || Boolean(form.paper_type_id && form.type_of_work_id && form.academic_level_id),
+);
+
+async function nextStep() {
+  if (currentStep.value === 1) {
+    attempted.value = true;
+    if (!step1Valid.value) return;
+    currentStep.value = 2;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  if (currentStep.value === 2) {
+    if (!step2Valid.value) { attempted.value = true; return; }
+    currentStep.value = 3;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Auto-calculate when entering pay step if we have enough info
+    if (canQuote.value && !orders.latestQuote) calculate().catch(() => undefined);
+    return;
+  }
+}
+
+function prevStep() {
+  if (currentStep.value > 1) {
+    currentStep.value--;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+const summaryServiceLabel = computed(() => {
+  const m = SERVICE_MODES.find(m => m.key === serviceMode.value);
+  return m?.label ?? "Writing";
+});
+
+const summaryPages = computed(() => {
+  if (isPaperMode.value) return `${form.pages} page${form.pages !== 1 ? "s" : ""}`;
+  if (isDesignMode.value && designForm.service_code === "presentation_design") return `${designForm.slides} slides`;
+  if (isDiagramMode.value) return `${diagramForm.quantity} diagram${diagramForm.quantity !== 1 ? "s" : ""}`;
+  return "";
+});
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl space-y-4">
-    <section>
-      <p class="text-sm font-semibold uppercase text-signal">Client</p>
-      <h1 class="mt-2 text-3xl font-semibold text-ink">New order</h1>
-      <p class="mt-2 max-w-3xl text-sm leading-6 text-graphite">
-        Fill in your order details, attach any reference materials, then calculate a price and submit.
-      </p>
-    </section>
+  <div class="mx-auto max-w-4xl">
 
-    <form class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]" @submit.prevent="submit" novalidate>
+    <!-- ── Wizard header (3-step order flow) ────────────────────────────── -->
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-2xl font-bold text-ink">New order</h1>
+          <p class="text-sm text-graphite">{{ STEPS[currentStep - 1].label }}</p>
+        </div>
+        <span class="text-xs font-semibold text-graphite">Step {{ currentStep }} of 3</span>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="flex items-center gap-1.5">
+        <template v-for="(step, i) in STEPS" :key="step.n">
+          <div
+            class="h-1.5 flex-1 rounded-full transition-all duration-300"
+            :class="step.n <= currentStep ? 'bg-berry' : 'bg-slate-200'"
+          />
+        </template>
+      </div>
+      <div class="mt-2 flex justify-between">
+        <span
+          v-for="step in STEPS" :key="step.n"
+          class="text-[11px] font-medium"
+          :class="step.n === currentStep ? 'text-berry' : step.n < currentStep ? 'text-slate-400' : 'text-slate-300'"
+        >{{ step.label }}</span>
+      </div>
+    </div>
+
+    <form class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" @submit.prevent="submit" novalidate>
+      <!-- ── STEP CONTENT ──────────────────────────────────────────────── -->
       <div class="space-y-4">
 
+        <!-- ════ STEP 1: What do you need? ════ -->
+        <template v-if="currentStep === 1">
+
         <!-- Service type selector -->
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 class="text-base font-semibold text-ink">What do you need?</h2>
-          <p class="mt-0.5 text-xs text-graphite">Select the type of work — you can mix writing with a presentation or diagrams.</p>
-          <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Service type</h2>
+          <p class="mt-0.5 text-xs text-graphite">Select the type of work — you can combine writing with a presentation or diagrams.</p>
+          <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             <button
               v-for="mode in SERVICE_MODES"
               :key="mode.key"
@@ -806,8 +883,8 @@ watch(() => form.service_code, loadAddons);
         </section>
 
         <!-- Order brief -->
-        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 class="text-base font-semibold text-ink">Order brief</h2>
+        <section class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Your brief</h2>
 
           <div>
             <label class="block text-sm font-medium text-ink" for="order-topic">
@@ -835,6 +912,7 @@ watch(() => form.service_code, loadAddons);
             <label class="block text-sm font-medium text-ink" for="order-instructions">
               Instructions <span class="text-rose-500" aria-hidden="true">*</span>
             </label>
+            <p class="mt-0.5 text-xs text-graphite">Include your prompt, rubric, citation style, and any specific requirements.</p>
             <textarea
               id="order-instructions"
               v-model="form.order_instructions"
@@ -842,7 +920,7 @@ watch(() => form.service_code, loadAddons);
               aria-required="true"
               :aria-invalid="fieldErr('instructions', instructionsError) ? 'true' : undefined"
               aria-describedby="instructions-error"
-              class="focus-ring mt-1.5 min-h-36 w-full rounded-lg border px-3.5 py-2.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
+              class="focus-ring mt-1.5 min-h-40 w-full rounded-lg border px-3.5 py-2.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300"
               :class="fieldErr('instructions', instructionsError) ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200'"
               placeholder="Include your assignment prompt, citation style, sources required, and any specific requirements from your instructor…"
               @blur="touched.add('instructions')"
@@ -853,8 +931,14 @@ watch(() => form.service_code, loadAddons);
           </div>
         </section>
 
+        </template>
+        <!-- ════ END STEP 1 ════ -->
+
+        <!-- ════ STEP 2: Details & deadline ════ -->
+        <template v-if="currentStep === 2">
+
         <!-- Paper specifics — only shown for paper/combo modes -->
-        <section v-if="isPaperMode" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section v-if="isPaperMode" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Paper specifics</h2>
 
           <!-- Loading skeleton -->
@@ -992,7 +1076,7 @@ watch(() => form.service_code, loadAddons);
         </section>
 
         <!-- Design specifics -->
-        <section v-if="isDesignMode" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section v-if="isDesignMode" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Design specifics</h2>
           <div class="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
@@ -1017,7 +1101,7 @@ watch(() => form.service_code, loadAddons);
         </section>
 
         <!-- Diagram specifics -->
-        <section v-if="isDiagramMode" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section v-if="isDiagramMode" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Diagram specifics</h2>
           <div class="mt-4 grid gap-4 sm:grid-cols-3">
             <div>
@@ -1042,7 +1126,7 @@ watch(() => form.service_code, loadAddons);
         </section>
 
         <!-- Scope and deadline -->
-        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Scope &amp; deadline</h2>
 
           <div class="grid gap-4 sm:grid-cols-3">
@@ -1088,7 +1172,7 @@ watch(() => form.service_code, loadAddons);
         </section>
 
         <!-- Reference files -->
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div class="flex items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold text-ink">Reference materials</h2>
@@ -1139,7 +1223,7 @@ watch(() => form.service_code, loadAddons);
         </section>
 
         <!-- Style references (designs, diagrams, templates) -->
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div class="flex items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold text-ink">Style guide / designs</h2>
@@ -1189,191 +1273,187 @@ watch(() => form.service_code, loadAddons);
           </p>
         </section>
 
-        <!-- Order summary -->
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-start gap-3">
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
-              <FileText class="h-4 w-4" />
-            </div>
-            <div>
-              <h2 class="text-base font-semibold text-ink">Order summary</h2>
-              <p class="mt-0.5 text-xs leading-5 text-graphite">
-                Review the visible choices before calculating the price.
-              </p>
-            </div>
-          </div>
+        </template>
+        <!-- ════ END STEP 2 ════ -->
 
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
-            <div
-              v-for="item in selectedBrief"
-              :key="item.label"
-              class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2.5"
-            >
-              <p class="text-[11px] font-semibold uppercase text-graphite">{{ item.label }}</p>
+        <!-- ════ STEP 3: Price & payment ════ -->
+        <template v-if="currentStep === 3">
+
+        <!-- Order summary recap -->
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="mb-3 text-base font-semibold text-ink">Order summary</h2>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div v-for="item in selectedBrief" :key="item.label"
+              class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-graphite">{{ item.label }}</p>
               <p class="mt-1 text-sm font-semibold text-ink">{{ item.value }}</p>
               <p v-if="item.detail" class="mt-1 text-xs leading-5 text-graphite">{{ item.detail }}</p>
             </div>
           </div>
         </section>
-      </div>
 
-      <!-- Sidebar -->
-      <aside class="space-y-4">
-        <div v-if="config.error" class="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <span>{{ config.error }}</span>
-          <button
-            class="inline-flex shrink-0 items-center gap-1.5 rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:opacity-50"
-            type="button"
-            :disabled="config.isLoading"
-            @click="loadConfig"
-          >
-            <RefreshCw class="h-3 w-3" :class="config.isLoading ? 'animate-spin' : ''" />
-            Retry
-          </button>
-        </div>
-
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 class="text-base font-semibold text-ink">Price estimate</h2>
-
-          <div v-if="orders.latestQuote" class="mt-3 rounded-md bg-slate-50 p-3">
-            <p class="text-xs text-graphite">Calculated total</p>
-            <template v-if="discountPreview">
-              <p class="mt-1 text-sm text-graphite line-through">
-                {{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}
-              </p>
-              <p class="text-2xl font-semibold text-emerald-700">
-                {{ orders.latestQuote.currency }} {{ discountPreview.final.toFixed(2) }}
-              </p>
-              <p class="mt-0.5 text-xs text-emerald-600">
-                Code <strong>{{ discountPreview.code }}</strong> saves {{ orders.latestQuote.currency }} {{ discountPreview.amount.toFixed(2) }}
-              </p>
-            </template>
-            <p v-else class="mt-1 text-2xl font-semibold text-ink">
-              {{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}
-            </p>
-            <p class="mt-1 text-xs text-graphite">
-              {{ form.pages }} page{{ form.pages !== 1 ? "s" : "" }} ·
-              {{ wordRange.min }}–{{ wordRange.max }} words ·
-              {{ deadlineLabel }}
-            </p>
-          </div>
-          <p v-else class="mt-3 text-sm text-graphite">Fill in the order details and calculate a price.</p>
-
-          <div class="mt-3 space-y-2 rounded-md border border-slate-100 bg-white px-3 py-2.5">
-            <div class="flex items-center gap-2 text-xs font-semibold text-graphite">
-              <Clock class="h-3.5 w-3.5" />
-              Deadline window
+        <!-- Price calculation -->
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-ink">Price estimate</h2>
+              <p class="text-xs text-graphite">Calculate a price before placing your order.</p>
             </div>
-            <p class="text-sm font-semibold text-ink">{{ deadlineLabel }}</p>
-            <p class="text-xs leading-5 text-graphite">
-              {{ deadlineHours <= 24 ? "This will be treated as urgent." : "There is enough lead time for normal routing." }}
-            </p>
-          </div>
-
-          <button
-            class="focus-ring mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="!canQuote || orders.isLoading"
-            type="button"
-            @click="calculate"
-          >
-            <Loader2 v-if="orders.isLoading" class="h-4 w-4 animate-spin" />
-            <Calculator v-else class="h-4 w-4" />
-            {{ orders.isLoading ? "Calculating…" : "Calculate price" }}
-          </button>
-        </section>
-
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 class="text-base font-semibold text-ink">Readiness</h2>
-          <div class="mt-3 space-y-2">
-            <div
-              v-for="item in readinessItems"
-              :key="item.label"
-              class="flex items-center gap-2 text-sm"
-              :class="item.done ? 'text-emerald-700' : 'text-graphite'"
+            <button
+              class="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!canQuote || orders.isLoading"
+              type="button"
+              @click="calculate"
             >
-              <CheckCircle2 class="h-4 w-4 shrink-0" :class="item.done ? 'text-emerald-500' : 'text-slate-300'" />
-              <span>{{ item.label }}</span>
+              <Loader2 v-if="orders.isLoading" class="h-4 w-4 animate-spin" />
+              <Calculator v-else class="h-4 w-4" />
+              {{ orders.isLoading ? "Calculating…" : orders.latestQuote ? "Recalculate" : "Calculate price" }}
+            </button>
+          </div>
+
+          <div v-if="orders.latestQuote" class="mt-4 flex items-end justify-between gap-3 rounded-xl bg-slate-50 px-5 py-4">
+            <div>
+              <p class="text-xs text-graphite">Total</p>
+              <template v-if="discountPreview">
+                <p class="text-sm text-graphite line-through">{{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}</p>
+                <p class="text-3xl font-bold text-emerald-700">{{ orders.latestQuote.currency }} {{ discountPreview.final.toFixed(2) }}</p>
+                <p class="mt-0.5 text-xs text-emerald-600 font-medium">Code <strong>{{ discountPreview.code }}</strong> saves {{ orders.latestQuote.currency }} {{ discountPreview.amount.toFixed(2) }}</p>
+              </template>
+              <p v-else class="text-3xl font-bold text-ink">{{ orders.latestQuote.currency }} {{ orders.latestQuote.calculated_price }}</p>
+            </div>
+            <div class="text-right text-xs text-graphite">
+              <p v-if="isPaperMode">{{ form.pages }} page{{ form.pages !== 1 ? "s" : "" }} · {{ form.spacing }} spaced</p>
+              <p class="font-semibold" :class="deadlineHours <= 24 ? 'text-rose-600' : 'text-ink'">
+                {{ deadlineLabel }} deadline{{ deadlineHours <= 24 ? " · urgent" : "" }}
+              </p>
             </div>
           </div>
+          <p v-else-if="!canQuote" class="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Complete your order details on the previous steps to calculate a price.
+          </p>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <!-- Add-ons -->
+        <section v-if="availableAddons.length" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Optional add-ons</h2>
+          <p class="mt-0.5 text-xs text-graphite">Enhance your order with one or more add-ons.</p>
+          <div class="mt-4 space-y-2">
+            <label v-for="addon in availableAddons" :key="addon.addon_code"
+              class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors"
+              :class="selectedAddonCodes.includes(addon.addon_code) ? 'border-berry/60 bg-berry/5' : 'border-slate-200 hover:border-slate-300'">
+              <input type="checkbox" :checked="selectedAddonCodes.includes(addon.addon_code)"
+                class="mt-0.5 rounded accent-berry" @change="toggleAddon(addon.addon_code)" />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-ink">{{ addon.name }}</p>
+                <p v-if="addon.description" class="mt-0.5 text-xs text-graphite">{{ addon.description }}</p>
+              </div>
+              <span class="shrink-0 text-sm font-bold text-ink">+${{ addon.flat_amount }}</span>
+            </label>
+          </div>
+          <p v-if="addonTotal > 0" class="mt-2 text-right text-xs text-graphite">
+            Add-ons subtotal: <strong class="text-ink">${{ addonTotal.toFixed(2) }}</strong>
+          </p>
+        </section>
+
+        <!-- Discount code -->
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 class="text-base font-semibold text-ink">Discount code</h2>
           <div class="mt-3 flex gap-2">
-            <input
-              v-model.trim="couponCode"
-              type="text"
-              placeholder="Enter promo or discount code"
+            <input v-model.trim="couponCode" type="text" placeholder="Enter promo or discount code"
               class="focus-ring min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm font-mono uppercase"
               :class="couponApplied ? 'border-emerald-400 bg-emerald-50' : couponError ? 'border-red-300' : 'border-slate-200'"
               @input="couponApplied = false; couponError = ''; discountPreview = null"
-              @keydown.enter.prevent="applyDiscount"
-            />
-            <button
-              v-if="couponCode && !couponApplied"
-              type="button"
+              @keydown.enter.prevent="applyDiscount" />
+            <button v-if="couponCode && !couponApplied" type="button"
               :disabled="applyingCoupon || quotedPrice == null"
               class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
-              @click="applyDiscount"
-            >{{ applyingCoupon ? "…" : "Apply" }}</button>
-            <button
-              v-if="couponCode"
-              type="button"
+              @click="applyDiscount">{{ applyingCoupon ? "…" : "Apply" }}</button>
+            <button v-if="couponCode" type="button"
               class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-graphite hover:bg-slate-50"
-              @click="couponCode = ''; couponApplied = false; couponError = ''; discountPreview = null"
-            >Clear</button>
+              @click="couponCode = ''; couponApplied = false; couponError = ''; discountPreview = null">Clear</button>
           </div>
-          <p v-if="couponApplied && discountPreview" class="mt-1.5 text-xs text-emerald-700 font-medium">
-            ✓ Code applied — price updated above.
-          </p>
+          <p v-if="couponApplied && discountPreview" class="mt-1.5 text-xs font-medium text-emerald-700">✓ Code applied — price updated.</p>
           <p v-else-if="couponError" class="mt-1.5 text-xs text-red-600">{{ couponError }}</p>
           <p v-else-if="couponCode && quotedPrice == null" class="mt-1.5 text-xs text-graphite">Calculate a price first, then apply your code.</p>
-          <p v-else class="mt-1.5 text-xs text-graphite">Applied at checkout if valid for your order.</p>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 class="text-base font-semibold text-ink">Payment</h2>
+        <!-- Payment method -->
+        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-ink">Payment method</h2>
           <div class="mt-3">
             <PaymentMethodSelector v-model="paymentMethod" :price="quotedPrice" />
           </div>
         </section>
 
-        <!-- ── Add-ons ──────────────────────────────────────────────────── -->
-        <section v-if="availableAddons.length" class="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 class="text-sm font-semibold text-ink">Optional Add-ons</h2>
-          <p class="mt-0.5 text-xs text-graphite">Enhance your order with one or more add-ons.</p>
-          <div class="mt-3 space-y-2">
-            <label
-              v-for="addon in availableAddons"
-              :key="addon.addon_code"
-              class="flex items-start gap-3 cursor-pointer rounded-lg border p-3 transition-colors"
-              :class="selectedAddonCodes.includes(addon.addon_code)
-                ? 'border-berry/60 bg-berry/5'
-                : 'border-slate-200 hover:border-slate-300'"
-            >
-              <input
-                type="checkbox"
-                :checked="selectedAddonCodes.includes(addon.addon_code)"
-                class="mt-0.5 rounded accent-berry"
-                @change="toggleAddon(addon.addon_code)"
-              />
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-ink">{{ addon.name }}</p>
-                <p v-if="addon.description" class="text-xs text-graphite mt-0.5">{{ addon.description }}</p>
-              </div>
-              <span class="text-sm font-semibold text-ink shrink-0">+${{ addon.flat_amount }}</span>
-            </label>
-          </div>
-          <p v-if="addonTotal > 0" class="mt-2 text-xs text-graphite text-right">
-            Add-ons: <strong class="text-ink">${{ addonTotal.toFixed(2) }}</strong>
-          </p>
-        </section>
+        </template>
+        <!-- ════ END STEP 3 ════ -->
 
-        <div class="space-y-2">
+      </div>
+
+      <!-- ── Right panel ─────────────────────────────────────────────────── -->
+      <aside class="space-y-4">
+
+        <!-- Live order summary (steps 1-2) -->
+        <div v-if="currentStep < 3" class="sticky top-4 space-y-4">
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-graphite">Your order so far</h3>
+            <div class="mt-4 space-y-3">
+              <div class="flex items-start gap-2">
+                <span class="mt-0.5 text-xs font-semibold text-graphite w-16 shrink-0">Service</span>
+                <span class="text-sm font-semibold text-ink">{{ summaryServiceLabel }}</span>
+              </div>
+              <div v-if="form.topic.trim()" class="flex items-start gap-2">
+                <span class="mt-0.5 text-xs font-semibold text-graphite w-16 shrink-0">Topic</span>
+                <span class="text-sm text-ink line-clamp-2">{{ form.topic }}</span>
+              </div>
+              <div v-if="summaryPages" class="flex items-start gap-2">
+                <span class="mt-0.5 text-xs font-semibold text-graphite w-16 shrink-0">Scope</span>
+                <span class="text-sm text-ink">{{ summaryPages }}</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="mt-0.5 text-xs font-semibold text-graphite w-16 shrink-0">Deadline</span>
+                <span class="text-sm font-semibold" :class="deadlineHours <= 24 ? 'text-rose-600' : 'text-ink'">
+                  {{ deadlineLabel }}{{ deadlineHours <= 24 ? " · urgent" : "" }}
+                </span>
+              </div>
+              <div v-if="files.uploadQueue.length" class="flex items-start gap-2">
+                <span class="mt-0.5 text-xs font-semibold text-graphite w-16 shrink-0">Files</span>
+                <span class="text-sm text-ink">{{ files.uploadQueue.length }} attached</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Readiness checklist -->
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-graphite">Checklist</h3>
+            <div class="mt-3 space-y-2">
+              <div v-for="item in readinessItems" :key="item.label"
+                class="flex items-center gap-2 text-sm"
+                :class="item.done ? 'text-emerald-700' : 'text-graphite'">
+                <CheckCircle2 class="h-4 w-4 shrink-0" :class="item.done ? 'text-emerald-500' : 'text-slate-200'" />
+                <span>{{ item.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Config error retry -->
+          <div v-if="config.error"
+            class="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span>{{ config.error }}</span>
+            <button class="inline-flex shrink-0 items-center gap-1.5 rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+              type="button" :disabled="config.isLoading" @click="loadConfig">
+              <RefreshCw class="h-3 w-3" :class="config.isLoading ? 'animate-spin' : ''" /> Retry
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit pane (step 3 only) -->
+        <div v-if="currentStep === 3" class="sticky top-4 space-y-3">
           <PaymentDisclosureBanner v-model="paymentDisclosureAccepted" context="new_order_checkout" />
+
           <button
-            class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="!canQuote || orders.isCreating || redirectingToStripe || !paymentDisclosureAccepted"
+            class="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-xl bg-berry px-4 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-berry/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="!canQuote || orders.isCreating || redirectingToStripe || !paymentDisclosureAccepted || !quotedPrice"
             type="submit"
           >
             <Loader2 v-if="orders.isCreating || redirectingToStripe" class="h-4 w-4 animate-spin" />
@@ -1384,13 +1464,35 @@ watch(() => form.service_code, loadAddons);
           <p v-if="files.uploadQueue.length" class="text-center text-xs text-graphite">
             {{ files.uploadQueue.length }} file{{ files.uploadQueue.length !== 1 ? "s" : "" }} will be uploaded with your order.
           </p>
-        </div>
 
-        <div v-if="error" class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">
-          <span class="shrink-0 font-bold">!</span>
-          {{ error }}
+          <div v-if="error" class="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">
+            <span class="shrink-0 font-bold">!</span>{{ error }}
+          </div>
         </div>
       </aside>
     </form>
+
+    <!-- ── Step navigation ─────────────────────────────────────────────── -->
+    <div class="mt-6 flex items-center justify-between border-t border-slate-200 pt-5">
+      <button
+        v-if="currentStep > 1"
+        type="button"
+        class="focus-ring inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-graphite hover:bg-slate-50"
+        @click="prevStep"
+      >
+        ← Back
+      </button>
+      <span v-else />
+
+      <button
+        v-if="currentStep < 3"
+        type="button"
+        class="focus-ring inline-flex items-center gap-2 rounded-xl bg-berry px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-berry/90 disabled:opacity-60"
+        :disabled="(currentStep === 1 && !step1Valid) || (currentStep === 2 && !step2Valid)"
+        @click="nextStep"
+      >
+        Continue →
+      </button>
+    </div>
   </div>
 </template>
