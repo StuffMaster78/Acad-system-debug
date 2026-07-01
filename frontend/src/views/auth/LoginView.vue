@@ -64,14 +64,36 @@ async function submit() {
   mfaError.value = "";
   try {
     await auth.login(form);
+
+    // Surface isolation: ensure the logged-in role is allowed on this portal.
+    // The backend enforces this too; this is defense-in-depth for the frontend.
+    const surface = portalCtx.surface;
+    const role = auth.role;
+    const mismatch =
+      (isWriterSurface.value && role !== "writer") ||
+      (surface === "client" && role !== "client");
+    if (mismatch) {
+      auth.clearSession();
+      if (isWriterSurface.value) {
+        error.value = "This portal is for writers only. Please use your account's correct sign-in page.";
+      } else if (surface === "client") {
+        error.value = role === "writer"
+          ? "Writer accounts must sign in through the writer portal, not a client site."
+          : "This portal is for clients only. Staff should use the staff portal.";
+      }
+      return;
+    }
+
     const redirect = route.query.redirect?.toString();
-    await router.push(redirect || (auth.role ? roleHome[auth.role] : "/client"));
+    await router.push(redirect || (role ? roleHome[role] : "/client"));
   } catch (err) {
     if (err instanceof MfaRequiredError) {
       mfaRequired.value = true;
       mfaUserId.value = err.userId;
     } else {
-      error.value = "We could not sign you in with those details.";
+      const msg = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      error.value = msg || "We could not sign you in with those details.";
     }
   }
 }

@@ -91,6 +91,26 @@ class LoginFlowService:
             website=website,
         )
 
+        # Portal surface ↔ role guard.
+        # client_portal → only "client" accounts may authenticate.
+        # writer_portal → only "writer" accounts may authenticate.
+        # internal_admin (staff portal / localhost) → all roles are permitted;
+        # route-level guards handle which sections each role can see.
+        _PORTAL_ROLE_ALLOWLIST: dict[str, set[str]] = {
+            "client_portal": {"client"},
+            "writer_portal": {"writer"},
+        }
+        portal = getattr(request, "portal", None)
+        portal_code = getattr(portal, "code", "") if portal else ""
+        if portal_code in _PORTAL_ROLE_ALLOWLIST:
+            user_role = getattr(user, "role", "")
+            if user_role not in _PORTAL_ROLE_ALLOWLIST[portal_code]:
+                _surface_name = "client" if portal_code == "client_portal" else "writer"
+                raise ValidationError(
+                    f"This portal is for {_surface_name} accounts only. "
+                    "Please sign in through the correct portal for your account type."
+                )
+
         # Device fingerprinting and session limits are website-scoped.
         # Skip both for platform staff logging in without a website context.
         if website is not None:
