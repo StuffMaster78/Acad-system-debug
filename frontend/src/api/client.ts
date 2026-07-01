@@ -56,6 +56,7 @@ export const api: AxiosInstance = axios.create({
 export function apiPath(path: string): string {
   if (path.startsWith("http")) return path;
   if (path.startsWith("/api/")) return path;
+  if (path.startsWith("/cms-api/")) return path;
   return `${apiBasePrefix}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
