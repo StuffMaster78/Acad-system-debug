@@ -1,11 +1,11 @@
-export type DisputeStatus = "open" | "under_review" | "resolved" | "closed" | "withdrawn";
-export type DisputeVerdict = "writer_wins" | "client_wins";
-export type DisputeRemedy =
+export type DisputeStatus = "open" | "under_review" | "resolved" | "escalated" | "closed";
+export type DisputeVerdict =
+  | "writer_wins"
+  | "client_wins"
   | "partial_refund"
-  | "full_refund"
-  | "reassign"
-  | "revision"
-  | "cancel_refund";
+  | "extend_deadline"
+  | "reassign";
+export type DisputeRemedy = DisputeVerdict;
 
 export interface Dispute {
   id: number;
@@ -34,7 +34,5 @@ export interface RaiseDisputePayload {
 
 export interface ResolveDisputePayload {
   verdict: DisputeVerdict;
-  remedy?: DisputeRemedy;
-  refund_amount?: string;
   resolution: string;
 }

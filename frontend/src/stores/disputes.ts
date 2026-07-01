@@ -2,11 +2,8 @@ import { computed, reactive, ref } from "vue";
 import { defineStore } from "pinia";
 import { disputesApi } from "@/api/disputes";
 import { useAuthStore } from "@/stores/auth";
-import type { Dispute, DisputeRemedy, DisputeStatus, DisputeVerdict, ResolveDisputePayload } from "@/types/disputes";
+import type { Dispute, DisputeStatus, DisputeVerdict, ResolveDisputePayload } from "@/types/disputes";
 
-function normalizeList<T>(data: T[] | { results: T[]; count?: number }): T[] {
-  return Array.isArray(data) ? data : data.results;
-}
 
 const PREVIEW_DISPUTES: Dispute[] = [
   {
@@ -48,7 +45,6 @@ const PREVIEW_DISPUTES: Dispute[] = [
     status: "resolved",
     reason: "Content was below expected academic standard.",
     resolution: "Order was sent for a free revision. Writer completed the revision and client confirmed satisfaction.",
-    admin_notes: "Revision completed within 6 hours. Marked resolved.",
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 72 * 5).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 72 * 4).toISOString(),
     resolved_at: new Date(Date.now() - 1000 * 60 * 60 * 72 * 4).toISOString(),
@@ -87,8 +83,6 @@ export const useDisputesStore = defineStore("disputes", () => {
   const resolveForm = reactive({
     disputeId: null as number | null,
     verdict: null as DisputeVerdict | null,
-    remedy: null as DisputeRemedy | null,
-    refundAmount: "",
     resolution: "",
   });
   const showRaiseModal = ref(false);
@@ -116,7 +110,7 @@ export const useDisputesStore = defineStore("disputes", () => {
         return;
       }
       const { data } = await disputesApi.mine();
-      myList.value = normalizeList(data);
+      myList.value = data as Dispute[];
     } catch {
       error.value = "Unable to load your disputes.";
     } finally {
@@ -134,7 +128,7 @@ export const useDisputesStore = defineStore("disputes", () => {
         return;
       }
       const { data } = await disputesApi.list();
-      adminList.value = normalizeList(data);
+      adminList.value = data as Dispute[];
     } catch {
       error.value = "Unable to load disputes.";
     } finally {
@@ -197,18 +191,10 @@ export const useDisputesStore = defineStore("disputes", () => {
       error.value = "Resolution note is required.";
       return;
     }
-    if (resolveForm.verdict === "client_wins" && !resolveForm.remedy) {
-      error.value = "Select a remedy when the client wins.";
-      return;
-    }
 
     const payload: ResolveDisputePayload = {
       verdict: resolveForm.verdict,
       resolution: resolveForm.resolution,
-      ...(resolveForm.remedy && { remedy: resolveForm.remedy }),
-      ...(resolveForm.remedy === "partial_refund" && resolveForm.refundAmount && {
-        refund_amount: resolveForm.refundAmount,
-      }),
     };
 
     isSaving.value = true;
@@ -222,8 +208,6 @@ export const useDisputesStore = defineStore("disputes", () => {
                 ...d,
                 status: "resolved" as DisputeStatus,
                 verdict: resolveForm.verdict,
-                remedy: resolveForm.remedy,
-                refund_amount: resolveForm.remedy === "partial_refund" ? resolveForm.refundAmount : null,
                 resolution: resolveForm.resolution,
                 resolved_at: new Date().toISOString(),
               }
@@ -232,8 +216,6 @@ export const useDisputesStore = defineStore("disputes", () => {
         myList.value = myList.value.map(patch);
         resolveForm.disputeId = null;
         resolveForm.verdict = null;
-        resolveForm.remedy = null;
-        resolveForm.refundAmount = "";
         resolveForm.resolution = "";
         notice.value = "Preview dispute resolved.";
         return;
@@ -242,8 +224,6 @@ export const useDisputesStore = defineStore("disputes", () => {
       await loadAll();
       resolveForm.disputeId = null;
       resolveForm.verdict = null;
-      resolveForm.remedy = null;
-      resolveForm.refundAmount = "";
       resolveForm.resolution = "";
       notice.value = "Dispute resolved.";
     } catch {
@@ -276,31 +256,6 @@ export const useDisputesStore = defineStore("disputes", () => {
     }
   }
 
-  async function withdrawDispute(disputeId: number) {
-    const auth = useAuthStore();
-    isSaving.value = true;
-    error.value = "";
-    notice.value = "";
-    try {
-      if (auth.isPreviewSession) {
-        myList.value = myList.value.map((d) =>
-          d.id === disputeId ? { ...d, status: "withdrawn" as DisputeStatus } : d,
-        );
-        notice.value = "Preview dispute withdrawn.";
-        return;
-      }
-      await disputesApi.withdraw(disputeId);
-      myList.value = myList.value.map((d) =>
-        d.id === disputeId ? { ...d, status: "withdrawn" } : d,
-      );
-      notice.value = "Dispute withdrawn.";
-    } catch {
-      error.value = "Unable to withdraw dispute.";
-    } finally {
-      isSaving.value = false;
-    }
-  }
-
   function openRaiseModal(orderId?: number | string) {
     raiseForm.orderId = orderId ?? "";
     raiseForm.reason = "";
@@ -311,8 +266,6 @@ export const useDisputesStore = defineStore("disputes", () => {
   function openResolveForm(disputeId: number) {
     resolveForm.disputeId = disputeId;
     resolveForm.verdict = null;
-    resolveForm.remedy = null;
-    resolveForm.refundAmount = "";
     resolveForm.resolution = "";
     error.value = "";
   }
@@ -337,7 +290,6 @@ export const useDisputesStore = defineStore("disputes", () => {
     raiseDispute,
     resolveDispute,
     closeDispute,
-    withdrawDispute,
     openRaiseModal,
     openResolveForm,
   };

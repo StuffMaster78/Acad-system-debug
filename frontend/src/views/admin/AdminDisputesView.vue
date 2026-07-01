@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { AlertCircle, CheckCircle2, Clock, Search, ShieldAlert } from "@lucide/vue";
 import { useDisputesStore } from "@/stores/disputes";
 import SavedViewPresets from "@/components/admin/SavedViewPresets.vue";
-import type { Dispute, DisputeRemedy } from "@/types/disputes";
+import type { Dispute, DisputeVerdict } from "@/types/disputes";
 
 const disputes = useDisputesStore();
 const expandedId = ref<number | null>(null);
@@ -19,9 +19,9 @@ function statusColor(status: string) {
   const map: Record<string, string> = {
     open: "bg-rose-50 text-rose-700 border-rose-200",
     under_review: "bg-amber-50 text-amber-700 border-amber-200",
+    escalated: "bg-violet-50 text-violet-700 border-violet-200",
     resolved: "bg-emerald-50 text-emerald-700 border-emerald-200",
     closed: "bg-slate-100 text-graphite border-slate-200",
-    withdrawn: "bg-slate-100 text-graphite border-slate-200",
   };
   return map[status] ?? "bg-slate-100 text-graphite border-slate-200";
 }
@@ -31,48 +31,40 @@ function formatDate(iso: string) {
 }
 
 function canResolve(d: Dispute) {
-  return ["open", "under_review"].includes(d.status);
+  return ["open", "under_review", "escalated"].includes(d.status);
 }
 
 function isResolvePanelOpen(id: number) {
   return disputes.resolveForm.disputeId === id;
 }
 
-function verdictLabel(v: string | null | undefined) {
-  if (v === "writer_wins") return "Writer wins";
-  if (v === "client_wins") return "Client wins";
-  return "";
-}
-
-function remedyLabel(r: string | null | undefined) {
+function outcomeLabel(v: string | null | undefined) {
   const map: Record<string, string> = {
+    writer_wins: "Writer wins",
+    client_wins: "Client wins",
     partial_refund: "Partial refund",
-    full_refund: "Full refund",
+    extend_deadline: "Extend deadline",
     reassign: "Reassign writer",
-    revision: "Request revision",
-    cancel_refund: "Cancel + full refund",
   };
-  return r ? (map[r] ?? r) : "";
+  return v ? (map[v] ?? v) : "";
 }
 
-const remedyOptions: { key: DisputeRemedy; label: string; description: string }[] = [
+const outcomeOptions: { key: DisputeVerdict; label: string; description: string }[] = [
+  { key: "writer_wins", label: "Writer wins", description: "No action taken — dispute ruled in writer's favour" },
+  { key: "client_wins", label: "Client wins", description: "Ruled in client's favour — follow up manually" },
   { key: "partial_refund", label: "Partial refund", description: "Issue a partial refund to the client" },
-  { key: "full_refund", label: "Full refund", description: "Issue a full refund of the order amount" },
+  { key: "extend_deadline", label: "Extend deadline", description: "Grant the writer more time to complete the order" },
   { key: "reassign", label: "Reassign writer", description: "Assign the order to a different writer" },
-  { key: "revision", label: "Request revision", description: "Send the order back for a free revision" },
-  { key: "cancel_refund", label: "Cancel + full refund", description: "Cancel the order and issue a full refund" },
 ];
 
-const canConfirmResolve = () => {
-  if (!disputes.resolveForm.verdict || !disputes.resolveForm.resolution.trim()) return false;
-  if (disputes.resolveForm.verdict === "client_wins" && !disputes.resolveForm.remedy) return false;
-  return true;
-};
+const canConfirmResolve = () =>
+  !!disputes.resolveForm.verdict && disputes.resolveForm.resolution.trim().length > 0;
 
 const statusOptions = [
   { key: "all", label: "All" },
   { key: "open", label: "Open" },
   { key: "under_review", label: "Under review" },
+  { key: "escalated", label: "Escalated" },
   { key: "resolved", label: "Resolved" },
   { key: "closed", label: "Closed" },
 ] as const;
@@ -185,7 +177,7 @@ const statusOptions = [
                 {{ dispute.status.replace("_", " ") }}
               </span>
               <span v-if="dispute.verdict" class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-700 border-violet-200">
-                {{ verdictLabel(dispute.verdict) }}
+                {{ outcomeLabel(dispute.verdict) }}
               </span>
             </div>
             <p class="text-xs text-graphite mt-0.5">
@@ -223,8 +215,7 @@ const statusOptions = [
             <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Resolution</p>
             <p class="text-sm text-ink leading-relaxed bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">{{ dispute.resolution }}</p>
             <div class="mt-1 flex items-center gap-3 flex-wrap text-xs text-graphite">
-              <span v-if="dispute.remedy">Remedy: <span class="font-medium text-ink">{{ remedyLabel(dispute.remedy) }}</span></span>
-              <span v-if="dispute.refund_amount">Refund: <span class="font-medium text-ink">${{ dispute.refund_amount }}</span></span>
+              <span v-if="dispute.verdict">Outcome: <span class="font-medium text-ink">{{ outcomeLabel(dispute.verdict) }}</span></span>
               <span v-if="dispute.resolved_at">Resolved {{ formatDate(dispute.resolved_at) }}</span>
             </div>
           </div>
@@ -235,73 +226,31 @@ const statusOptions = [
             <!-- Resolve panel (open) -->
             <div v-if="isResolvePanelOpen(dispute.id)" class="space-y-4 rounded-xl bg-slate-50 border border-slate-200 p-4">
 
-              <!-- Step 1: Verdict -->
+              <!-- Outcome -->
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Step 1 — Who wins?</p>
-                <div class="flex gap-2">
-                  <button
-                    class="flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-colors"
-                    :class="disputes.resolveForm.verdict === 'writer_wins'
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                      : 'border-slate-200 bg-white text-graphite hover:border-emerald-300 hover:text-emerald-700'"
-                    type="button"
-                    @click="disputes.resolveForm.verdict = 'writer_wins'; disputes.resolveForm.remedy = null; disputes.resolveForm.refundAmount = ''"
-                  >
-                    Writer wins
-                    <span class="block text-xs font-normal opacity-70">No action taken</span>
-                  </button>
-                  <button
-                    class="flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-colors"
-                    :class="disputes.resolveForm.verdict === 'client_wins'
-                      ? 'border-rose-500 bg-rose-50 text-rose-800'
-                      : 'border-slate-200 bg-white text-graphite hover:border-rose-300 hover:text-rose-700'"
-                    type="button"
-                    @click="disputes.resolveForm.verdict = 'client_wins'"
-                  >
-                    Client wins
-                    <span class="block text-xs font-normal opacity-70">Select a remedy below</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Step 2: Remedy (only when client wins) -->
-              <div v-if="disputes.resolveForm.verdict === 'client_wins'">
-                <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Step 2 — Choose remedy</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-graphite mb-2">Outcome</p>
                 <div class="space-y-2">
                   <label
-                    v-for="opt in remedyOptions"
+                    v-for="opt in outcomeOptions"
                     :key="opt.key"
                     class="flex items-start gap-3 rounded-lg border-2 cursor-pointer px-3 py-2.5 transition-colors"
-                    :class="disputes.resolveForm.remedy === opt.key
+                    :class="disputes.resolveForm.verdict === opt.key
                       ? 'border-signal bg-signal/5'
                       : 'border-slate-200 bg-white hover:border-slate-300'"
                   >
                     <input
                       type="radio"
-                      name="remedy"
+                      name="outcome"
                       :value="opt.key"
                       class="mt-0.5 accent-signal"
-                      :checked="disputes.resolveForm.remedy === opt.key"
-                      @change="disputes.resolveForm.remedy = opt.key"
+                      :checked="disputes.resolveForm.verdict === opt.key"
+                      @change="disputes.resolveForm.verdict = opt.key"
                     />
                     <div class="min-w-0">
                       <p class="text-sm font-medium text-ink">{{ opt.label }}</p>
                       <p class="text-xs text-graphite">{{ opt.description }}</p>
                     </div>
                   </label>
-                </div>
-
-                <!-- Partial refund amount -->
-                <div v-if="disputes.resolveForm.remedy === 'partial_refund'" class="mt-3">
-                  <label class="block text-xs font-semibold uppercase tracking-wide text-graphite mb-1">Refund amount ($)</label>
-                  <input
-                    v-model="disputes.resolveForm.refundAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    class="w-40 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-signal/30"
-                  />
                 </div>
               </div>
 

@@ -2,7 +2,6 @@
 import { onMounted, ref } from "vue";
 import { AlertCircle, CheckCircle2, Clock, Plus, RotateCcw, ShieldAlert } from "@lucide/vue";
 import { useDisputesStore } from "@/stores/disputes";
-import type { Dispute } from "@/types/disputes";
 
 const disputes = useDisputesStore();
 const expandedId = ref<number | null>(null);
@@ -39,9 +38,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function canWithdraw(d: Dispute) {
-  return d.status === "open";
-}
+
 </script>
 
 <template>
@@ -154,16 +151,6 @@ function canWithdraw(d: Dispute) {
             <p v-if="dispute.resolved_at" class="text-xs text-graphite mt-1">Resolved {{ formatDate(dispute.resolved_at) }}</p>
           </div>
 
-          <div v-if="canWithdraw(dispute)" class="pt-2">
-            <button
-              class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-graphite hover:text-rose-600 hover:border-rose-200 transition-colors disabled:opacity-50"
-              type="button"
-              :disabled="disputes.isSaving"
-              @click="disputes.withdrawDispute(dispute.id)"
-            >
-              Withdraw dispute
-            </button>
-          </div>
         </div>
       </div>
     </div>
