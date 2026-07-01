@@ -230,7 +230,7 @@ async function resendCode() {
       <!-- Actions -->
       <div class="space-y-3">
         <RouterLink
-          to="/auth/login"
+          to="/writer/login"
           class="cosmos-btn inline-flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-all"
         >
           <LogIn class="size-4" />

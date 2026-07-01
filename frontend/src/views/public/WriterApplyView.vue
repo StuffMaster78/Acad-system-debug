@@ -155,7 +155,7 @@ const STARS = Array.from({ length: 120 }, (_, i) => ({
             >
               Return to home base <ArrowRight class="h-4 w-4" />
             </RouterLink>
-            <RouterLink to="/auth/login" class="text-xs text-white/35 hover:text-white/55 transition-colors">
+            <RouterLink to="/writer/login" class="text-xs text-white/35 hover:text-white/55 transition-colors">
               Already have access? Sign in →
             </RouterLink>
           </div>
@@ -426,7 +426,7 @@ const STARS = Array.from({ length: 120 }, (_, i) => ({
 
             <p class="text-center text-xs text-white/30">
               Already have writer access?
-              <RouterLink to="/auth/login" class="ml-1 font-semibold text-[#06b6d4] hover:underline">Sign in →</RouterLink>
+              <RouterLink to="/writer/login" class="ml-1 font-semibold text-[#06b6d4] hover:underline">Sign in →</RouterLink>
             </p>
           </div>
         </form>

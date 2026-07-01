@@ -1289,6 +1289,12 @@ export const router = createRouter({
       component: () => import("@/views/auth/LoginView.vue"),
     },
     {
+      path: "/writer/login",
+      name: "writer-login",
+      meta: { surface: "writer" },
+      component: () => import("@/views/auth/LoginView.vue"),
+    },
+    {
       path: "/apply",
       name: "writer-apply",
       meta: { surface: "writer" },
@@ -1349,6 +1355,12 @@ router.beforeEach((to) => {
   const auth = useAuthStore();
   const portalCtx = usePortalContextStore();
 
+  // If the resolved portal surface is writer, the plain /auth/login should
+  // show the cosmos theme — redirect to /writer/login which carries the surface meta.
+  if (to.name === "login" && portalCtx.surface === "writer") {
+    return { name: "writer-login", query: to.query };
+  }
+
   const routeSurface = to.meta.surface as string | undefined;
   const hostIsRegistered = portalCtx.portal !== null || portalCtx.website !== null;
   const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
@@ -1376,7 +1388,8 @@ router.beforeEach((to) => {
   // Auth guard: unauthenticated access to protected routes.
   const roles = to.meta.roles as UserRole[] | undefined;
   if (roles?.length && !auth.isAuthenticated) {
-    return { name: "login", query: { redirect: to.fullPath } };
+    const loginName = portalCtx.surface === "writer" ? "writer-login" : "login";
+    return { name: loginName, query: { redirect: to.fullPath } };
   }
   if (roles?.length && (!auth.role || !roles.includes(auth.role))) {
     if (auth.role) return roleHome[auth.role];
