@@ -511,3 +511,49 @@ class MFAVerifyDeviceView(APIView):
             }
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class TOTPSetupView(APIView):
+    """
+    Initialise a new unverified TOTP device and return the QR code.
+
+    Flow: POST here to get device_id + QR code → user scans → POST to
+    /mfa/devices/verify/ with device_id + code to activate.
+    """
+
+    permission_classes = [IsAuthenticated, NotImpersonatingPermission]
+
+    def post(self, request, *args, **kwargs):
+        from authentication.services.totp_service import TOTPService
+
+        website = getattr(request, "website", None)
+        if website is None:
+            return Response(
+                {"detail": "Website context is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        name = request.data.get("name", "Authenticator App") or "Authenticator App"
+
+        try:
+            result = TOTPService.initialize_totp_device(
+                user=request.user,
+                website=website,
+                name=name,
+            )
+        except Exception as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "device_id": result["device"].pk,
+                "name": result["device"].name,
+                "secret": result["secret"],
+                "provisioning_uri": result["provisioning_uri"],
+                "qr_code_base64": result["qr_code_base64"],
+            },
+            status=status.HTTP_201_CREATED,
+        )

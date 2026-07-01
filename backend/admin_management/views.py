@@ -2425,6 +2425,48 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
             'results': results
         })
 
+    @action(detail=True, methods=['post'], url_path='force-status')
+    def force_status(self, request, pk=None):
+        """Force an order into any status, bypassing lifecycle rules. Superadmin only."""
+        from orders.models.orders import Order
+        from orders.order_enums import OrderStatus
+
+        if request.user.role not in ('admin', 'superadmin'):
+            return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+        order = get_object_or_404(Order, id=pk)
+        new_status = request.data.get('status', '').strip()
+        note = request.data.get('note', 'Admin force-transition').strip() or 'Admin force-transition'
+
+        valid_statuses = [s.value for s in OrderStatus]
+        if new_status not in valid_statuses:
+            return Response(
+                {'detail': f"Invalid status. Valid values: {valid_statuses}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        old_status = order.status
+        order.status = new_status
+        order.save(update_fields=['status', 'updated_at'])
+
+        try:
+            from orders.models.orders.order_timeline_event import OrderTimelineEvent
+            OrderTimelineEvent.objects.create(
+                order=order,
+                actor=request.user,
+                event_type='status_force_override',
+                metadata={'from': old_status, 'to': new_status, 'note': note},
+            )
+        except Exception:
+            pass
+
+        return Response({
+            'detail': f"Order #{order.id} status changed from '{old_status}' to '{new_status}'.",
+            'order_id': order.id,
+            'old_status': old_status,
+            'new_status': new_status,
+        })
+
     @action(detail=True, methods=['get'], url_path='timeline')
     def order_timeline(self, request, pk=None):
         """Get order timeline/history (sourced from OrderTimelineEvent)."""

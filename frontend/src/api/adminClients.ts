@@ -123,4 +123,9 @@ export const adminClientsApi = {
       apiPath(`/admin-management/user-management/${userId}/reset_password/`),
       {},
     ),
+  updateUser: (userId: number, payload: Partial<{ email: string; first_name: string; last_name: string; role: string }>) =>
+    api.patch<AdminUserRecord>(
+      apiPath(`/admin-management/user-management/${userId}/`),
+      payload,
+    ),
 };

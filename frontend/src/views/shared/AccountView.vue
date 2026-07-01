@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { AlertTriangle, Camera, KeyRound, Loader2, MapPin, Monitor, PenLine, Phone, ShieldCheck, Trash2, User, XCircle } from "@lucide/vue";
+import { AlertTriangle, Camera, CheckCircle2, KeyRound, Loader2, MapPin, Monitor, PenLine, Phone, Plus, Shield, ShieldCheck, ShieldOff, Smartphone, Trash2, User, XCircle } from "@lucide/vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import UserAvatar from "@/components/ui/UserAvatar.vue";
 import { authApi, type AccountDeletionState, type ProfileUpdateRequest } from "@/api/auth";
 import { sessionsApi, type LoginSession } from "@/api/sessions";
+import { mfaSettingsApi, type MFADevice } from "@/api/mfaSettings";
+import { securityEventsApi, type SecurityEvent } from "@/api/securityEvents";
 import { useAuthStore } from "@/stores/auth";
 import { useWriterWorkspaceStore } from "@/stores/writerWorkspace";
 import type { UserRole } from "@/types/roles";
@@ -329,6 +331,8 @@ onMounted(() => {
   }
   loadProfileRequests();
   loadDeletionState();
+  loadMfaDevices();
+  loadSecurityEvents();
 });
 
 // Current display user for avatar (merges preview)
@@ -336,6 +340,147 @@ const displayUser = computed(() => ({
   ...(auth.user ?? { id: 0, email: "", role: "client" as const }),
   avatar_url: avatarPreview.value ?? auth.user?.avatar_url,
 }));
+
+// ── MFA devices ──────────────────────────────────────────────────────────────
+const mfaDevices = ref<MFADevice[]>([]);
+const mfaLoading = ref(false);
+const mfaError = ref("");
+const mfaNotice = ref("");
+
+const totpSetupStep = ref<"idle" | "scan" | "verify">("idle");
+const totpSetupData = ref<{ device_id: number; qr_code_base64: string; secret: string } | null>(null);
+const totpDeviceName = ref("Authenticator App");
+const totpVerifyCode = ref("");
+const totpBusy = ref(false);
+
+async function loadMfaDevices() {
+  mfaLoading.value = true;
+  mfaError.value = "";
+  try {
+    const { data } = await mfaSettingsApi.devices();
+    mfaDevices.value = Array.isArray(data) ? data : [];
+  } catch {
+    mfaError.value = "Could not load MFA devices.";
+  } finally {
+    mfaLoading.value = false;
+  }
+}
+
+async function startTotpSetup() {
+  totpBusy.value = true;
+  mfaError.value = "";
+  try {
+    const { data } = await mfaSettingsApi.totpSetup(totpDeviceName.value || "Authenticator App");
+    totpSetupData.value = { device_id: data.device_id, qr_code_base64: data.qr_code_base64, secret: data.secret };
+    totpSetupStep.value = "scan";
+  } catch {
+    mfaError.value = "Could not initialise TOTP setup. Try again.";
+  } finally {
+    totpBusy.value = false;
+  }
+}
+
+async function verifyTotpDevice() {
+  if (!totpSetupData.value) return;
+  totpBusy.value = true;
+  mfaError.value = "";
+  try {
+    await mfaSettingsApi.verifyDevice(totpSetupData.value.device_id, totpVerifyCode.value.trim());
+    mfaNotice.value = "Authenticator app linked successfully.";
+    totpSetupStep.value = "idle";
+    totpSetupData.value = null;
+    totpVerifyCode.value = "";
+    await loadMfaDevices();
+  } catch {
+    mfaError.value = "Invalid code — check your app and try again.";
+  } finally {
+    totpBusy.value = false;
+  }
+}
+
+function cancelTotpSetup() {
+  totpSetupStep.value = "idle";
+  totpSetupData.value = null;
+  totpVerifyCode.value = "";
+  mfaError.value = "";
+}
+
+async function setPrimaryDevice(id: number) {
+  mfaError.value = "";
+  try {
+    await mfaSettingsApi.setPrimary(id);
+    await loadMfaDevices();
+    mfaNotice.value = "Primary device updated.";
+  } catch {
+    mfaError.value = "Could not update primary device.";
+  }
+}
+
+async function toggleDevice(device: MFADevice) {
+  mfaError.value = "";
+  try {
+    if (device.is_active) {
+      await mfaSettingsApi.deactivate(device.id);
+    } else {
+      await mfaSettingsApi.activate(device.id);
+    }
+    await loadMfaDevices();
+    mfaNotice.value = `Device ${device.is_active ? "deactivated" : "activated"}.`;
+  } catch {
+    mfaError.value = "Could not update device.";
+  }
+}
+
+const backupCodes = ref<string[]>([]);
+const backupBusy = ref(false);
+
+async function generateBackupCodes() {
+  if (!confirm("Generating new backup codes will invalidate all previous codes. Continue?")) return;
+  backupBusy.value = true;
+  mfaError.value = "";
+  try {
+    const { data } = await mfaSettingsApi.generateBackupCodes();
+    backupCodes.value = data.codes;
+    mfaNotice.value = "Backup codes generated. Save these somewhere safe — they won't be shown again.";
+  } catch {
+    mfaError.value = "Could not generate backup codes.";
+  } finally {
+    backupBusy.value = false;
+  }
+}
+
+function methodLabel(m: string) {
+  if (m === "totp") return "Authenticator app";
+  if (m === "email") return "Email OTP";
+  if (m === "sms") return "SMS OTP";
+  return m;
+}
+
+// ── Security events ──────────────────────────────────────────────────────────
+const securityEvents = ref<SecurityEvent[]>([]);
+const securityEventsLoading = ref(false);
+const securityEventsError = ref("");
+
+async function loadSecurityEvents() {
+  securityEventsLoading.value = true;
+  securityEventsError.value = "";
+  try {
+    const { data } = await securityEventsApi.list();
+    securityEvents.value = Array.isArray(data) ? data.slice(0, 50) : [];
+  } catch {
+    securityEventsError.value = "Could not load security events.";
+  } finally {
+    securityEventsLoading.value = false;
+  }
+}
+
+function severityTone(s: string): "success" | "warning" | "danger" | "neutral" {
+  if (s === "low" || s === "info") return "neutral";
+  if (s === "medium" || s === "warning") return "warning";
+  if (s === "high" || s === "critical") return "danger";
+  return "neutral";
+}
+
 </script>
 
 <template>
@@ -727,6 +872,200 @@ const displayUser = computed(() => ({
           >
             Sign out all other sessions
           </button>
+        </div>
+      </section>
+
+      <!-- MFA devices -->
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div class="flex items-center gap-3">
+            <Smartphone class="h-5 w-5 text-signal" />
+            <h2 class="text-base font-semibold text-ink">Two-factor authentication</h2>
+          </div>
+          <button
+            v-if="totpSetupStep === 'idle'"
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+            type="button"
+            :disabled="totpBusy"
+            @click="startTotpSetup"
+          >
+            <Plus class="h-3.5 w-3.5" />
+            Add authenticator app
+          </button>
+        </div>
+
+        <p v-if="mfaError" class="border-b border-rose-100 bg-rose-50 px-6 py-3 text-sm text-rose-700">{{ mfaError }}</p>
+        <p v-if="mfaNotice" class="border-b border-emerald-100 bg-emerald-50 px-6 py-3 text-sm text-signal">{{ mfaNotice }}</p>
+
+        <!-- TOTP setup: step 1 scan -->
+        <div v-if="totpSetupStep === 'scan' && totpSetupData" class="space-y-4 p-6">
+          <p class="text-sm text-graphite">Scan the QR code below with your authenticator app (Google Authenticator, Authy, 1Password…).</p>
+          <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+            <img
+              :src="`data:image/png;base64,${totpSetupData.qr_code_base64}`"
+              alt="TOTP QR code"
+              class="h-44 w-44 rounded-lg border border-slate-200"
+            />
+            <div class="min-w-0 space-y-2">
+              <p class="text-xs font-semibold uppercase text-graphite">Can't scan? Enter this code manually:</p>
+              <code class="block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm tracking-wider text-ink">{{ totpSetupData.secret }}</code>
+              <button
+                class="focus-ring mt-2 inline-flex h-9 items-center gap-1.5 rounded-md bg-signal px-4 text-sm font-semibold text-white disabled:opacity-60"
+                type="button"
+                @click="totpSetupStep = 'verify'"
+              >
+                I've scanned it — continue
+              </button>
+              <button
+                class="focus-ring ml-2 inline-flex h-9 items-center rounded-md border border-slate-200 px-4 text-sm text-graphite hover:bg-slate-50"
+                type="button"
+                @click="cancelTotpSetup"
+              >Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TOTP setup: step 2 verify -->
+        <div v-else-if="totpSetupStep === 'verify'" class="space-y-4 p-6">
+          <p class="text-sm text-graphite">Enter the 6-digit code shown in your authenticator app to confirm the link.</p>
+          <div class="flex items-center gap-3">
+            <input
+              v-model="totpVerifyCode"
+              class="focus-ring h-10 w-32 rounded-md border border-slate-200 px-3 text-center font-mono text-lg tracking-widest"
+              type="text"
+              maxlength="6"
+              placeholder="000000"
+              @keyup.enter="verifyTotpDevice"
+            />
+            <button
+              class="focus-ring inline-flex h-10 items-center gap-1.5 rounded-md bg-signal px-4 text-sm font-semibold text-white disabled:opacity-60"
+              type="button"
+              :disabled="totpBusy || totpVerifyCode.length < 6"
+              @click="verifyTotpDevice"
+            >
+              <Loader2 v-if="totpBusy" class="h-4 w-4 animate-spin" />
+              <CheckCircle2 v-else class="h-4 w-4" />
+              Verify
+            </button>
+            <button
+              class="focus-ring inline-flex h-10 items-center rounded-md border border-slate-200 px-4 text-sm text-graphite hover:bg-slate-50"
+              type="button"
+              @click="cancelTotpSetup"
+            >Cancel</button>
+          </div>
+        </div>
+
+        <!-- Device list -->
+        <div v-if="mfaLoading" class="px-6 py-8 text-center text-sm text-graphite animate-pulse">Loading devices…</div>
+        <ul v-else-if="mfaDevices.length" class="divide-y divide-slate-100">
+          <li
+            v-for="device in mfaDevices"
+            :key="device.id"
+            class="flex items-center gap-4 px-6 py-4"
+          >
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+              <Smartphone class="h-4 w-4 text-graphite" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-ink">{{ device.name || methodLabel(device.method) }}</p>
+              <p class="mt-0.5 text-xs text-graphite">
+                {{ methodLabel(device.method) }}
+                <span v-if="device.is_primary" class="ml-1.5 rounded-full bg-signal/10 px-2 py-0.5 text-signal">primary</span>
+                <span v-if="!device.is_verified" class="ml-1.5 text-amber-600">unverified</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <StatusPill
+                :label="device.is_active ? 'Active' : 'Inactive'"
+                :tone="device.is_active ? 'success' : 'warning'"
+              />
+              <button
+                v-if="!device.is_primary && device.is_verified"
+                class="focus-ring rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold hover:bg-slate-50"
+                type="button"
+                @click="setPrimaryDevice(device.id)"
+              >Set primary</button>
+              <button
+                class="focus-ring rounded-md border px-2.5 py-1 text-xs font-semibold"
+                :class="device.is_active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'"
+                type="button"
+                @click="toggleDevice(device)"
+              >{{ device.is_active ? 'Deactivate' : 'Activate' }}</button>
+            </div>
+          </li>
+        </ul>
+        <div v-else-if="!mfaLoading && totpSetupStep === 'idle'" class="px-6 py-6 text-center text-sm text-graphite">
+          No MFA devices configured. Add an authenticator app to secure your account.
+        </div>
+
+        <!-- Backup codes -->
+        <div class="border-t border-slate-100 px-6 py-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-semibold text-ink">Backup codes</p>
+              <p class="mt-0.5 text-xs text-graphite">One-time codes to use if you lose access to your authenticator.</p>
+            </div>
+            <button
+              class="focus-ring inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+              type="button"
+              :disabled="backupBusy"
+              @click="generateBackupCodes"
+            >
+              <Loader2 v-if="backupBusy" class="h-3.5 w-3.5 animate-spin" />
+              Generate codes
+            </button>
+          </div>
+          <div v-if="backupCodes.length" class="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            <code
+              v-for="code in backupCodes"
+              :key="code"
+              class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-center font-mono text-xs text-ink"
+            >{{ code }}</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- Security events -->
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div class="flex items-center gap-3">
+            <Shield class="h-5 w-5 text-signal" />
+            <h2 class="text-base font-semibold text-ink">Security activity</h2>
+          </div>
+          <button
+            class="focus-ring text-xs font-semibold text-signal hover:underline"
+            type="button"
+            @click="loadSecurityEvents"
+          >Refresh</button>
+        </div>
+        <p v-if="securityEventsError" class="px-6 py-3 text-sm text-berry">{{ securityEventsError }}</p>
+        <div v-if="securityEventsLoading" class="px-6 py-8 text-center text-sm text-graphite animate-pulse">Loading events…</div>
+        <div v-else-if="!securityEvents.length" class="px-6 py-6 text-center text-sm text-graphite">No security events recorded.</div>
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase text-graphite">
+              <tr>
+                <th class="px-6 py-3 text-left">Event</th>
+                <th class="px-6 py-3 text-left">Severity</th>
+                <th class="px-6 py-3 text-left">Device / IP</th>
+                <th class="px-6 py-3 text-left">Time</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="evt in securityEvents" :key="evt.id">
+                <td class="px-6 py-3 font-medium text-ink">{{ evt.event_type.replace(/_/g, " ") }}</td>
+                <td class="px-6 py-3">
+                  <StatusPill :label="evt.severity" :tone="severityTone(evt.severity)" />
+                </td>
+                <td class="px-6 py-3 text-graphite">
+                  <span v-if="evt.device">{{ evt.device }}</span>
+                  <span v-if="evt.ip_address" class="ml-1 text-xs">({{ evt.ip_address }})</span>
+                  <span v-if="!evt.device && !evt.ip_address">—</span>
+                </td>
+                <td class="px-6 py-3 text-graphite">{{ formatDate(evt.created_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

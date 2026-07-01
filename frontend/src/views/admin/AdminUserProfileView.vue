@@ -53,6 +53,11 @@ const reason = ref("Admin support review from access console.");
 
 const isMutating = ref(false);
 
+// Email change
+const editEmailMode = ref(false);
+const newEmail = ref("");
+const emailChanging = ref(false);
+
 // Link generation state
 const generatedMagicLink = ref<AdminMagicLinkResponse | null>(null);
 const generatedResetLink = ref<AdminPasswordResetLinkResponse | null>(null);
@@ -113,6 +118,24 @@ async function generateResetLink() {
 
 function copyToClipboard(text: string, label = "Copied") {
   navigator.clipboard.writeText(text).then(() => ui.toast(`${label} copied to clipboard.`, "success"));
+}
+
+async function changeEmail() {
+  if (!user.value || !newEmail.value.trim()) return;
+  emailChanging.value = true;
+  error.value = "";
+  try {
+    await api.patch(apiPath(`/admin-management/user-management/${userId.value}/`), { email: newEmail.value.trim() });
+    user.value = { ...user.value, email: newEmail.value.trim() };
+    notice.value = `Email updated to ${newEmail.value.trim()}.`;
+    editEmailMode.value = false;
+    newEmail.value = "";
+    ui.toast(notice.value, "success");
+  } catch {
+    error.value = "Could not update email. Ensure it is unique and valid.";
+  } finally {
+    emailChanging.value = false;
+  }
 }
 
 const roleOptions = computed<UserRole[]>(() => {
@@ -717,9 +740,40 @@ onMounted(async () => {
             <dl class="divide-y divide-slate-100 px-4">
               <div class="flex items-start gap-3 py-3">
                 <Mail class="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <dt class="text-xs font-semibold uppercase text-graphite">Email</dt>
-                  <dd class="mt-0.5 break-all text-sm text-ink">{{ user.email }}</dd>
+                  <template v-if="editEmailMode">
+                    <div class="mt-1 flex items-center gap-2">
+                      <input
+                        v-model="newEmail"
+                        class="focus-ring h-8 flex-1 rounded-md border border-slate-200 px-2.5 text-sm"
+                        type="email"
+                        placeholder="new@email.com"
+                        @keyup.enter="changeEmail"
+                      />
+                      <button
+                        class="focus-ring h-8 rounded-md bg-signal px-3 text-xs font-semibold text-white disabled:opacity-60"
+                        type="button"
+                        :disabled="emailChanging || !newEmail.trim()"
+                        @click="changeEmail"
+                      >Save</button>
+                      <button
+                        class="focus-ring h-8 rounded-md border border-slate-200 px-3 text-xs text-graphite hover:bg-slate-50"
+                        type="button"
+                        @click="editEmailMode = false; newEmail = ''"
+                      >Cancel</button>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <dd class="mt-0.5 flex items-center gap-2 break-all text-sm text-ink">
+                      {{ user.email }}
+                      <button
+                        class="focus-ring rounded text-xs font-semibold text-signal hover:underline"
+                        type="button"
+                        @click="editEmailMode = true; newEmail = user.email"
+                      >Edit</button>
+                    </dd>
+                  </template>
                 </div>
               </div>
               <div class="flex items-start gap-3 py-3">

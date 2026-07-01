@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Archive, CheckCircle2, Flag, RotateCcw, Send, ThumbsUp, XCircle } from "@lucide/vue";
+import { Archive, CheckCircle2, Flag, RotateCcw, Send, ShieldAlert, ThumbsUp, XCircle } from "@lucide/vue";
 import { useOrderOpsStore } from "@/stores/orderOps";
 import { useOrderStore } from "@/stores/orders";
 import { ordersApi } from "@/api/orders";
+import { adminWorkApi } from "@/api/adminWork";
 import type { UserRole } from "@/types/roles";
 
 const props = defineProps<{
@@ -93,6 +94,39 @@ function revisionPayload() {
 
 async function submitForQA() {
   await ordersApi.qaSubmit(props.orderId);
+}
+
+// ── Force-status override (superadmin only) ───────────────────────────────────
+const forceStatusOpen = ref(false);
+const forceStatusTarget = ref("");
+const forceStatusNote = ref("");
+const forceStatusBusy = ref(false);
+const forceStatusError = ref("");
+
+const ORDER_STATUSES = [
+  "unpaid", "pending", "available", "pending_preferred",
+  "pending_writer_assignment", "assigned", "in_progress",
+  "on_revision", "submitted", "in_review", "approved",
+  "completed", "rated", "reviewed", "closed",
+  "cancelled", "refunded", "archived", "on_hold",
+] as const;
+
+async function applyForceStatus() {
+  if (!forceStatusTarget.value) return;
+  forceStatusBusy.value = true;
+  forceStatusError.value = "";
+  try {
+    await adminWorkApi.forceOrderStatus(props.orderId, forceStatusTarget.value, forceStatusNote.value);
+    await orders.fetchOrder(props.orderId);
+    actionNotice.value = `Status forced to '${forceStatusTarget.value}'.`;
+    forceStatusOpen.value = false;
+    forceStatusTarget.value = "";
+    forceStatusNote.value = "";
+  } catch {
+    forceStatusError.value = "Could not force status. Check the value and try again.";
+  } finally {
+    forceStatusBusy.value = false;
+  }
 }
 </script>
 
@@ -233,6 +267,43 @@ async function submitForQA() {
       <div v-for="(reason, action) in blockedActions" :key="action" class="flex items-start gap-2 text-xs text-amber-900">
         <span class="shrink-0 font-mono text-[10px] bg-amber-100 rounded px-1 py-0.5 capitalize">{{ String(action).replace(/_/g, ' ') }}</span>
         <span>{{ reason }}</span>
+      </div>
+    </div>
+
+    <!-- Force-status override — admin + superadmin -->
+    <div class="mt-4 border-t border-slate-200 pt-3">
+      <button
+        class="focus-ring inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:underline"
+        type="button"
+        @click="forceStatusOpen = !forceStatusOpen"
+      >
+        <ShieldAlert class="h-3.5 w-3.5" />
+        {{ forceStatusOpen ? 'Cancel force-move' : 'Force status override' }}
+      </button>
+      <div v-if="forceStatusOpen" class="mt-3 space-y-2 rounded-md border border-rose-200 bg-rose-50/40 p-3">
+        <p class="text-xs text-rose-700">Bypasses lifecycle rules. The action is logged in the order timeline.</p>
+        <div class="flex flex-wrap gap-2">
+          <select
+            v-model="forceStatusTarget"
+            class="focus-ring h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
+          >
+            <option value="">— select target status —</option>
+            <option v-for="s in ORDER_STATUSES" :key="s" :value="s">{{ s }}</option>
+          </select>
+          <input
+            v-model="forceStatusNote"
+            class="focus-ring h-8 flex-1 rounded-md border border-slate-200 px-2 text-xs"
+            placeholder="Reason / note (optional)"
+            type="text"
+          />
+          <button
+            class="focus-ring h-8 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+            type="button"
+            :disabled="forceStatusBusy || !forceStatusTarget"
+            @click="applyForceStatus"
+          >Apply</button>
+        </div>
+        <p v-if="forceStatusError" class="text-xs text-rose-700">{{ forceStatusError }}</p>
       </div>
     </div>
   </div>

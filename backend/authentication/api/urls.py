@@ -33,6 +33,7 @@ from authentication.api.views.mfa_views import (
     MFARegisterDeviceView,
     MFASetPrimaryDeviceView,
     MFAVerifyDeviceView,
+    TOTPSetupView,
 )
 from authentication.api.views.password_views import (
     ChangePasswordView,
@@ -318,6 +319,11 @@ urlpatterns = [
         "mfa/devices/verify/",
         MFAVerifyDeviceView.as_view(),
         name="mfa-device-verify",
+    ),
+    path(
+        "mfa/totp/setup/",
+        TOTPSetupView.as_view(),
+        name="mfa-totp-setup",
     ),
         path(
         "magic-link/request/",

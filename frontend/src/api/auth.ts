@@ -135,6 +135,10 @@ export const authApi = {
     api.post<AdminMagicLinkResponse>(apiPath(`/auth/admin/users/${userId}/magic-link/`), {}),
   adminGeneratePasswordResetLink: (userId: number) =>
     api.post<AdminPasswordResetLinkResponse>(apiPath(`/auth/admin/users/${userId}/password-reset-link/`), {}),
+  adminUnlockUser: (userId: number) =>
+    api.post(apiPath(`/auth/admin/users/${userId}/unlock/`), {}),
+  adminKickoutUser: (userId: number) =>
+    api.post(apiPath(`/auth/admin/users/${userId}/kickout/`), {}),
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("avatar", file);
