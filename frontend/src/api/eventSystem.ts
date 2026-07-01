@@ -64,23 +64,23 @@ export interface EventDetail {
 
 export const eventSystemApi = {
   list: () =>
-    api.get<OutboxEvent[]>(base("/events/")),
+    api.get<OutboxEvent[]>(base("/")),
 
   metrics: () =>
-    api.get<EventMetrics>(base("/events/metrics/")),
+    api.get<EventMetrics>(base("/metrics/")),
 
   detail: (id: string) =>
-    api.get<EventDetail>(base(`/events/${id}/`)),
+    api.get<EventDetail>(base(`/${id}/`)),
 
   failures: (id: string) =>
-    api.get<EventFailure[]>(base(`/events/${id}/failures/`)),
+    api.get<EventFailure[]>(base(`/${id}/failures/`)),
 
   replay: (eventId: string, reason?: string) =>
     api.post<{ status: string; event_id: string }>(
-      base(`/events/${eventId}/replay/`),
+      base(`/${eventId}/replay/`),
       { event_id: eventId, reason: reason ?? "" },
     ),
 
   timeline: (params: { event_id?: string; correlation_id?: string }) =>
-    api.get<EventTimelineEntry[]>(base("/events/timeline/"), { params }),
+    api.get<EventTimelineEntry[]>(base("/timeline/"), { params }),
 };

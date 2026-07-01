@@ -256,23 +256,23 @@ class UnifiedSearchService:
         """Search messages."""
         user_role = getattr(user, 'role', None)
 
-        # Search messages in threads user has access to
-        threads = CommunicationThread.objects.filter(participants=user)
+        # Search messages in threads the user participates in
+        threads = CommunicationThread.objects.filter(participants__user=user)
         messages = CommunicationMessage.objects.filter(
             thread__in=threads,
-            message__icontains=query,
-            is_deleted=False
-        ).select_related('sender', 'thread__order')[:limit]
+            body__icontains=query,
+            deleted_at__isnull=True,
+        ).select_related('sender', 'thread')[:limit]
 
         return [
             {
                 'id': message.id,
                 'type': 'message',
-                'title': message.message[:100] + ('...' if len(message.message) > 100 else ''),
-                'subtitle': f"From: {message.sender.username if message.sender else 'System'} | Order: #{message.thread.order.id if message.thread.order else 'N/A'}",
-                'url': f"/orders/{message.thread.order.id}#messages" if message.thread.order else '/messages',
+                'title': message.body[:100] + ('...' if len(message.body) > 100 else ''),
+                'subtitle': f"From: {message.sender.username if message.sender else 'System'} | Thread #{message.thread.pk}",
+                'url': f"/admin/messages#{message.thread.pk}",
                 'sender': message.sender.username if message.sender else 'System',
-                'created_at': message.sent_at.isoformat() if message.sent_at else None,
+                'created_at': message.created_at.isoformat() if message.created_at else None,
             }
             for message in messages
         ]
