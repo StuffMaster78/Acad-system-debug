@@ -41,6 +41,21 @@ export default {
           800: "#9f1239",
           900: "#881337",
         },
+        // Writer cosmos palette (dark space / auth theme)
+        cosmos: {
+          950: "#04060f",
+          900: "#070b18",
+          800: "#0c1225",
+          700: "#111a35",
+          600: "#172347",
+        },
+        nebula: {
+          DEFAULT: "#7c3aed",
+          cyan:   "#06b6d4",
+          violet: "#8b5cf6",
+          pink:   "#ec4899",
+          gold:   "#f59e0b",
+        },
         // Brand scale (matches marketing site)
         brand: {
           50:  "#eef4ff",

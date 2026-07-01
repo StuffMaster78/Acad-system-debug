@@ -1259,12 +1259,8 @@ export const router = createRouter({
           name: "legal-document",
           component: () => import("@/views/public/LegalView.vue"),
         },
-        {
-          path: "apply",
-          name: "writer-apply",
-          meta: { surface: "writer" },
-          component: () => import("@/views/public/WriterApplyView.vue"),
-        },
+        // NOTE: /apply is intentionally moved to a standalone top-level route
+        // (no PublicLayout wrapper) so the writer cosmos design fills the full screen.
         {
           path: "payment/complete",
           name: "payment-complete",
@@ -1281,6 +1277,12 @@ export const router = createRouter({
       path: "/auth/login",
       name: "login",
       component: () => import("@/views/auth/LoginView.vue"),
+    },
+    {
+      path: "/apply",
+      name: "writer-apply",
+      meta: { surface: "writer" },
+      component: () => import("@/views/public/WriterApplyView.vue"),
     },
     {
       path: "/auth/register",
