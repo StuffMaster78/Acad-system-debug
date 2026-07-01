@@ -23,6 +23,10 @@ const isWriterSurface = computed(
 );
 const brandName = computed(() => portalCtx.branding?.brand_name || "");
 const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
+// Brand slug drives the themed login page; dev override via ?brand=slugname
+const brandSlug = computed(() =>
+  portalCtx.website?.slug || (isDev ? (route.query.brand as string) : "") || ""
+);
 
 type Tab = "password" | "magic";
 const tab = ref<Tab>("password");
@@ -491,96 +495,506 @@ onBeforeUnmount(() => {
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       ALL OTHER SURFACES — existing clean design (unchanged)
+       GRADECREST — Emerald academic prestige, dark forest split
   ═══════════════════════════════════════════════════════════════ -->
-  <div v-else class="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
-    <section class="w-full max-w-md">
-      <div class="rounded-lg border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
-        <div class="mb-6">
-          <div v-if="isBranded" class="mb-4 flex items-center gap-3">
-            <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-9 w-auto object-contain" />
-            <span v-else class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-ink">{{ brandName.slice(0, 2).toUpperCase() }}</span>
-            <span class="text-base font-semibold text-ink">{{ brandName }}</span>
-          </div>
-          <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ isBranded ? `Sign in to ${brandName}` : "Sign in" }}</h1>
-          <p class="mt-1.5 text-sm text-graphite">{{ isBranded ? "Use your account email and password to continue." : "Use your platform account to open the correct workspace." }}</p>
+  <div v-else-if="brandSlug === 'gradecrest'" class="relative min-h-screen flex overflow-hidden bg-[#071a13] font-sans">
+    <!-- Radial glow -->
+    <div class="pointer-events-none absolute inset-0" style="background:radial-gradient(ellipse 60% 50% at 30% 50%, rgba(14,122,97,0.18) 0%, transparent 70%)" aria-hidden="true" />
+    <!-- Subtle grid -->
+    <div class="pointer-events-none absolute inset-0 opacity-[0.04]" style="background-image:linear-gradient(rgba(52,211,153,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.6) 1px,transparent 1px);background-size:40px 40px;" aria-hidden="true" />
+
+    <!-- LEFT PANEL -->
+    <div class="relative z-10 hidden lg:flex w-[55%] flex-col justify-between p-14">
+      <!-- Logo -->
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-800/60 bg-emerald-900/40">
+          <span class="text-xl font-black text-emerald-400">G</span>
         </div>
+        <span class="text-sm font-bold tracking-widest text-emerald-300/70 uppercase">GradeCrest</span>
+      </div>
 
-        <div class="mb-6 flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-          <button class="flex-1 rounded-md py-2 text-xs font-semibold transition-all" :class="tab === 'password' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'" type="button" @click="tab = 'password'; error = ''; mfaRequired = false">Password</button>
-          <button class="flex-1 rounded-md py-2 text-xs font-semibold transition-all" :class="tab === 'magic' ? 'bg-white text-ink shadow-sm' : 'text-graphite hover:text-ink'" type="button" @click="tab = 'magic'; magicState = 'idle'; magicError = ''">Magic link</button>
+      <!-- Hero -->
+      <div class="space-y-6">
+        <div class="text-[130px] font-black leading-none text-emerald-900/30 select-none">A+</div>
+        <div class="space-y-3 -mt-6">
+          <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-500">// Verified academic specialists</p>
+          <h1 class="text-5xl font-black leading-[1.08] text-white">Expert writing,<br/><span class="text-emerald-400">guaranteed grades.</span></h1>
+          <p class="text-base text-emerald-100/50 max-w-sm leading-relaxed">Human-written academic work by verified subject specialists. Delivered to your deadline.</p>
         </div>
-
-        <form v-if="tab === 'password'" class="space-y-4" @submit.prevent="submit">
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-ink" for="email">Email</label>
-            <input id="email" v-model="form.email" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300" autocomplete="email" type="email" placeholder="you@example.com" required />
+        <!-- Stats -->
+        <div class="flex gap-6 pt-2">
+          <div v-for="s in [['50k+','Students helped'],['98%','On-time delivery'],['4.9★','Avg. rating']]" :key="s[0]" class="flex flex-col">
+            <span class="text-2xl font-black text-white">{{ s[0] }}</span>
+            <span class="text-xs text-emerald-400/60 mt-0.5">{{ s[1] }}</span>
           </div>
-          <div>
-            <div class="mb-1.5 flex items-center justify-between">
-              <label class="text-sm font-medium text-ink" for="password">Password</label>
-              <RouterLink class="text-xs font-medium text-signal hover:underline" to="/auth/forgot-password">Forgot password?</RouterLink>
-            </div>
-            <input id="password" v-model="form.password" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300" autocomplete="current-password" type="password" placeholder="••••••••" required />
-          </div>
-          <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-150" leave-to-class="opacity-0">
-            <div v-if="error" class="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">
-              <span class="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true"></span>{{ error }}
-            </div>
-          </Transition>
-          <div v-if="mfaRequired" class="space-y-3">
-            <div class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
-              <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-              <p class="font-semibold text-amber-900">Two-factor authentication required</p>
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-ink" for="mfa-code">Authenticator code</label>
-              <input id="mfa-code" v-model="mfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" class="focus-ring w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tracking-widest placeholder:tracking-normal placeholder:text-slate-400" @keyup.enter="submitMfa" />
-            </div>
-            <p v-if="mfaError" class="text-xs text-rose-600">{{ mfaError }}</p>
-            <button type="button" class="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60" :disabled="mfaCode.trim().length < 6 || auth.isLoading" @click="submitMfa">
-              <Loader2 v-if="auth.isLoading" class="h-4 w-4 animate-spin" aria-hidden="true" />{{ auth.isLoading ? "Verifying…" : "Verify" }}
-            </button>
-            <button type="button" class="w-full text-center text-xs text-graphite underline-offset-2 hover:underline" @click="mfaRequired = false; mfaCode = ''; mfaError = ''">Back to sign in</button>
-          </div>
-          <button v-if="!mfaRequired" class="focus-ring relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSubmit" type="submit">
-            <Loader2 v-if="auth.isLoading" class="h-4 w-4 animate-spin" aria-hidden="true" />{{ auth.isLoading ? "Signing in…" : "Sign in" }}
-          </button>
-        </form>
-
-        <div v-else class="space-y-4">
-          <template v-if="magicState !== 'sent'">
-            <p class="text-sm text-graphite">Enter your email and we'll send a one-click sign-in link. No password needed. Links expire in 15 minutes and work once only.</p>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-ink" for="magic-email">Email</label>
-              <input id="magic-email" v-model="magicEmail" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors hover:border-slate-300" autocomplete="email" type="email" placeholder="you@example.com" @keydown.enter.prevent="canSendMagic && sendMagicLink()" />
-            </div>
-            <div v-if="magicError" class="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800" role="alert">{{ magicError }}</div>
-            <button class="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canSendMagic" type="button" @click="sendMagicLink">
-              <Loader2 v-if="magicState === 'sending'" class="h-4 w-4 animate-spin" />
-              <Mail v-else class="h-4 w-4" />{{ magicState === 'sending' ? 'Sending…' : 'Send magic link' }}
-            </button>
-          </template>
-          <template v-else>
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center">
-              <Mail class="mx-auto h-8 w-8 text-emerald-500" />
-              <p class="mt-3 font-semibold text-emerald-900">Check your inbox</p>
-              <p class="mt-1 text-sm text-emerald-800">A sign-in link was sent to <strong>{{ magicEmail }}</strong>. Click it to sign in — it works once and expires in 15 minutes.</p>
-            </div>
-            <button class="w-full text-center text-xs text-graphite hover:text-ink hover:underline" type="button" @click="magicState = 'idle'; magicError = ''">Try a different email</button>
-          </template>
         </div>
       </div>
 
-      <p v-if="portalCtx.surface !== 'writer'" class="mt-4 text-center text-sm text-graphite">
-        New to {{ brandName ?? 'the platform' }}?
-        <RouterLink to="/auth/register" class="ml-1 font-semibold text-berry hover:underline">Create a free account</RouterLink>
-      </p>
+      <p class="text-xs text-emerald-700">© GradeCrest · All academic work is 100% original</p>
+    </div>
 
+    <!-- RIGHT PANEL: form -->
+    <div class="relative z-10 flex flex-1 items-center justify-center px-6 py-10">
+      <div class="w-full max-w-[390px] space-y-5">
+        <!-- Mobile logo -->
+        <div class="flex items-center gap-2 mb-6 lg:hidden">
+          <div class="h-8 w-8 rounded-lg border border-emerald-800 bg-emerald-900/60 flex items-center justify-center"><span class="font-black text-emerald-400 text-sm">G</span></div>
+          <span class="text-sm font-bold text-emerald-300/70 uppercase tracking-widest">GradeCrest</span>
+        </div>
+
+        <div class="rounded-2xl border border-emerald-900/50 bg-[#0a2318]/80 p-7 shadow-2xl shadow-black/60 backdrop-blur-xl space-y-5">
+          <div>
+            <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-500 mb-1.5">// Secure access</p>
+            <h2 class="text-xl font-bold text-white">Sign in to GradeCrest</h2>
+            <p class="text-sm text-emerald-200/40 mt-0.5">Your academic portal awaits.</p>
+          </div>
+
+          <!-- Tabs -->
+          <div class="flex gap-1 rounded-xl border border-emerald-900/60 bg-[#06130e]/60 p-1">
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='password'?'bg-emerald-800/60 text-white shadow-sm':'text-emerald-400/60 hover:text-emerald-300'" type="button" @click="tab='password';error='';mfaRequired=false">Password</button>
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='magic'?'bg-emerald-800/60 text-white shadow-sm':'text-emerald-400/60 hover:text-emerald-300'" type="button" @click="tab='magic';magicState='idle';magicError=''">Magic link</button>
+          </div>
+
+          <form v-if="tab==='password'" class="space-y-4" @submit.prevent="submit">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-widest text-emerald-400/60 mb-1.5" for="gc-email">Email</label>
+              <input id="gc-email" v-model="form.email" class="h-11 w-full rounded-xl border border-emerald-900/50 bg-emerald-950/40 px-4 text-sm text-white placeholder:text-emerald-700 outline-none focus:border-emerald-600/60 focus:ring-2 focus:ring-emerald-600/20 transition-all" type="email" autocomplete="email" placeholder="you@example.com" required />
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-semibold uppercase tracking-widest text-emerald-400/60" for="gc-pw">Password</label>
+                <RouterLink class="text-xs text-emerald-500/70 hover:text-emerald-400 transition-colors" to="/auth/forgot-password">Forgot?</RouterLink>
+              </div>
+              <input id="gc-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-emerald-900/50 bg-emerald-950/40 px-4 text-sm text-white placeholder:text-emerald-700 outline-none focus:border-emerald-600/60 focus:ring-2 focus:ring-emerald-600/20 transition-all" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            </div>
+            <div v-if="error" class="rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">{{ error }}</div>
+            <div v-if="mfaRequired" class="space-y-3">
+              <div class="flex items-center gap-2 rounded-xl border border-amber-800/40 bg-amber-950/40 px-4 py-3"><ShieldCheck class="h-4 w-4 text-amber-400 shrink-0"/><p class="text-sm font-semibold text-amber-300">2-factor authentication required</p></div>
+              <input v-model="mfaCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="h-11 w-full rounded-xl border border-emerald-900/50 bg-emerald-950/40 px-4 text-center text-sm tracking-[0.4em] text-white placeholder:tracking-normal placeholder:text-emerald-700 outline-none focus:border-emerald-600/60 transition-all" @keyup.enter="submitMfa" />
+              <p v-if="mfaError" class="text-xs text-red-400">{{ mfaError }}</p>
+              <button type="button" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#0e7a61,#0d9488)" :disabled="mfaCode.trim().length<6||auth.isLoading" @click="submitMfa"><Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Verifying…':'Verify identity' }}</button>
+              <button type="button" class="w-full text-center text-xs text-emerald-600 hover:text-emerald-400 transition-colors" @click="mfaRequired=false;mfaCode='';mfaError=''">← Back to sign in</button>
+            </div>
+            <button v-if="!mfaRequired" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:brightness-110 active:scale-[0.98]" style="background:linear-gradient(135deg,#0e7a61,#0d9488);box-shadow:0 0 20px rgba(14,122,97,0.4)" :disabled="!canSubmit" type="submit">
+              <Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Signing in…':'Sign in to GradeCrest' }}
+            </button>
+          </form>
+
+          <div v-else class="space-y-4">
+            <template v-if="magicState!=='sent'">
+              <p class="text-sm text-emerald-200/40">Enter your email and we'll beam a one-click sign-in link. Works once, expires in 15 minutes.</p>
+              <input v-model="magicEmail" class="h-11 w-full rounded-xl border border-emerald-900/50 bg-emerald-950/40 px-4 text-sm text-white placeholder:text-emerald-700 outline-none focus:border-emerald-600/60 transition-all" type="email" autocomplete="email" placeholder="you@example.com" @keydown.enter.prevent="canSendMagic&&sendMagicLink()" />
+              <div v-if="magicError" class="text-sm text-red-400">{{ magicError }}</div>
+              <button class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#0e7a61,#0d9488)" :disabled="!canSendMagic" type="button" @click="sendMagicLink"><Loader2 v-if="magicState==='sending'" class="inline h-4 w-4 animate-spin mr-2"/><Mail v-else class="inline h-4 w-4 mr-2"/>{{ magicState==='sending'?'Sending…':'Send magic link' }}</button>
+            </template>
+            <template v-else>
+              <div class="rounded-xl border border-emerald-800/40 bg-emerald-900/30 p-5 text-center"><Mail class="mx-auto h-7 w-7 text-emerald-400"/><p class="mt-3 font-bold text-white">Link sent!</p><p class="mt-1 text-sm text-emerald-200/50">Check <strong class="text-emerald-300">{{ magicEmail }}</strong> — link expires in 15 min.</p></div>
+              <button class="w-full text-center text-xs text-emerald-600 hover:text-emerald-400" type="button" @click="magicState='idle';magicError=''">Try a different email</button>
+            </template>
+          </div>
+        </div>
+
+        <p class="text-center text-sm text-emerald-700">New to GradeCrest? <RouterLink to="/auth/register" class="font-semibold text-emerald-400 hover:text-emerald-300 hover:underline">Create a free account</RouterLink></p>
+        <div v-if="isDev" class="rounded-xl border border-emerald-900/40 bg-[#0a2318]/50 p-4 backdrop-blur-sm"><p class="font-mono text-[10px] text-emerald-700 mb-2">// dev preview</p><div class="grid grid-cols-3 gap-2"><button v-for="r in previewRoles" :key="r" class="h-8 rounded-lg border border-emerald-900/40 bg-emerald-950/30 text-xs font-semibold capitalize text-emerald-400/60 hover:text-emerald-300 transition-all" type="button" @click="preview(r as UserRole)">{{ r }}</button></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       ESSAYMANIACS — Electric purple, bold typographic energy
+  ═══════════════════════════════════════════════════════════════ -->
+  <div v-else-if="brandSlug === 'essaymaniacs'" class="relative min-h-screen overflow-hidden bg-[#1a0535] font-sans flex items-center justify-center">
+    <!-- Giant ESSAY bg text -->
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden select-none" aria-hidden="true">
+      <span class="text-[28vw] font-black leading-none text-purple-950/50 tracking-tighter">ESSAY</span>
+    </div>
+    <!-- Glow blobs -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div class="absolute -top-20 left-1/4 h-80 w-80 rounded-full bg-purple-700/25 blur-[100px]"/>
+      <div class="absolute bottom-0 right-1/3 h-72 w-72 rounded-full bg-violet-500/20 blur-[80px]"/>
+    </div>
+    <!-- Floating punctuation -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden select-none" aria-hidden="true">
+      <span class="absolute top-16 left-[8%] text-7xl font-serif text-purple-600/20 leading-none">"</span>
+      <span class="absolute top-1/3 left-[3%] text-5xl font-serif text-violet-500/15 leading-none">¶</span>
+      <span class="absolute bottom-24 left-[12%] text-8xl font-serif text-purple-700/20 leading-none">"</span>
+      <span class="absolute top-10 right-[10%] text-6xl font-serif text-purple-500/15 leading-none">§</span>
+      <span class="absolute bottom-16 right-[8%] text-7xl font-serif text-violet-600/20 leading-none">…</span>
+    </div>
+
+    <!-- Content: two columns -->
+    <div class="relative z-10 flex w-full max-w-5xl items-center gap-12 px-8 py-12">
+
+      <!-- LEFT COPY -->
+      <div class="hidden lg:block flex-1 space-y-6">
+        <p class="font-mono text-[10px] font-bold uppercase tracking-[0.35em] text-purple-400">// word nerd headquarters</p>
+        <h1 class="text-6xl font-black leading-[1.0] text-white">
+          Essays that<br/>
+          <span class="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-violet-300 bg-clip-text text-transparent">hit different.</span>
+        </h1>
+        <p class="text-lg text-purple-200/50 max-w-sm leading-relaxed">Academic writing by people who are genuinely obsessed with words, structure, and your grade.</p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <span v-for="t in ['Plagiarism-free','Any subject','24/7 support','Grades guaranteed']" :key="t" class="rounded-full border border-purple-800/40 bg-purple-900/30 px-3 py-1 text-xs font-medium text-purple-300/70">{{ t }}</span>
+        </div>
+        <div class="flex gap-8 pt-2">
+          <div v-for="s in [['200k+','Essays written'],['4.8★','Avg. rating'],['3hrs','Fastest delivery']]" :key="s[0]">
+            <p class="text-2xl font-black text-white">{{ s[0] }}</p>
+            <p class="text-xs text-purple-400/50 mt-0.5">{{ s[1] }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM CARD: white on purple -->
+      <div class="w-full max-w-[400px] shrink-0 space-y-4">
+        <!-- Mobile heading -->
+        <div class="lg:hidden space-y-2 text-center mb-4">
+          <h1 class="text-3xl font-black text-white">Essays that <span class="text-purple-400">hit different.</span></h1>
+        </div>
+
+        <div class="rounded-2xl bg-white p-7 shadow-2xl shadow-purple-900/60 space-y-5">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Sign in to EssayManiacs</h2>
+            <p class="text-sm text-slate-400 mt-0.5">Back to your word nerd portal.</p>
+          </div>
+
+          <div class="flex gap-1 rounded-xl bg-slate-100 p-1">
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='password'?'bg-white text-slate-900 shadow-sm':'text-slate-500 hover:text-slate-700'" type="button" @click="tab='password';error='';mfaRequired=false">Password</button>
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='magic'?'bg-white text-slate-900 shadow-sm':'text-slate-500 hover:text-slate-700'" type="button" @click="tab='magic';magicState='idle';magicError=''">Magic link</button>
+          </div>
+
+          <form v-if="tab==='password'" class="space-y-4" @submit.prevent="submit">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5" for="em-email">Email</label>
+              <input id="em-email" v-model="form.email" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all" type="email" autocomplete="email" placeholder="you@example.com" required />
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500" for="em-pw">Password</label>
+                <RouterLink class="text-xs text-purple-500 hover:text-purple-700 transition-colors" to="/auth/forgot-password">Forgot?</RouterLink>
+              </div>
+              <input id="em-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            </div>
+            <div v-if="error" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
+            <div v-if="mfaRequired" class="space-y-3">
+              <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"><ShieldCheck class="h-4 w-4 text-amber-500 shrink-0"/><p class="text-sm font-semibold text-amber-800">2-factor auth required</p></div>
+              <input v-model="mfaCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-center text-sm tracking-[0.4em] text-slate-900 placeholder:tracking-normal placeholder:text-slate-300 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all" @keyup.enter="submitMfa" />
+              <p v-if="mfaError" class="text-xs text-rose-500">{{ mfaError }}</p>
+              <button type="button" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:brightness-105 active:scale-[0.98]" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)" :disabled="mfaCode.trim().length<6||auth.isLoading" @click="submitMfa"><Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Verifying…':'Verify' }}</button>
+              <button type="button" class="w-full text-center text-xs text-slate-400 hover:text-slate-600" @click="mfaRequired=false;mfaCode='';mfaError=''">← Back to sign in</button>
+            </div>
+            <button v-if="!mfaRequired" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:brightness-105 active:scale-[0.98]" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 0 24px rgba(124,58,237,0.35)" :disabled="!canSubmit" type="submit">
+              <Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Loading…':'Sign in' }}
+            </button>
+          </form>
+
+          <div v-else class="space-y-4">
+            <template v-if="magicState!=='sent'">
+              <p class="text-sm text-slate-500">One-click sign-in link, straight to your inbox. Expires in 15 minutes.</p>
+              <input v-model="magicEmail" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all" type="email" autocomplete="email" placeholder="you@example.com" @keydown.enter.prevent="canSendMagic&&sendMagicLink()" />
+              <div v-if="magicError" class="text-sm text-rose-500">{{ magicError }}</div>
+              <button class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)" :disabled="!canSendMagic" type="button" @click="sendMagicLink"><Loader2 v-if="magicState==='sending'" class="inline h-4 w-4 animate-spin mr-2"/><Mail v-else class="inline h-4 w-4 mr-2"/>{{ magicState==='sending'?'Sending…':'Send magic link' }}</button>
+            </template>
+            <template v-else>
+              <div class="rounded-xl border border-purple-200 bg-purple-50 p-5 text-center"><Mail class="mx-auto h-7 w-7 text-purple-500"/><p class="mt-3 font-bold text-slate-900">Check your inbox!</p><p class="mt-1 text-sm text-slate-500">Link sent to <strong>{{ magicEmail }}</strong>. One-time use, 15 min.</p></div>
+              <button class="w-full text-center text-xs text-slate-400 hover:text-slate-600" type="button" @click="magicState='idle';magicError=''">Try a different email</button>
+            </template>
+          </div>
+        </div>
+
+        <p class="text-center text-sm text-purple-400/60">New here? <RouterLink to="/auth/register" class="font-semibold text-purple-300 hover:text-white hover:underline">Create a free account</RouterLink></p>
+        <div v-if="isDev" class="rounded-xl border border-purple-900/40 bg-purple-950/30 p-4"><p class="font-mono text-[10px] text-purple-700 mb-2">// dev preview</p><div class="grid grid-cols-3 gap-2"><button v-for="r in previewRoles" :key="r" class="h-8 rounded-lg border border-purple-800/30 text-xs font-semibold capitalize text-purple-400/50 hover:text-purple-300 transition-all" type="button" @click="preview(r as UserRole)">{{ r }}</button></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       NURSEMYGRADE — Clinical split: clean white left, teal right
+  ═══════════════════════════════════════════════════════════════ -->
+  <div v-else-if="brandSlug === 'nursemygrade'" class="min-h-screen flex font-sans">
+
+    <!-- LEFT: white clinical panel -->
+    <div class="hidden lg:flex lg:w-[48%] flex-col justify-between bg-white px-12 py-12 border-r border-slate-100">
+      <!-- Logo -->
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <span class="text-base font-bold text-slate-800 tracking-tight">NurseMyGrade</span>
+      </div>
+
+      <!-- Hero content -->
+      <div class="space-y-6">
+        <!-- ECG decoration -->
+        <div class="text-teal-200 select-none" aria-hidden="true">
+          <svg width="200" height="40" viewBox="0 0 200 40" fill="none"><polyline points="0,20 30,20 40,5 50,35 60,20 80,20 90,10 100,30 110,20 200,20" stroke="#0d9488" stroke-width="1.5" fill="none" opacity="0.4"/></svg>
+        </div>
+        <h1 class="text-4xl font-black leading-[1.1] text-slate-900">
+          Nursing papers<br/>
+          <span class="text-teal-600">by actual nurses.</span>
+        </h1>
+        <p class="text-base text-slate-500 max-w-sm leading-relaxed">Peer-reviewed quality. Clinical precision. Delivered to your deadline — by verified healthcare professionals.</p>
+        <!-- Trust badges -->
+        <div class="grid grid-cols-2 gap-3">
+          <div v-for="b in [['🎓','Verified RN writers'],['📋','APA / AMA / MLA'],['🔒','HIPAA-aware handling'],['⚡','4h rush available']]" :key="b[0]" class="flex items-center gap-2 rounded-xl bg-teal-50 border border-teal-100 px-3 py-2.5">
+            <span class="text-lg leading-none">{{ b[0] }}</span>
+            <span class="text-xs font-medium text-teal-800">{{ b[1] }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer cite -->
+      <div class="flex items-center gap-3 border-t border-slate-100 pt-5">
+        <div class="flex -space-x-2">
+          <div v-for="i in 4" :key="i" class="h-8 w-8 rounded-full border-2 border-white" :style="`background:hsl(${170+i*10},50%,${40+i*5}%)`"/>
+        </div>
+        <p class="text-xs text-slate-400">Trusted by 30,000+ nursing students worldwide</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: teal panel with form -->
+    <div class="flex flex-1 items-center justify-center bg-[#0f766e] px-8 py-12">
+      <div class="w-full max-w-[390px] space-y-4">
+        <!-- Mobile logo -->
+        <div class="flex items-center gap-2 mb-5 lg:hidden">
+          <div class="h-8 w-8 rounded-xl bg-white/20 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+          <span class="text-sm font-bold text-white">NurseMyGrade</span>
+        </div>
+
+        <div class="rounded-2xl bg-white p-7 shadow-2xl shadow-teal-900/30 space-y-5">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Sign in to your account</h2>
+            <p class="text-sm text-slate-400 mt-0.5">Access your orders and drafts.</p>
+          </div>
+
+          <div class="flex gap-1 rounded-xl bg-slate-100 p-1">
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='password'?'bg-white text-slate-900 shadow-sm':'text-slate-500 hover:text-slate-700'" type="button" @click="tab='password';error='';mfaRequired=false">Password</button>
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='magic'?'bg-white text-slate-900 shadow-sm':'text-slate-500 hover:text-slate-700'" type="button" @click="tab='magic';magicState='idle';magicError=''">Magic link</button>
+          </div>
+
+          <form v-if="tab==='password'" class="space-y-4" @submit.prevent="submit">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5" for="nmg-email">Email</label>
+              <input id="nmg-email" v-model="form.email" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all" type="email" autocomplete="email" placeholder="nurse@example.com" required />
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500" for="nmg-pw">Password</label>
+                <RouterLink class="text-xs text-teal-600 hover:text-teal-800 transition-colors" to="/auth/forgot-password">Forgot?</RouterLink>
+              </div>
+              <input id="nmg-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            </div>
+            <div v-if="error" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
+            <div v-if="mfaRequired" class="space-y-3">
+              <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"><ShieldCheck class="h-4 w-4 text-amber-500 shrink-0"/><p class="text-sm font-semibold text-amber-800">2-factor auth required</p></div>
+              <input v-model="mfaCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-center text-sm tracking-[0.4em] text-slate-900 placeholder:tracking-normal placeholder:text-slate-300 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all" @keyup.enter="submitMfa" />
+              <p v-if="mfaError" class="text-xs text-rose-500">{{ mfaError }}</p>
+              <button type="button" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#0f766e,#0d9488)" :disabled="mfaCode.trim().length<6||auth.isLoading" @click="submitMfa"><Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Verifying…':'Verify' }}</button>
+              <button type="button" class="w-full text-center text-xs text-slate-400 hover:text-slate-600" @click="mfaRequired=false;mfaCode='';mfaError=''">← Back to sign in</button>
+            </div>
+            <button v-if="!mfaRequired" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 active:scale-[0.98]" style="background:linear-gradient(135deg,#0f766e,#0d9488);box-shadow:0 4px 14px rgba(15,118,110,0.4)" :disabled="!canSubmit" type="submit">
+              <Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Signing in…':'Sign in' }}
+            </button>
+          </form>
+
+          <div v-else class="space-y-4">
+            <template v-if="magicState!=='sent'">
+              <p class="text-sm text-slate-500">One-click sign-in link to your inbox. No password required.</p>
+              <input v-model="magicEmail" class="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all" type="email" autocomplete="email" placeholder="nurse@example.com" @keydown.enter.prevent="canSendMagic&&sendMagicLink()" />
+              <div v-if="magicError" class="text-sm text-rose-500">{{ magicError }}</div>
+              <button class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#0f766e,#0d9488)" :disabled="!canSendMagic" type="button" @click="sendMagicLink"><Loader2 v-if="magicState==='sending'" class="inline h-4 w-4 animate-spin mr-2"/><Mail v-else class="inline h-4 w-4 mr-2"/>{{ magicState==='sending'?'Sending…':'Send magic link' }}</button>
+            </template>
+            <template v-else>
+              <div class="rounded-xl border border-teal-200 bg-teal-50 p-5 text-center"><Mail class="mx-auto h-7 w-7 text-teal-500"/><p class="mt-3 font-bold text-slate-900">Check your inbox</p><p class="mt-1 text-sm text-slate-500">Link sent to <strong>{{ magicEmail }}</strong>.</p></div>
+              <button class="w-full text-center text-xs text-slate-400 hover:text-slate-600" type="button" @click="magicState='idle';magicError=''">Try a different email</button>
+            </template>
+          </div>
+        </div>
+
+        <p class="text-center text-sm text-teal-200/60">New to NurseMyGrade? <RouterLink to="/auth/register" class="font-semibold text-white hover:underline">Create a free account</RouterLink></p>
+        <div v-if="isDev" class="rounded-xl border border-teal-800/40 bg-teal-900/30 p-4"><p class="font-mono text-[10px] text-teal-600 mb-2">// dev preview</p><div class="grid grid-cols-3 gap-2"><button v-for="r in previewRoles" :key="r" class="h-8 rounded-lg border border-teal-800/30 text-xs font-semibold capitalize text-teal-300/50 hover:text-teal-200 transition-all" type="button" @click="preview(r as UserRole)">{{ r }}</button></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       RESEARCHPAPERMATE — Deep navy, scholarly journal aesthetic
+  ═══════════════════════════════════════════════════════════════ -->
+  <div v-else-if="brandSlug === 'researchpapermate'" class="relative min-h-screen flex overflow-hidden bg-[#080f2a] font-sans">
+    <!-- Lined paper texture -->
+    <div class="pointer-events-none absolute inset-0" style="background-image:repeating-linear-gradient(transparent,transparent 47px,rgba(59,130,246,0.05) 47px,rgba(59,130,246,0.05) 48px);" aria-hidden="true"/>
+    <!-- Glow -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div class="absolute top-0 left-1/3 h-96 w-96 rounded-full bg-blue-900/30 blur-[120px]"/>
+      <div class="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-cyan-900/20 blur-[100px]"/>
+    </div>
+
+    <!-- LEFT PANEL -->
+    <div class="relative z-10 hidden lg:flex w-[58%] flex-col justify-between p-14 border-r border-blue-900/30">
+      <!-- Top: journal header decoration -->
+      <div class="space-y-1">
+        <div class="flex items-center gap-4">
+          <div class="h-10 w-10 rounded-xl bg-blue-900/60 border border-blue-800/60 flex items-center justify-center">
+            <span class="font-black text-cyan-400 text-sm">R</span>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.35em] text-blue-400/50">ResearchPaperMate</p>
+            <p class="font-mono text-[9px] text-blue-600/40">Vol. I — Academic Writing Services</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: main content -->
+      <div class="space-y-6">
+        <!-- Abstract-style note -->
+        <p class="font-mono text-xs text-blue-400/35 border-l-2 border-blue-800/40 pl-4">¹ Abstract: Reliable academic writing by humans,<br/>from $15/page. Cited. Formatted. Delivered.</p>
+
+        <h1 class="text-5xl font-black leading-[1.08] text-white">
+          Research-grade<br/>writing.
+          <span class="text-cyan-400"> Cited.<br/>Structured. Yours.</span>
+        </h1>
+        <p class="text-base text-blue-200/45 max-w-sm leading-relaxed">Every paper written to exact academic standards, properly cited, formatted to spec, and delivered before your deadline.</p>
+
+        <!-- Methodology-style stats boxes -->
+        <div class="grid grid-cols-3 gap-3 pt-1">
+          <div v-for="s in [['45k+','Papers delivered'],['98.6%','On-time rate'],['$15','From per page']]" :key="s[0]" class="rounded-xl border border-blue-900/50 bg-blue-950/40 p-3 text-center">
+            <p class="text-xl font-black text-white">{{ s[0] }}</p>
+            <p class="text-[10px] text-blue-400/50 mt-0.5">{{ s[1] }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer: keywords -->
+      <div class="font-mono text-[10px] text-blue-700/40 space-y-1">
+        <p>Keywords: reliability, citation accuracy, originality, deadline adherence</p>
+        <p>DOI: research-paper-mate/academic-writing-services/2026</p>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: form -->
+    <div class="relative z-10 flex flex-1 items-center justify-center px-8 py-12 bg-[#0d1b3e]/60">
+      <div class="w-full max-w-[390px] space-y-4">
+        <!-- Mobile logo -->
+        <div class="flex items-center gap-2 mb-5 lg:hidden">
+          <div class="h-8 w-8 rounded-xl bg-blue-900/60 border border-blue-800/40 flex items-center justify-center"><span class="font-black text-cyan-400 text-sm">R</span></div>
+          <span class="font-mono text-xs font-semibold uppercase tracking-widest text-blue-300/60">ResearchPaperMate</span>
+        </div>
+
+        <div class="rounded-2xl border border-blue-900/50 bg-[#0d1b3e]/90 p-7 shadow-2xl shadow-black/70 backdrop-blur-sm space-y-5">
+          <div>
+            <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-500/70 mb-1.5">// Secure sign-in</p>
+            <h2 class="text-xl font-bold text-white">Sign in to your account</h2>
+            <p class="text-sm text-blue-200/35 mt-0.5">Access your research portal.</p>
+          </div>
+
+          <div class="flex gap-1 rounded-xl border border-blue-900/50 bg-[#080f2a]/60 p-1">
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='password'?'bg-blue-900/60 text-white shadow-sm':'text-blue-400/50 hover:text-blue-300'" type="button" @click="tab='password';error='';mfaRequired=false">Password</button>
+            <button class="flex-1 rounded-lg py-2 text-xs font-semibold transition-all" :class="tab==='magic'?'bg-blue-900/60 text-white shadow-sm':'text-blue-400/50 hover:text-blue-300'" type="button" @click="tab='magic';magicState='idle';magicError=''">Magic link</button>
+          </div>
+
+          <form v-if="tab==='password'" class="space-y-4" @submit.prevent="submit">
+            <div>
+              <label class="block text-[10px] font-semibold uppercase tracking-[0.3em] text-blue-400/50 mb-1.5" for="rpm-email">Email</label>
+              <input id="rpm-email" v-model="form.email" class="h-11 w-full rounded-xl border border-blue-900/50 bg-blue-950/40 px-4 text-sm text-white placeholder:text-blue-800 outline-none focus:border-cyan-700/60 focus:ring-2 focus:ring-cyan-700/20 transition-all" type="email" autocomplete="email" placeholder="researcher@example.com" required />
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[10px] font-semibold uppercase tracking-[0.3em] text-blue-400/50" for="rpm-pw">Password</label>
+                <RouterLink class="text-xs text-cyan-600/70 hover:text-cyan-400 transition-colors" to="/auth/forgot-password">Forgot?</RouterLink>
+              </div>
+              <input id="rpm-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-blue-900/50 bg-blue-950/40 px-4 text-sm text-white placeholder:text-blue-800 outline-none focus:border-cyan-700/60 focus:ring-2 focus:ring-cyan-700/20 transition-all" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            </div>
+            <div v-if="error" class="rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">{{ error }}</div>
+            <div v-if="mfaRequired" class="space-y-3">
+              <div class="flex items-center gap-2 rounded-xl border border-amber-800/40 bg-amber-950/40 px-4 py-3"><ShieldCheck class="h-4 w-4 text-amber-400 shrink-0"/><p class="text-sm font-semibold text-amber-300">2-factor auth required</p></div>
+              <input v-model="mfaCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="h-11 w-full rounded-xl border border-blue-900/50 bg-blue-950/40 px-4 text-center text-sm tracking-[0.4em] text-white placeholder:tracking-normal placeholder:text-blue-800 outline-none focus:border-cyan-700/60 transition-all" @keyup.enter="submitMfa" />
+              <p v-if="mfaError" class="text-xs text-red-400">{{ mfaError }}</p>
+              <button type="button" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#163e88,#1e40af)" :disabled="mfaCode.trim().length<6||auth.isLoading" @click="submitMfa"><Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Verifying…':'Verify' }}</button>
+              <button type="button" class="w-full text-center text-xs text-blue-600 hover:text-blue-400 transition-colors" @click="mfaRequired=false;mfaCode='';mfaError=''">← Back to sign in</button>
+            </div>
+            <button v-if="!mfaRequired" class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:brightness-110 active:scale-[0.98]" style="background:linear-gradient(135deg,#163e88,#1e40af,#0e7490);box-shadow:0 0 20px rgba(22,62,136,0.5)" :disabled="!canSubmit" type="submit">
+              <Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Signing in…':'Sign in' }}
+            </button>
+          </form>
+
+          <div v-else class="space-y-4">
+            <template v-if="magicState!=='sent'">
+              <p class="text-sm text-blue-200/40">One-click sign-in link. No password required. Expires in 15 minutes.</p>
+              <input v-model="magicEmail" class="h-11 w-full rounded-xl border border-blue-900/50 bg-blue-950/40 px-4 text-sm text-white placeholder:text-blue-800 outline-none focus:border-cyan-700/60 transition-all" type="email" autocomplete="email" placeholder="researcher@example.com" @keydown.enter.prevent="canSendMagic&&sendMagicLink()" />
+              <div v-if="magicError" class="text-sm text-red-400">{{ magicError }}</div>
+              <button class="h-11 w-full rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50" style="background:linear-gradient(135deg,#163e88,#1e40af)" :disabled="!canSendMagic" type="button" @click="sendMagicLink"><Loader2 v-if="magicState==='sending'" class="inline h-4 w-4 animate-spin mr-2"/><Mail v-else class="inline h-4 w-4 mr-2"/>{{ magicState==='sending'?'Sending…':'Send magic link' }}</button>
+            </template>
+            <template v-else>
+              <div class="rounded-xl border border-cyan-900/40 bg-cyan-950/30 p-5 text-center"><Mail class="mx-auto h-7 w-7 text-cyan-400"/><p class="mt-3 font-bold text-white">Transmission sent</p><p class="mt-1 text-sm text-blue-200/40">Link dispatched to <strong class="text-blue-200/70">{{ magicEmail }}</strong>.</p></div>
+              <button class="w-full text-center text-xs text-blue-600 hover:text-blue-400" type="button" @click="magicState='idle';magicError=''">Try a different email</button>
+            </template>
+          </div>
+        </div>
+
+        <p class="text-center text-sm text-blue-700">New here? <RouterLink to="/auth/register" class="font-semibold text-cyan-400 hover:text-cyan-300 hover:underline">Create a free account</RouterLink></p>
+        <div v-if="isDev" class="rounded-xl border border-blue-900/40 bg-blue-950/30 p-4"><p class="font-mono text-[10px] text-blue-700 mb-2">// dev preview</p><div class="grid grid-cols-3 gap-2"><button v-for="r in previewRoles" :key="r" class="h-8 rounded-lg border border-blue-900/30 text-xs font-semibold capitalize text-blue-400/40 hover:text-blue-300 transition-all" type="button" @click="preview(r as UserRole)">{{ r }}</button></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       GENERIC FALLBACK — clean minimal (dev / unbranded)
+  ═══════════════════════════════════════════════════════════════ -->
+  <div v-else class="grid min-h-screen place-items-center bg-slate-50 px-4 py-10">
+    <section class="w-full max-w-md">
+      <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/60">
+        <div class="mb-6">
+          <div v-if="isBranded" class="mb-4 flex items-center gap-3">
+            <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-9 w-auto object-contain" />
+            <span v-else class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-ink">{{ brandName.slice(0,2).toUpperCase() }}</span>
+            <span class="text-base font-semibold text-ink">{{ brandName }}</span>
+          </div>
+          <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ isBranded ? `Sign in to ${brandName}` : "Sign in" }}</h1>
+          <p class="mt-1.5 text-sm text-graphite">Use your account email and password to continue.</p>
+        </div>
+        <div class="mb-6 flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button class="flex-1 rounded-md py-2 text-xs font-semibold transition-all" :class="tab==='password'?'bg-white text-ink shadow-sm':'text-graphite hover:text-ink'" type="button" @click="tab='password';error='';mfaRequired=false">Password</button>
+          <button class="flex-1 rounded-md py-2 text-xs font-semibold transition-all" :class="tab==='magic'?'bg-white text-ink shadow-sm':'text-graphite hover:text-ink'" type="button" @click="tab='magic';magicState='idle';magicError=''">Magic link</button>
+        </div>
+        <form v-if="tab==='password'" class="space-y-4" @submit.prevent="submit">
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-ink" for="fb-email">Email</label>
+            <input id="fb-email" v-model="form.email" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors" autocomplete="email" type="email" placeholder="you@example.com" required />
+          </div>
+          <div>
+            <div class="mb-1.5 flex items-center justify-between">
+              <label class="text-sm font-medium text-ink" for="fb-pw">Password</label>
+              <RouterLink class="text-xs font-medium text-signal hover:underline" to="/auth/forgot-password">Forgot password?</RouterLink>
+            </div>
+            <input id="fb-pw" v-model="form.password" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors" autocomplete="current-password" type="password" placeholder="••••••••" required />
+          </div>
+          <div v-if="error" class="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800">{{ error }}</div>
+          <div v-if="mfaRequired" class="space-y-3">
+            <div class="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3"><ShieldCheck class="h-4 w-4 text-amber-600 shrink-0"/><p class="text-sm font-semibold text-amber-900">Two-factor authentication required</p></div>
+            <input v-model="mfaCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="focus-ring h-11 w-full rounded-lg border border-slate-200 px-3 text-center text-sm tracking-widest placeholder:tracking-normal placeholder:text-slate-400" @keyup.enter="submitMfa" />
+            <p v-if="mfaError" class="text-xs text-rose-600">{{ mfaError }}</p>
+            <button type="button" class="focus-ring h-11 w-full rounded-lg bg-ink text-sm font-semibold text-white disabled:opacity-60" :disabled="mfaCode.trim().length<6||auth.isLoading" @click="submitMfa"><Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Verifying…':'Verify' }}</button>
+            <button type="button" class="w-full text-center text-xs text-graphite hover:underline" @click="mfaRequired=false;mfaCode='';mfaError=''">Back to sign in</button>
+          </div>
+          <button v-if="!mfaRequired" class="focus-ring h-11 w-full rounded-lg bg-ink text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60" :disabled="!canSubmit" type="submit"><Loader2 v-if="auth.isLoading" class="inline h-4 w-4 animate-spin mr-2"/>{{ auth.isLoading?'Signing in…':'Sign in' }}</button>
+        </form>
+        <div v-else class="space-y-4">
+          <template v-if="magicState!=='sent'">
+            <p class="text-sm text-graphite">One-click sign-in link to your inbox. Expires in 15 minutes.</p>
+            <input v-model="magicEmail" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm placeholder:text-slate-400 transition-colors" autocomplete="email" type="email" placeholder="you@example.com" @keydown.enter.prevent="canSendMagic&&sendMagicLink()" />
+            <div v-if="magicError" class="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800">{{ magicError }}</div>
+            <button class="focus-ring h-11 w-full rounded-lg bg-ink text-sm font-semibold text-white disabled:opacity-60" :disabled="!canSendMagic" type="button" @click="sendMagicLink"><Loader2 v-if="magicState==='sending'" class="inline h-4 w-4 animate-spin mr-2"/><Mail v-else class="inline h-4 w-4 mr-2"/>{{ magicState==='sending'?'Sending…':'Send magic link' }}</button>
+          </template>
+          <template v-else>
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center"><Mail class="mx-auto h-8 w-8 text-emerald-500"/><p class="mt-3 font-semibold text-emerald-900">Check your inbox</p><p class="mt-1 text-sm text-emerald-800">Link sent to <strong>{{ magicEmail }}</strong>.</p></div>
+            <button class="w-full text-center text-xs text-graphite hover:underline" type="button" @click="magicState='idle';magicError=''">Try a different email</button>
+          </template>
+        </div>
+      </div>
+      <p class="mt-4 text-center text-sm text-graphite">New here? <RouterLink to="/auth/register" class="ml-1 font-semibold text-berry hover:underline">Create a free account</RouterLink></p>
       <div v-if="isDev" class="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <p class="text-xs font-semibold uppercase tracking-wider text-graphite">Preview workspace</p>
         <div class="mt-3 grid grid-cols-3 gap-2">
-          <button v-for="roleName in previewRoles" :key="roleName" class="focus-ring h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-semibold capitalize text-ink transition-colors hover:border-slate-300 hover:bg-white" type="button" @click="preview(roleName)">{{ roleName }}</button>
+          <button v-for="r in previewRoles" :key="r" class="focus-ring h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-semibold capitalize text-ink transition-colors hover:bg-white" type="button" @click="preview(r as UserRole)">{{ r }}</button>
         </div>
       </div>
     </section>
