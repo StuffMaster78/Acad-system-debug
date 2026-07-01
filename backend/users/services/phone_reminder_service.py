@@ -25,21 +25,21 @@ class PhoneReminderService:
         Returns:
             True if user has a phone number, False otherwise
         """
-        # Check UserProfile
+        # Check UserProfile (phone_number may not exist on all UserProfile models)
         try:
             profile = self.user.profile
-            if profile and profile.phone_number:
+            if profile and getattr(profile, 'phone_number', None):
                 return True
-        except UserProfile.DoesNotExist:
+        except (UserProfile.DoesNotExist, AttributeError):
             pass
 
         # Check ClientProfile (if user is a client)
         if self.user.role in ['client', 'customer']:
             try:
                 client_profile = self.user.client_profile
-                if client_profile and client_profile.phone_number:
+                if client_profile and getattr(client_profile, 'phone_number', None):
                     return True
-            except ClientProfile.DoesNotExist:
+            except (ClientProfile.DoesNotExist, AttributeError):
                 pass
 
         return False
@@ -54,18 +54,20 @@ class PhoneReminderService:
         # Check UserProfile first
         try:
             profile = self.user.profile
-            if profile and profile.phone_number:
-                return str(profile.phone_number)
-        except UserProfile.DoesNotExist:
+            phone = getattr(profile, 'phone_number', None)
+            if profile and phone:
+                return str(phone)
+        except (UserProfile.DoesNotExist, AttributeError):
             pass
 
         # Check ClientProfile (if user is a client)
         if self.user.role in ['client', 'customer']:
             try:
                 client_profile = self.user.client_profile
-                if client_profile and client_profile.phone_number:
-                    return client_profile.phone_number
-            except ClientProfile.DoesNotExist:
+                phone = getattr(client_profile, 'phone_number', None)
+                if client_profile and phone:
+                    return str(phone)
+            except (ClientProfile.DoesNotExist, AttributeError):
                 pass
 
         return None
