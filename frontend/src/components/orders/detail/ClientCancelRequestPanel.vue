@@ -21,6 +21,7 @@ const props = defineProps<{
   orderId: string;
   order: OrderSummary | null;
   lifecycle: OrderLifecycle | null;
+  paymentStatus?: string | null;
 }>();
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -45,6 +46,15 @@ const CANCELLABLE_STATUSES = new Set([
   "ready_for_staffing",
   "pending_writer_acceptance",
 ]);
+
+const isOrderPaid = computed(() =>
+  props.paymentStatus === "paid" || props.paymentStatus === "partially_paid",
+);
+
+// Writer has started when status moves past ready_for_staffing/pending_writer_acceptance
+const writerHasStarted = computed(() =>
+  ["in_progress", "on_hold", "revision_requested"].includes(props.order?.status ?? ""),
+);
 
 const canRequestCancel = computed(() =>
   CANCELLABLE_STATUSES.has(props.order?.status ?? ""),
@@ -184,15 +194,35 @@ async function submitRequest() {
       <Transition name="slide-down">
         <div v-if="showForm" class="border-t border-slate-200 p-5 space-y-4">
 
-          <!-- Forfeiture notice -->
-          <div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+          <!-- Context-aware cancellation notice -->
+          <div v-if="!isOrderPaid" class="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
+            <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <div class="text-emerald-900 space-y-1">
+              <p class="font-semibold">No charges — this order hasn't been paid</p>
+              <p class="text-emerald-800 text-xs">
+                Since payment has not been made, cancelling this order incurs no fees and
+                no refund is issued. The order will simply be closed.
+              </p>
+            </div>
+          </div>
+          <div v-else-if="!writerHasStarted" class="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+            <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+            <div class="text-blue-900 space-y-1">
+              <p class="font-semibold">Full refund likely — work hasn't started yet</p>
+              <p class="text-blue-800 text-xs">
+                Your order is waiting for a writer to be assigned. Since no work has begun,
+                a full refund is typically approved. Staff will confirm and process your refund.
+              </p>
+            </div>
+          </div>
+          <div v-else class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
             <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <div class="text-amber-900 space-y-1">
-              <p class="font-semibold">Cancellation may incur a forfeiture fee</p>
+              <p class="font-semibold">Partial forfeiture may apply — work is in progress</p>
               <p class="text-amber-800 text-xs">
-                If the writer has already started work, a portion of your payment may be
-                retained based on how much of the deadline has passed. Staff will review
-                your request and confirm the refund amount before processing.
+                Your writer has already started working. A portion of your payment may be
+                retained based on how much work has been completed. Staff will review your
+                request and confirm the final refund amount before any money is returned.
               </p>
             </div>
           </div>

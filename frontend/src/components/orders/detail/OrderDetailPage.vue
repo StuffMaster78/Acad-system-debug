@@ -147,6 +147,7 @@
         :order-id="orderId"
         :order="order"
         :lifecycle="lifecycle"
+        :payment-status="order?.payment_status"
       />
 
       <!-- Review prompt for clients on completed orders -->

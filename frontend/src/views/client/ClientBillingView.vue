@@ -464,7 +464,7 @@ onMounted(refresh);
     </template>
 
     <!-- ─── PAYMENT REQUESTS ──────────────────────────────────── -->
-    <template v-else>
+    <template v-else-if="activeTab === 'payment-requests'">
       <p v-if="prError" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         {{ prError }}
       </p>
