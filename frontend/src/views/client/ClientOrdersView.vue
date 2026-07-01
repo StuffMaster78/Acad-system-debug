@@ -259,6 +259,31 @@ onMounted(() => {
               </template>
               <span class="ml-2 text-xs text-graphite">{{ ['Placed', 'Active', 'Delivered', 'Done'][orderStage(order.status)] }}</span>
             </div>
+
+            <!-- Action chips — stop propagation so they don't navigate to detail -->
+            <div class="mt-2 flex flex-wrap items-center gap-1.5" @click.prevent.stop>
+              <RouterLink
+                v-if="order.payment_status && order.payment_status !== 'paid'"
+                :to="`/client/orders/${order.id}`"
+                class="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-semibold text-white hover:bg-rose-700"
+              >
+                Pay now
+              </RouterLink>
+              <RouterLink
+                v-if="['awaiting_approval', 'submitted'].includes(order.status ?? '')"
+                :to="`/client/orders/${order.id}`"
+                class="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
+              >
+                Review & approve
+              </RouterLink>
+              <RouterLink
+                v-if="['in_progress', 'assigned', 'under_editing'].includes(order.status ?? '')"
+                :to="`/client/orders/${order.id}`"
+                class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-graphite hover:bg-slate-50"
+              >
+                Message writer
+              </RouterLink>
+            </div>
           </div>
 
           <!-- Pills -->

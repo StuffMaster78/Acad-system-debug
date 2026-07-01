@@ -70,6 +70,12 @@ function roleRoute(role: UserRole): RouteRecordRaw {
   ];
 
   if (role === "client") {
+    // Replace generic RoleDashboard with purpose-built client home
+    roleChildren[0] = {
+      path: "",
+      name: "client-dashboard",
+      component: () => import("@/views/client/ClientDashboardView.vue"),
+    };
     roleChildren.splice(
       1,
       0,
@@ -102,6 +108,11 @@ function roleRoute(role: UserRole): RouteRecordRaw {
         path: "messages",
         name: "client-messages",
         component: () => import("@/views/client/ClientMessagesView.vue"),
+      },
+      {
+        path: "money",
+        name: "client-money",
+        component: () => import("@/views/client/ClientMoneyView.vue"),
       },
       {
         path: "wallet",
