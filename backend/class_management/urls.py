@@ -116,6 +116,9 @@ payment_waive_installment = ClassPaymentViewSet.as_view({
     "post": "waive_installment",
 })
 payment_resume_work = ClassPaymentViewSet.as_view({"post": "resume_work"})
+payment_edit_installment = ClassPaymentViewSet.as_view({"patch": "edit_installment"})
+payment_mark_installment_paid = ClassPaymentViewSet.as_view({"post": "mark_installment_paid"})
+payment_reset_plan = ClassPaymentViewSet.as_view({"delete": "reset_plan"})
 
 assignments = ClassAssignmentViewSet.as_view({
     "get": "list",
@@ -382,6 +385,23 @@ urlpatterns = [
         "classes/<int:class_order_pk>/payments/resume-work/",
         payment_resume_work,
         name="class-payment-resume-work",
+    ),
+    path(
+        "classes/<int:class_order_pk>/payments/"
+        "installments/<int:installment_id>/edit/",
+        payment_edit_installment,
+        name="class-payment-edit-installment",
+    ),
+    path(
+        "classes/<int:class_order_pk>/payments/"
+        "installments/<int:installment_id>/mark-paid/",
+        payment_mark_installment_paid,
+        name="class-payment-mark-installment-paid",
+    ),
+    path(
+        "classes/<int:class_order_pk>/payments/plan/reset/",
+        payment_reset_plan,
+        name="class-payment-reset-plan",
     ),
 
     path(

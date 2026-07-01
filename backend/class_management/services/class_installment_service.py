@@ -308,6 +308,135 @@ class ClassInstallmentService:
 
     @classmethod
     @transaction.atomic
+    def edit_installment(
+        cls,
+        *,
+        installment: ClassInstallment,
+        label: str | None = None,
+        amount: Decimal | None = None,
+        due_at=None,
+        edited_by=None,
+    ) -> ClassInstallment:
+        """
+        Let admin adjust an open installment's label, amount, or due date.
+        Closed (paid/waived/cancelled) installments are immutable.
+        """
+        closed = {
+            ClassInstallmentStatus.PAID,
+            ClassInstallmentStatus.WAIVED,
+            ClassInstallmentStatus.CANCELLED,
+        }
+        if installment.status in closed:
+            raise ClassPaymentError("Cannot edit a closed installment.")
+
+        if label is not None:
+            installment.label = label.strip() or installment.label
+        if amount is not None:
+            if amount <= Decimal("0.00"):
+                raise ClassPaymentError("Installment amount must be positive.")
+            installment.amount = amount
+        if due_at is not None:
+            installment.due_at = due_at
+
+        installment.save(update_fields=["label", "amount", "due_at", "updated_at"])
+
+        ClassTimelineService.record(
+            class_order=installment.plan.class_order,
+            event_type=ClassTimelineEventType.PAYMENT_APPLIED,
+            title="Installment edited by staff",
+            triggered_by=edited_by,
+            metadata={
+                "installment_id": installment.pk,
+                "amount": str(installment.amount),
+                "due_at": installment.due_at.isoformat() if installment.due_at else None,
+            },
+        )
+        return installment
+
+    @classmethod
+    @transaction.atomic
+    def mark_installment_paid(
+        cls,
+        *,
+        installment: ClassInstallment,
+        transaction_reference: str = "",
+        note: str = "",
+        marked_by=None,
+    ) -> ClassInstallment:
+        """
+        Manually mark an installment as paid (off-system payment).
+        """
+        closed = {
+            ClassInstallmentStatus.PAID,
+            ClassInstallmentStatus.WAIVED,
+            ClassInstallmentStatus.CANCELLED,
+        }
+        if installment.status in closed:
+            raise ClassPaymentError("Cannot mark a closed installment as paid.")
+
+        installment.paid_amount = installment.amount
+        installment.status = ClassInstallmentStatus.PAID
+        installment.paid_at = timezone.now()
+        installment.metadata = {
+            **installment.metadata,
+            "marked_paid_by_id": getattr(marked_by, "pk", None),
+            "transaction_reference": transaction_reference,
+            "note": note,
+        }
+        installment.save(
+            update_fields=["paid_amount", "status", "paid_at", "metadata", "updated_at"]
+        )
+
+        ClassTimelineService.record(
+            class_order=installment.plan.class_order,
+            event_type=ClassTimelineEventType.PAYMENT_APPLIED,
+            title="Installment marked as paid by staff",
+            description=note,
+            triggered_by=marked_by,
+            metadata={
+                "installment_id": installment.pk,
+                "amount": str(installment.amount),
+                "reference": transaction_reference,
+            },
+        )
+        return installment
+
+    @classmethod
+    @transaction.atomic
+    def reset_plan(
+        cls,
+        *,
+        plan: ClassInstallmentPlan,
+        reset_by=None,
+        reason: str = "",
+    ) -> None:
+        """
+        Hard-delete the plan and all its installments so a new one can be created.
+        Only allowed when no installment is already paid.
+        """
+        has_paid = plan.installments.filter(
+            status=ClassInstallmentStatus.PAID
+        ).exists()
+        if has_paid:
+            raise ClassPaymentError(
+                "Cannot reset a plan that has paid installments. Waive or adjust them first."
+            )
+
+        class_order = plan.class_order
+
+        ClassTimelineService.record(
+            class_order=class_order,
+            event_type=ClassTimelineEventType.CANCELLED,
+            title="Payment plan reset by staff",
+            description=reason,
+            triggered_by=reset_by,
+        )
+
+        plan.installments.all().delete()
+        plan.delete()
+
+    @classmethod
+    @transaction.atomic
     def mark_due_installments(cls) -> int:
         """
         Mark pending installments as due when due date arrives.

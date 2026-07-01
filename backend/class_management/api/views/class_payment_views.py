@@ -15,7 +15,9 @@ from class_management.api.serializers import (
     ClassPaymentMilestoneSerializer,
     ClassPaymentScheduleSerializer,
     CreateEqualPaymentScheduleSerializer,
+    EditInstallmentSerializer,
     ManualVerifiedClassPaymentSerializer,
+    MarkInstallmentPaidSerializer,
     PrepareClassPaymentSerializer,
 )
 from class_management.constants import ClassPaymentSourceType
@@ -275,3 +277,96 @@ class ClassPaymentViewSet(ClassTenantViewMixin, viewsets.GenericViewSet):
         )
 
         return Response({"resumed": True, "class_order_id": updated.pk})
+
+    @action(
+        detail=False,
+        methods=["patch"],
+        url_path="installments/(?P<installment_id>[^/.]+)/edit",
+    )
+    def edit_installment(self, request, installment_id=None, *args, **kwargs):
+        if not (
+            request.user.is_superuser
+            or getattr(request.user, "role", None) in {"admin", "superadmin"}
+        ):
+            return Response(
+                {"detail": "Only admin or superadmin can edit installments."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        class_order = self.get_class_order()
+        try:
+            installment = ClassInstallment.objects.get(
+                pk=installment_id,
+                plan__class_order=class_order,
+            )
+        except ClassInstallment.DoesNotExist:
+            return Response({"detail": "Installment not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EditInstallmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        updated = ClassInstallmentService.edit_installment(
+            installment=installment,
+            label=data.get("label"),
+            amount=data.get("amount"),
+            due_at=data.get("due_at"),
+            edited_by=request.user,
+        )
+        return Response(ClassPaymentMilestoneSerializer(updated).data)
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="installments/(?P<installment_id>[^/.]+)/mark-paid",
+    )
+    def mark_installment_paid(self, request, installment_id=None, *args, **kwargs):
+        if not (
+            request.user.is_superuser
+            or getattr(request.user, "role", None) in {"admin", "superadmin"}
+        ):
+            return Response(
+                {"detail": "Only admin or superadmin can mark installments as paid."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        class_order = self.get_class_order()
+        try:
+            installment = ClassInstallment.objects.get(
+                pk=installment_id,
+                plan__class_order=class_order,
+            )
+        except ClassInstallment.DoesNotExist:
+            return Response({"detail": "Installment not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = MarkInstallmentPaidSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        updated = ClassInstallmentService.mark_installment_paid(
+            installment=installment,
+            transaction_reference=data.get("transaction_reference", ""),
+            note=data.get("note", ""),
+            marked_by=request.user,
+        )
+        return Response(ClassPaymentMilestoneSerializer(updated).data)
+
+    @action(detail=False, methods=["delete"], url_path="plan/reset")
+    def reset_plan(self, request, *args, **kwargs):
+        if not (
+            request.user.is_superuser
+            or getattr(request.user, "role", None) in {"admin", "superadmin"}
+        ):
+            return Response(
+                {"detail": "Only admin or superadmin can reset a payment plan."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        class_order = self.get_class_order()
+        from class_management.models import ClassInstallmentPlan
+        try:
+            plan = ClassInstallmentPlan.objects.get(class_order=class_order)
+        except ClassInstallmentPlan.DoesNotExist:
+            return Response(
+                {"detail": "No payment plan found for this class."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        ClassInstallmentService.reset_plan(
+            plan=plan,
+            reset_by=request.user,
+            reason=request.data.get("reason", ""),
+        )
+        return Response({"reset": True, "class_order_id": class_order.pk})

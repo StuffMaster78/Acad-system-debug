@@ -275,6 +275,16 @@ export const classesApi = {
       api.get<unknown[]>(base(`/classes/${classId}/payments/installments/`))
         .then((res) => ({ ...res, data: res.data.map(normalizeInstallment) })),
 
+    createPlan: (classId: number | string, payload: {
+      milestone_count: number;
+      due_dates: string[];
+      deposit_amount?: string;
+      allow_work_before_full_payment?: boolean;
+      pause_work_when_overdue?: boolean;
+      notes?: string;
+    }) =>
+      api.post<unknown>(base(`/classes/${classId}/payments/create-equal-installments/`), payload),
+
     preparePayment: (
       classId: number | string,
       payload: { amount: string | number; use_wallet?: boolean; installment_id?: number | string },
@@ -284,6 +294,27 @@ export const classesApi = {
     waive: (classId: number | string, installmentId: number | string, reason = "") =>
       api.post<unknown>(base(`/classes/${classId}/payments/installments/${installmentId}/waive/`), { reason })
         .then((res) => ({ ...res, data: normalizeInstallment(res.data) })),
+
+    edit: (classId: number | string, installmentId: number | string, payload: {
+      label?: string;
+      amount?: string;
+      due_at?: string;
+    }) =>
+      api.patch<unknown>(base(`/classes/${classId}/payments/installments/${installmentId}/edit/`), payload)
+        .then((res) => ({ ...res, data: normalizeInstallment(res.data) })),
+
+    markPaid: (classId: number | string, installmentId: number | string, payload: {
+      transaction_reference?: string;
+      note?: string;
+    }) =>
+      api.post<unknown>(base(`/classes/${classId}/payments/installments/${installmentId}/mark-paid/`), payload)
+        .then((res) => ({ ...res, data: normalizeInstallment(res.data) })),
+
+    resetPlan: (classId: number | string, reason = "") =>
+      api.delete(base(`/classes/${classId}/payments/plan/reset/`), { data: { reason } }),
+
+    resumeWork: (classId: number | string, reason = "") =>
+      api.post(base(`/classes/${classId}/payments/resume-work/`), { reason }),
   },
 
   portalAccess: {

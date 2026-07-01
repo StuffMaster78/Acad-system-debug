@@ -295,37 +295,102 @@
         </div>
 
         <!-- Installments tab -->
-        <div v-else-if="activeTab === 'installments'" class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div v-if="!store.detail.installments.length" class="py-14 text-center text-sm text-graphite">
-            No installment schedule set.
+        <div v-else-if="activeTab === 'installments'" class="space-y-3">
+
+          <!-- No plan: empty state + create button -->
+          <div v-if="!store.detail.installments.length" class="rounded-lg border border-dashed border-slate-200 bg-white py-14 text-center">
+            <CreditCard class="mx-auto size-8 text-slate-300" />
+            <p class="mt-3 text-sm font-semibold text-ink">No payment schedule set</p>
+            <p class="mt-1 text-xs text-graphite">Create an installment plan so the client pays in split amounts.</p>
+            <button v-if="canManage"
+              class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-berry px-4 py-2 text-sm font-semibold text-white hover:bg-berry/90"
+              @click="openInstallmentModal('create')"
+            >
+              <Plus class="size-4" /> Set up payment plan
+            </button>
           </div>
-          <PaymentDisclosureBanner v-else class="m-4 mb-0" />
-          <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
-              <tr>
-                <th class="px-3 py-2 text-left">Payment</th>
-                <th class="px-3 py-2 text-left">Due</th>
-                <th class="px-3 py-2 text-right">Amount</th>
-                <th class="px-3 py-2 text-center">Status</th>
-                <th class="px-3 py-2 text-left">Reference</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr v-for="inst in store.detail.installments" :key="inst.id">
-                <td class="px-3 py-2.5 font-medium text-ink">{{ inst.label }}</td>
-                <td class="px-3 py-2.5 text-graphite">{{ fmtDate(inst.due_date) }}</td>
-                <td class="px-3 py-2.5 text-right font-bold text-ink">${{ inst.amount }}</td>
-                <td class="px-3 py-2.5 text-center">
-                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="installmentStatusClass(inst.status)">
-                    {{ inst.status }}
-                  </span>
-                </td>
-                <td class="px-3 py-2.5 font-mono text-xs text-graphite">{{ inst.payment_reference ?? '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
+
+          <!-- Has plan -->
+          <template v-else>
+            <!-- Plan header -->
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+              <div class="text-sm">
+                <span class="font-semibold text-ink">{{ store.detail.installments.length }} installments</span>
+                <span class="mx-2 text-slate-300">·</span>
+                <span class="text-graphite">Total {{ formatMoney(store.detail.total_price, store.detail.currency) }}</span>
+                <span class="mx-2 text-slate-300">·</span>
+                <span :class="store.detail.payment_status === 'fully_paid' ? 'text-emerald-700 font-semibold' : 'text-amber-700'">
+                  {{ labelize(store.detail.payment_status) }}
+                </span>
+              </div>
+              <div v-if="canManage" class="flex items-center gap-2">
+                <button v-if="store.detail.status === 'paused'"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+                  :disabled="installmentSaving"
+                  @click="resumeWork"
+                >
+                  <PlayCircle class="size-3.5" /> Resume work
+                </button>
+                <button
+                  class="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                  :disabled="installmentSaving"
+                  @click="openInstallmentModal('reset')"
+                >
+                  <Trash2 class="size-3.5" /> Reset plan
+                </button>
+              </div>
+            </div>
+
+            <PaymentDisclosureBanner />
+
+            <!-- Installment rows -->
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-graphite">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Label</th>
+                    <th class="px-3 py-2 text-left">Due</th>
+                    <th class="px-3 py-2 text-right">Amount</th>
+                    <th class="px-3 py-2 text-center">Status</th>
+                    <th class="px-3 py-2 text-left">Reference</th>
+                    <th v-if="canManage" class="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr v-for="inst in store.detail.installments" :key="inst.id" class="hover:bg-slate-50/60">
+                    <td class="px-3 py-2.5 font-medium text-ink">{{ inst.label }}</td>
+                    <td class="px-3 py-2.5 text-graphite">{{ fmtDate(inst.due_date) }}</td>
+                    <td class="px-3 py-2.5 text-right font-bold text-ink">{{ formatMoney(inst.amount, inst.currency) }}</td>
+                    <td class="px-3 py-2.5 text-center">
+                      <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="installmentStatusClass(inst.status)">
+                        {{ labelize(inst.status) }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-2.5 font-mono text-xs text-graphite">{{ inst.payment_reference ?? '—' }}</td>
+                    <td v-if="canManage" class="px-3 py-2.5">
+                      <div v-if="!['paid','waived','cancelled'].includes(inst.status)" class="flex items-center justify-end gap-1">
+                        <button
+                          class="rounded px-2 py-1 text-xs font-medium text-graphite hover:bg-slate-100 disabled:opacity-50"
+                          :disabled="installmentSaving"
+                          @click="openInstallmentModal('edit', inst)"
+                        >Edit</button>
+                        <button
+                          class="rounded px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                          :disabled="installmentSaving"
+                          @click="openInstallmentModal('mark-paid', inst)"
+                        >Mark paid</button>
+                        <button
+                          class="rounded px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                          :disabled="installmentSaving"
+                          @click="openInstallmentModal('waive', inst)"
+                        >Waive</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
         </div>
 
         <!-- Portal Access tab -->
@@ -494,18 +559,151 @@
         </div>
       </template>
     </BaseModal>
+
+    <!-- ── Installment management modals ─────────────────────────────── -->
+    <BaseModal
+      :open="installmentModal.open"
+      :title="installmentModalTitle"
+      size="md"
+      @close="closeInstallmentModal"
+    >
+      <!-- CREATE PLAN -->
+      <form v-if="installmentModal.mode === 'create'" class="space-y-4" @submit.prevent="submitInstallmentModal">
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm font-medium text-ink">Number of installments</span>
+            <input v-model.number="installmentModal.count" type="number" min="1" max="24"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-ink">Deposit amount (optional)</span>
+            <input v-model="installmentModal.deposit" type="number" min="0" step="0.01" placeholder="0.00"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+          </label>
+        </div>
+        <div class="space-y-2">
+          <span class="text-sm font-medium text-ink">Due dates</span>
+          <div v-for="(_, i) in Array(installmentModal.count)" :key="i" class="flex items-center gap-2">
+            <span class="w-24 shrink-0 text-xs text-graphite">Installment {{ i + 1 }}</span>
+            <input v-model="installmentModal.dueDates[i]" type="date"
+              class="focus-ring h-9 flex-1 rounded-md border border-slate-200 px-3 text-sm" />
+          </div>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input v-model="installmentModal.allowWorkBefore" type="checkbox" class="rounded" />
+            Allow work before full payment
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input v-model="installmentModal.pauseOnOverdue" type="checkbox" class="rounded" />
+            Pause if overdue
+          </label>
+        </div>
+        <label class="block">
+          <span class="text-sm font-medium text-ink">Notes (optional)</span>
+          <textarea v-model="installmentModal.notes" rows="2"
+            class="focus-ring mt-1 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm"
+            placeholder="Internal note about this schedule" />
+        </label>
+      </form>
+
+      <!-- EDIT INSTALLMENT -->
+      <form v-else-if="installmentModal.mode === 'edit'" class="space-y-4" @submit.prevent="submitInstallmentModal">
+        <label class="block">
+          <span class="text-sm font-medium text-ink">Label</span>
+          <input v-model="installmentModal.label" type="text" maxlength="120"
+            class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+        </label>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm font-medium text-ink">Amount</span>
+            <input v-model="installmentModal.amount" type="number" step="0.01" min="0.01"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-ink">Due date</span>
+            <input v-model="installmentModal.dueAt" type="date"
+              class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm" />
+          </label>
+        </div>
+      </form>
+
+      <!-- MARK PAID -->
+      <form v-else-if="installmentModal.mode === 'mark-paid'" class="space-y-4" @submit.prevent="submitInstallmentModal">
+        <p class="text-sm text-graphite">
+          Manually record that <strong class="text-ink">{{ installmentModal.targetLabel }}</strong>
+          ({{ formatMoney(installmentModal.amount, store.detail?.currency) }}) was paid off-system.
+        </p>
+        <label class="block">
+          <span class="text-sm font-medium text-ink">Transaction reference <span class="text-graphite font-normal">(optional)</span></span>
+          <input v-model="installmentModal.reference" type="text" maxlength="255"
+            class="focus-ring mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+            placeholder="Bank ref, receipt ID, etc." />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-ink">Note <span class="text-graphite font-normal">(optional)</span></span>
+          <textarea v-model="installmentModal.notes" rows="2"
+            class="focus-ring mt-1 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm" />
+        </label>
+      </form>
+
+      <!-- WAIVE -->
+      <form v-else-if="installmentModal.mode === 'waive'" class="space-y-4" @submit.prevent="submitInstallmentModal">
+        <p class="text-sm text-graphite">
+          Waive <strong class="text-ink">{{ installmentModal.targetLabel }}</strong>
+          ({{ formatMoney(installmentModal.amount, store.detail?.currency) }}). The client will not be charged for this installment.
+        </p>
+        <label class="block">
+          <span class="text-sm font-medium text-ink">Reason</span>
+          <textarea v-model="installmentModal.notes" rows="2"
+            class="focus-ring mt-1 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm"
+            placeholder="Why is this being waived?" />
+        </label>
+      </form>
+
+      <!-- RESET PLAN -->
+      <div v-else-if="installmentModal.mode === 'reset'" class="space-y-3">
+        <p class="text-sm text-graphite">
+          This will <strong class="text-rose-700">permanently delete</strong> the payment plan and all its installments.
+          Only allowed when no installment has been paid yet.
+          You'll be able to create a new plan after.
+        </p>
+        <label class="block">
+          <span class="text-sm font-medium text-ink">Reason <span class="text-graphite font-normal">(optional)</span></span>
+          <textarea v-model="installmentModal.notes" rows="2"
+            class="focus-ring mt-1 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm" />
+        </label>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="focus-ring h-10 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold"
+            @click="closeInstallmentModal">Cancel</button>
+          <button
+            class="focus-ring h-10 rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
+            :class="installmentModal.mode === 'reset' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-berry hover:bg-berry/90'"
+            :disabled="installmentSaving || !installmentModalCanSubmit"
+            @click="submitInstallmentModal"
+          >
+            {{ installmentSaving ? "Saving…" : installmentModalConfirmLabel }}
+          </button>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from "vue";
+import { ref, computed, onMounted, reactive, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AlertCircle, ArrowLeft, Award, BookOpen, Calendar, Check, CircleDollarSign, ExternalLink, Globe, Lock, UserCheck, UserPlus, XCircle } from "@lucide/vue";
+import { AlertCircle, ArrowLeft, Award, BookOpen, Calendar, Check, CircleDollarSign, CreditCard, ExternalLink, Globe, Lock, PlayCircle, Plus, Trash2, UserCheck, UserPlus, XCircle } from "@lucide/vue";
 import { useClassesStore } from "@/stores/classes";
 import { useAuthStore } from "@/stores/auth";
+import { useUiStore } from "@/stores/ui";
+import { classesApi } from "@/api/classes";
 import PaymentDisclosureBanner from "@/components/payment/PaymentDisclosureBanner.vue";
 import BaseModal from "@/components/ui/BaseModal.vue";
-import type { ClassConfigOption, ClassPricingSnapshot, ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
+import type { ClassConfigOption, ClassInstallment, ClassPricingSnapshot, ClassStatus, ClassTaskStatus, InstallmentStatus } from "@/types/classes";
 
 const route = useRoute();
 const router = useRouter();
@@ -796,6 +994,147 @@ async function confirmClassActionDialog() {
     await store.cancelClass(store.detail.id, classActionDialog.reason.trim());
   }
   closeClassActionDialog();
+}
+
+// ── Installment management ──────────────────────────────────────────────────
+const ui = useUiStore();
+const installmentSaving = ref(false);
+
+type InstallmentModalMode = "create" | "edit" | "mark-paid" | "waive" | "reset";
+
+const installmentModal = reactive({
+  open: false,
+  mode: "create" as InstallmentModalMode,
+  targetId: null as number | null,
+  targetLabel: "",
+  // create
+  count: 2,
+  deposit: "",
+  dueDates: [] as string[],
+  allowWorkBefore: true,
+  pauseOnOverdue: true,
+  // edit
+  label: "",
+  amount: "",
+  dueAt: "",
+  // shared: mark-paid ref + waive/reset reason + mark-paid note
+  reference: "",
+  notes: "",
+});
+
+watch(() => installmentModal.count, (n) => {
+  installmentModal.dueDates = Array.from({ length: n }, (_, i) => installmentModal.dueDates[i] ?? "");
+});
+
+const installmentModalTitle = computed(() => ({
+  create: "Set up payment plan",
+  edit: "Edit installment",
+  "mark-paid": "Mark installment as paid",
+  waive: "Waive installment",
+  reset: "Reset payment plan",
+}[installmentModal.mode]));
+
+const installmentModalConfirmLabel = computed(() => ({
+  create: "Create plan",
+  edit: "Save changes",
+  "mark-paid": "Mark as paid",
+  waive: "Waive",
+  reset: "Reset plan",
+}[installmentModal.mode]));
+
+const installmentModalCanSubmit = computed(() => {
+  if (installmentModal.mode === "create") {
+    return installmentModal.count >= 1
+      && installmentModal.dueDates.slice(0, installmentModal.count).every(Boolean);
+  }
+  if (installmentModal.mode === "edit") {
+    return installmentModal.label.trim() || installmentModal.amount || installmentModal.dueAt;
+  }
+  return true;
+});
+
+function openInstallmentModal(mode: InstallmentModalMode, inst?: ClassInstallment) {
+  installmentModal.mode = mode;
+  installmentModal.targetId = inst?.id ?? null;
+  installmentModal.targetLabel = inst?.label ?? "";
+  installmentModal.label = inst?.label ?? "";
+  installmentModal.amount = inst?.amount ?? "";
+  installmentModal.dueAt = inst?.due_date ? inst.due_date.slice(0, 10) : "";
+  installmentModal.reference = "";
+  installmentModal.notes = "";
+  installmentModal.deposit = "";
+  if (mode === "create") {
+    installmentModal.count = 2;
+    installmentModal.dueDates = ["", ""];
+    installmentModal.allowWorkBefore = true;
+    installmentModal.pauseOnOverdue = true;
+  }
+  installmentModal.open = true;
+}
+
+function closeInstallmentModal() {
+  installmentModal.open = false;
+}
+
+async function submitInstallmentModal() {
+  if (!store.detail || installmentSaving.value) return;
+  const classId = store.detail.id;
+  installmentSaving.value = true;
+  try {
+    if (installmentModal.mode === "create") {
+      await classesApi.installments.createPlan(classId, {
+        milestone_count: installmentModal.count,
+        due_dates: installmentModal.dueDates.slice(0, installmentModal.count).map((d) => new Date(d).toISOString()),
+        deposit_amount: installmentModal.deposit || undefined,
+        allow_work_before_full_payment: installmentModal.allowWorkBefore,
+        pause_work_when_overdue: installmentModal.pauseOnOverdue,
+        notes: installmentModal.notes,
+      });
+      ui.toast("Payment plan created.", "success");
+    } else if (installmentModal.mode === "edit" && installmentModal.targetId) {
+      await classesApi.installments.edit(classId, installmentModal.targetId, {
+        label: installmentModal.label || undefined,
+        amount: installmentModal.amount || undefined,
+        due_at: installmentModal.dueAt ? new Date(installmentModal.dueAt).toISOString() : undefined,
+      });
+      ui.toast("Installment updated.", "success");
+    } else if (installmentModal.mode === "mark-paid" && installmentModal.targetId) {
+      await classesApi.installments.markPaid(classId, installmentModal.targetId, {
+        transaction_reference: installmentModal.reference,
+        note: installmentModal.notes,
+      });
+      ui.toast("Installment marked as paid.", "success");
+    } else if (installmentModal.mode === "waive" && installmentModal.targetId) {
+      await classesApi.installments.waive(classId, installmentModal.targetId, installmentModal.notes);
+      ui.toast("Installment waived.", "success");
+    } else if (installmentModal.mode === "reset") {
+      await classesApi.installments.resetPlan(classId, installmentModal.notes);
+      ui.toast("Payment plan reset.", "success");
+    }
+    closeInstallmentModal();
+    // Reload installments
+    const res = await classesApi.installments.list(classId);
+    if (store.detail) store.detail.installments = res.data;
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    ui.toast(msg ?? "Could not complete that action.", "error");
+  } finally {
+    installmentSaving.value = false;
+  }
+}
+
+async function resumeWork() {
+  if (!store.detail || installmentSaving.value) return;
+  installmentSaving.value = true;
+  try {
+    await classesApi.installments.resumeWork(store.detail.id);
+    ui.toast("Work resumed.", "success");
+    await store.loadDetail(store.detail.id);
+  } catch {
+    ui.toast("Could not resume work.", "error");
+  } finally {
+    installmentSaving.value = false;
+  }
 }
 
 function fmtDate(v: string): string {

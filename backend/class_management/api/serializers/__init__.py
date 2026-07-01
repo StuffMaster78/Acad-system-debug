@@ -34,7 +34,9 @@ from .class_payment_serializers import (
     ClassPaymentScheduleSerializer,
     CreateEqualInstallmentPlanSerializer,
     CreateEqualPaymentScheduleSerializer,
+    EditInstallmentSerializer,
     ManualVerifiedClassPaymentSerializer,
+    MarkInstallmentPaidSerializer,
     PrepareClassPaymentSerializer,
 )
 from .class_pricing_serializers import (

@@ -132,6 +132,26 @@ class ClassInvoiceLinkSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class EditInstallmentSerializer(serializers.Serializer):
+    label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    due_at = serializers.DateTimeField(required=False)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Provide at least one field to update.")
+        return attrs
+
+
+class MarkInstallmentPaidSerializer(serializers.Serializer):
+    transaction_reference = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
+    note = serializers.CharField(
+        max_length=1000, required=False, allow_blank=True, default=""
+    )
+
+
 # Backwards-compatible aliases while old callers migrate to payment schedules.
 ClassInstallmentPlanSerializer = ClassPaymentScheduleSerializer
 ClassInstallmentSerializer = ClassPaymentMilestoneSerializer
