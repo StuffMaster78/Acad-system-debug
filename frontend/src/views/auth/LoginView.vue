@@ -29,6 +29,11 @@ const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
 const brandSlug = computed(() =>
   (isDev && (route.query.brand as string)) || portalCtx.website?.slug || ""
 );
+const forgotLink = computed(() =>
+  isDev && brandSlug.value
+    ? `/auth/forgot-password?brand=${brandSlug.value}`
+    : "/auth/forgot-password"
+);
 
 type Tab = "password" | "magic";
 const tab = ref<Tab>("password");
@@ -379,7 +384,7 @@ onBeforeUnmount(() => {
                   <EyeOff v-if="showPassword" class="h-4 w-4" /><Eye v-else class="h-4 w-4" />
                 </button>
               </div>
-              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs font-medium text-[#06b6d4]/70 hover:text-[#06b6d4] transition-colors" to="/auth/forgot-password">Forgot password?</RouterLink>
+              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs font-medium text-[#06b6d4]/70 hover:text-[#06b6d4] transition-colors" :to="forgotLink">Forgot password?</RouterLink>
             </div>
 
             <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-150" leave-to-class="opacity-0">
@@ -570,7 +575,7 @@ onBeforeUnmount(() => {
                 <input id="gc-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-emerald-900/50 bg-emerald-950/40 px-4 pr-10 text-sm text-white placeholder:text-emerald-700 outline-none focus:border-emerald-600/60 focus:ring-2 focus:ring-emerald-600/20 transition-all" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="••••••••" required />
                 <button type="button" tabindex="-1" class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-700 hover:text-emerald-400 transition-colors" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" class="h-4 w-4"/><Eye v-else class="h-4 w-4"/></button>
               </div>
-              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-emerald-500/70 hover:text-emerald-400 transition-colors" to="/auth/forgot-password">Forgot password?</RouterLink>
+              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-emerald-500/70 hover:text-emerald-400 transition-colors" :to="forgotLink">Forgot password?</RouterLink>
             </div>
             <div v-if="error" class="rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">{{ error }}</div>
             <div v-if="mfaRequired" class="space-y-3">
@@ -678,7 +683,7 @@ onBeforeUnmount(() => {
                 <input id="em-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="••••••••" required />
                 <button type="button" tabindex="-1" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" class="h-4 w-4"/><Eye v-else class="h-4 w-4"/></button>
               </div>
-              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-purple-500 hover:text-purple-700 transition-colors" to="/auth/forgot-password">Forgot password?</RouterLink>
+              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-purple-500 hover:text-purple-700 transition-colors" :to="forgotLink">Forgot password?</RouterLink>
             </div>
             <div v-if="error" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
             <div v-if="mfaRequired" class="space-y-3">
@@ -788,7 +793,7 @@ onBeforeUnmount(() => {
                 <input id="nmg-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="••••••••" required />
                 <button type="button" tabindex="-1" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-teal-500 transition-colors" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" class="h-4 w-4"/><Eye v-else class="h-4 w-4"/></button>
               </div>
-              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-teal-600 hover:text-teal-800 transition-colors" to="/auth/forgot-password">Forgot password?</RouterLink>
+              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-teal-600 hover:text-teal-800 transition-colors" :to="forgotLink">Forgot password?</RouterLink>
             </div>
             <div v-if="error" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
             <div v-if="mfaRequired" class="space-y-3">
@@ -909,7 +914,7 @@ onBeforeUnmount(() => {
                 <input id="rpm-pw" v-model="form.password" class="h-11 w-full rounded-xl border border-blue-900/50 bg-blue-950/40 px-4 pr-10 text-sm text-white placeholder:text-blue-800 outline-none focus:border-cyan-700/60 focus:ring-2 focus:ring-cyan-700/20 transition-all" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="••••••••" required />
                 <button type="button" tabindex="-1" class="absolute right-3 top-1/2 -translate-y-1/2 text-blue-800 hover:text-cyan-400 transition-colors" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" class="h-4 w-4"/><Eye v-else class="h-4 w-4"/></button>
               </div>
-              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-cyan-600/70 hover:text-cyan-400 transition-colors" to="/auth/forgot-password">Forgot password?</RouterLink>
+              <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs text-cyan-600/70 hover:text-cyan-400 transition-colors" :to="forgotLink">Forgot password?</RouterLink>
             </div>
             <div v-if="error" class="rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">{{ error }}</div>
             <div v-if="mfaRequired" class="space-y-3">
@@ -974,7 +979,7 @@ onBeforeUnmount(() => {
               <input id="fb-pw" v-model="form.password" class="focus-ring h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 pr-10 text-sm placeholder:text-slate-400 transition-colors" autocomplete="current-password" :type="showPassword?'text':'password'" placeholder="••••••••" required />
               <button type="button" tabindex="-1" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" class="h-4 w-4"/><Eye v-else class="h-4 w-4"/></button>
             </div>
-            <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs font-medium text-signal hover:underline" to="/auth/forgot-password">Forgot password?</RouterLink>
+            <RouterLink tabindex="-1" class="mt-1.5 block text-right text-xs font-medium text-signal hover:underline" :to="forgotLink">Forgot password?</RouterLink>
           </div>
           <div v-if="error" class="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800">{{ error }}</div>
           <div v-if="mfaRequired" class="space-y-3">
