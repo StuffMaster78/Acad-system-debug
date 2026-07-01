@@ -23,9 +23,11 @@ const isWriterSurface = computed(
 );
 const brandName = computed(() => portalCtx.branding?.brand_name || "");
 const brandLogo = computed(() => portalCtx.branding?.logo_url || "");
-// Brand slug drives the themed login page; dev override via ?brand=slugname
+// Brand slug drives the themed login page.
+// Dev: ?brand=gradecrest overrides so you can preview without a real domain.
+// Prod: resolved from portalCtx.website.slug (set by Host: header).
 const brandSlug = computed(() =>
-  portalCtx.website?.slug || (isDev ? (route.query.brand as string) : "") || ""
+  (isDev && (route.query.brand as string)) || portalCtx.website?.slug || ""
 );
 
 type Tab = "password" | "magic";
